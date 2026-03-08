@@ -205,39 +205,45 @@ export default function AdminPage(){
 
       {/* SIDEBAR */}
 
-      <div className="w-64 bg-emerald-700 text-white flex flex-col p-6">
+<div className="w-64 bg-emerald-700 text-white flex flex-col p-6">
 
-        <h2 className="text-xl font-bold mb-10">
-          Bean Machine
-        </h2>
+  <h2 className="text-xl font-bold mb-10">
+    Bean Machine
+  </h2>
 
-        <nav className="flex flex-col gap-4">
+  <nav className="flex flex-col gap-4">
 
-          <button
-            onClick={()=>window.location.href="/admin"}
-            className="text-left hover:opacity-80"
-          >
-            Dashboard
-          </button>
+    <button
+      onClick={()=>window.location.href="/admin"}
+      className="text-left hover:opacity-80"
+    >
+      Dashboard
+    </button>
 
-          <button
-            onClick={()=>window.location.href="/settings"}
-            className="text-left hover:opacity-80"
-          >
-            Settings
-          </button>
+    <button
+      onClick={()=>window.location.href="/activity"}
+      className="text-left hover:opacity-80"
+    >
+      Activity
+    </button>
 
-          <button
-            onClick={logout}
-            className="text-left hover:opacity-80 mt-10"
-          >
-            Logout
-          </button>
+    <button
+      onClick={()=>window.location.href="/settings"}
+      className="text-left hover:opacity-80"
+    >
+      Settings
+    </button>
 
-        </nav>
+    <button
+      onClick={logout}
+      className="text-left hover:opacity-80 mt-10"
+    >
+      Logout
+    </button>
 
-      </div>
+  </nav>
 
+</div>
 
 
       {/* MAIN AREA */}
