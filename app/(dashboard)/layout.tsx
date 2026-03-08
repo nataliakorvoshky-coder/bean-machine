@@ -99,10 +99,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   Dashboard
   </Link>
 
-  <Link href="/activity" className="hover:text-emerald-200">
-  Activity
-  </Link>
-
   <Link href="/settings" className="hover:text-emerald-200">
   Settings
   </Link>
