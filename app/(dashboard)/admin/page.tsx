@@ -13,6 +13,10 @@ export default function AdminPage(){
  const [status,setStatus] = useState("active")
  const [isAdmin,setIsAdmin] = useState(false)
 
+
+
+ /* LOAD USERS */
+
  async function loadUsers(){
 
   const res = await fetch("/api/admin/list-users")
@@ -21,6 +25,10 @@ export default function AdminPage(){
   setUsers(data.users || [])
 
  }
+
+
+
+ /* CREATE USER */
 
  async function createUser(){
 
@@ -42,15 +50,53 @@ export default function AdminPage(){
   const result = await res.json()
 
   if(result.error){
+
    setMessage(result.error)
+
   }else{
+
    setMessage("User created successfully")
    setEmail("")
    setPassword("")
    loadUsers()
+
   }
 
  }
+
+
+
+ /* DELETE USER */
+
+ async function deleteUser(id:string){
+
+  const confirmDelete = confirm("Delete this user account?")
+
+  if(!confirmDelete) return
+
+  const res = await fetch("/api/admin/delete-user",{
+   method:"POST",
+   headers:{ "Content-Type":"application/json" },
+   body: JSON.stringify({ id })
+  })
+
+  const result = await res.json()
+
+  if(result.success){
+
+   loadUsers()
+
+  }else{
+
+   alert(result.error || "Failed to delete user")
+
+  }
+
+ }
+
+
+
+ /* ADMIN CHECK */
 
  useEffect(()=>{
 
@@ -87,6 +133,10 @@ export default function AdminPage(){
 
  },[])
 
+
+
+ /* IDLE DETECTION */
+
  useEffect(()=>{
 
   let idleTimer:any
@@ -109,11 +159,17 @@ export default function AdminPage(){
   setActive()
 
   return ()=>{
+
    window.removeEventListener("mousemove",setActive)
    window.removeEventListener("keydown",setActive)
+
   }
 
  },[])
+
+
+
+ /* REALTIME PRESENCE */
 
  useEffect(()=>{
 
@@ -134,8 +190,10 @@ export default function AdminPage(){
 
    channel
     .on("presence",{event:"sync"},()=>{
+
      const state = channel.presenceState()
      setPresence(state)
+
     })
     .subscribe(async(statusResp:any)=>{
 
@@ -155,14 +213,20 @@ export default function AdminPage(){
   startPresence()
 
   return ()=>{
+
    if(channel){
     supabase.removeChannel(channel)
    }
+
   }
 
  },[status])
 
+
+
  if(!isAdmin) return null
+
+
 
  return(
 
@@ -172,115 +236,133 @@ export default function AdminPage(){
   Admin Dashboard
  </h1>
 
+
+
  <div className="flex gap-12">
 
-  {/* CREATE USER */}
 
-  <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
-   <h2 className="font-semibold mb-6 text-emerald-700">
-    Create User
-   </h2>
+ {/* CREATE USER PANEL */}
 
-   <label className="block text-sm mb-1">
-    Email
-   </label>
+ <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
-  <input
+ <h2 className="font-semibold mb-6 text-emerald-700">
+  Create User
+ </h2>
+
+ <label className="block text-sm mb-1">
+  Email
+ </label>
+
+ <input
  value={email}
  onChange={(e)=>setEmail(e.target.value)}
  className="border border-emerald-400 p-3 w-full rounded mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500"
-/>
+ />
 
-   <label className="block text-sm mb-1">
-    Temporary Password
-   </label>
+ <label className="block text-sm mb-1">
+  Temporary Password
+ </label>
 
  <input
  value={password}
  onChange={(e)=>setPassword(e.target.value)}
  className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500"
-/>
+ />
 
-   <button
-    onClick={createUser}
-    className="bg-emerald-500 text-white p-3 w-full rounded hover:bg-emerald-600"
-   >
-    Create User
-   </button>
+ <button
+ onClick={createUser}
+ className="bg-emerald-500 text-white p-3 w-full rounded hover:bg-emerald-600"
+ >
+  Create User
+ </button>
 
-   {message &&(
-    <p className="text-sm text-gray-600 mt-4">
-     {message}
-    </p>
-   )}
+ {message &&(
+  <p className="text-sm text-gray-600 mt-4">
+   {message}
+  </p>
+ )}
+
+ </div>
+
+
+
+ {/* CURRENT USERS PANEL */}
+
+ <div className="w-[420px] bg-white p-8 rounded-xl shadow">
+
+ <h2 className="font-semibold mb-6 text-emerald-700">
+  Current Users ({users.length})
+ </h2>
+
+ <div className="space-y-3">
+
+ {users.map((u:any)=>{
+
+  const state = presence[u.id]
+
+  let color="bg-gray-400"
+  let text="Offline"
+
+  if(state){
+
+   const userState = state[0]?.status
+
+   if(userState==="active"){
+    color="bg-green-400"
+    text="Active"
+   }
+
+   if(userState==="idle"){
+    color="bg-yellow-400"
+    text="Idle"
+   }
+
+  }
+
+  return(
+
+  <div
+   key={u.id}
+   className="flex justify-between items-center border p-3 rounded"
+  >
+
+  <span className="font-medium">
+   {u.username || u.email}
+  </span>
+
+  <div className="flex items-center gap-3">
+
+  <div className="flex items-center gap-2">
+
+  <div className={`w-3 h-3 rounded-full ${color}`} />
+
+  <span className="text-sm text-gray-500">
+  {text}
+  </span>
+
+  </div>
+
+  <button
+   onClick={()=>deleteUser(u.id)}
+   className="text-red-500 hover:text-red-700 text-sm"
+  >
+   Delete
+  </button>
 
   </div>
 
-
-  {/* USERS */}
-
-  <div className="w-[420px] bg-white p-8 rounded-xl shadow">
-
-   <h2 className="font-semibold mb-6 text-emerald-700">
-    Current Users ({users.length})
-   </h2>
-
-   <div className="space-y-3">
-
-    {users.map((u:any)=>{
-
-     const state = presence[u.id]
-
-     let color="bg-gray-400"
-     let text="Offline"
-
-     if(state){
-
-      const userState = state[0]?.status
-
-      if(userState==="active"){
-       color="bg-green-400"
-       text="Active"
-      }
-
-      if(userState==="idle"){
-       color="bg-yellow-400"
-       text="Idle"
-      }
-
-     }
-
-     return(
-
-      <div
-       key={u.id}
-       className="flex justify-between items-center border p-3 rounded"
-      >
-
-       <span className="font-medium">
-        {u.username || u.email}
-       </span>
-
-       <div className="flex items-center gap-2">
-
-        <div className={`w-3 h-3 rounded-full ${color}`} />
-
-        <span className="text-sm text-gray-500">
-         {text}
-        </span>
-
-       </div>
-
-      </div>
-
-     )
-
-    })}
-
-   </div>
-
   </div>
+
+  )
+
+ })}
+
+ </div>
+
+ </div>
+
+
 
  </div>
 
