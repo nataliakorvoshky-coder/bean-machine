@@ -3,35 +3,34 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-
-  const [username, setUsername] = useState("Loading...")
-  const [status, setStatus] = useState("online")
+import { UserProvider, useUser } from "@/lib/UserContext"
 
 
 
-  async function logout() {
+function DashboardShell({ children }: { children: React.ReactNode }) {
+
+  const { username, setUsername } = useUser()
+  const [status,setStatus] = useState("online")
+
+
+
+  async function logout(){
     await supabase.auth.signOut()
-    window.location.href = "/"
+    window.location.href="/"
   }
 
 
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    async function loadUser() {
+    async function loadUser(){
 
       const { data } = await supabase.auth.getUser()
 
       const user = data.user
 
-      if (!user) {
-        window.location.href = "/"
+      if(!user){
+        window.location.href="/"
         return
       }
 
@@ -41,7 +40,7 @@ export default function DashboardLayout({
         .eq("user_id", user.id)
         .single()
 
-      if (profile?.username) {
+      if(profile?.username){
         setUsername(profile.username)
       }
 
@@ -49,87 +48,108 @@ export default function DashboardLayout({
 
     loadUser()
 
-  }, [])
+  },[])
 
 
 
-  function getStatusColor() {
+  function getStatusColor(){
 
-    if (status === "online") return "bg-green-400"
-    if (status === "idle") return "bg-yellow-400"
+    if(status==="online") return "bg-green-400"
+    if(status==="idle") return "bg-yellow-400"
     return "bg-gray-400"
 
   }
 
 
 
-  return (
+  return(
 
-    <main className="flex min-h-screen">
-
-      {/* SIDEBAR */}
-
-      <div className="w-[240px] bg-emerald-800 text-white flex flex-col p-6">
-
-        <h1 className="text-xl font-bold mb-8">
-          Bean Machine
-        </h1>
+  <main className="flex min-h-screen">
 
 
 
-        {/* USER PANEL */}
 
-        <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
+  {/* SIDEBAR */}
 
-          <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
+  <div className="w-[240px] bg-emerald-800 text-white flex flex-col p-6">
 
-          <span className="font-semibold">
-            {username}
-          </span>
-
-        </div>
+  <h1 className="text-xl font-bold mb-8">
+  Bean Machine
+  </h1>
 
 
 
-        {/* NAVIGATION */}
+  {/* USER PANEL */}
 
-        <nav className="flex flex-col gap-5 text-sm">
+  <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
-          <Link href="/dashboard" className="hover:text-emerald-200">
-            Dashboard
-          </Link>
+  <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
-          <Link href="/activity" className="hover:text-emerald-200">
-            Activity
-          </Link>
+  <span className="font-semibold">
+  {username}
+  </span>
 
-          <Link href="/settings" className="hover:text-emerald-200">
-            Settings
-          </Link>
-
-          <button
-            onClick={logout}
-            className="text-left hover:text-emerald-200"
-          >
-            Logout
-          </button>
-
-        </nav>
-
-      </div>
+  </div>
 
 
 
-      {/* PAGE CONTENT */}
+  {/* NAVIGATION */}
 
-      <div className="flex-1 bg-gradient-to-br from-emerald-100 to-emerald-200 flex justify-center items-start pt-20">
+  <nav className="flex flex-col gap-5 text-sm">
 
-        {children}
+  <Link href="/dashboard" className="hover:text-emerald-200">
+  Dashboard
+  </Link>
 
-      </div>
+  <Link href="/activity" className="hover:text-emerald-200">
+  Activity
+  </Link>
 
-    </main>
+  <Link href="/settings" className="hover:text-emerald-200">
+  Settings
+  </Link>
 
+  <button
+  onClick={logout}
+  className="text-left hover:text-emerald-200"
+  >
+  Logout
+  </button>
+
+  </nav>
+
+  </div>
+
+
+
+  {/* PAGE CONTENT */}
+
+  <div className="flex-1 bg-gradient-to-br from-emerald-100 to-emerald-200 flex justify-center items-start pt-20">
+
+  {children}
+
+  </div>
+
+
+
+  </main>
+
+  )
+
+}
+
+
+
+export default function DashboardLayout({
+  children
+}:{
+  children: React.ReactNode
+}){
+
+  return(
+    <UserProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </UserProvider>
   )
 
 }

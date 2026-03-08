@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { useUser } from "@/lib/UserContext"
 
 export default function SettingsPage(){
 
-  const [username,setUsername] = useState("")
+  const { username,setUsername } = useUser()
+
+  const [localUsername,setLocalUsername] = useState("")
   const [password,setPassword] = useState("")
   const [message,setMessage] = useState("")
 
@@ -16,7 +19,6 @@ export default function SettingsPage(){
     async function loadProfile(){
 
       const { data } = await supabase.auth.getUser()
-
       const user = data.user
 
       if(!user) return
@@ -28,7 +30,7 @@ export default function SettingsPage(){
         .single()
 
       if(profile?.username){
-        setUsername(profile.username)
+        setLocalUsername(profile.username)
       }
 
     }
@@ -42,7 +44,6 @@ export default function SettingsPage(){
   async function updateUsername(){
 
     const { data } = await supabase.auth.getUser()
-
     const user = data.user
 
     if(!user) return
@@ -51,8 +52,10 @@ export default function SettingsPage(){
       .from("profiles")
       .upsert({
         user_id:user.id,
-        username
+        username:localUsername
       })
+
+    setUsername(localUsername)
 
     setMessage("Username updated successfully")
 
@@ -83,15 +86,13 @@ export default function SettingsPage(){
 
 
 
-  {/* USERNAME */}
-
   <label className="block mb-2 font-semibold text-emerald-700">
   Username
   </label>
 
   <input
-  value={username}
-  onChange={(e)=>setUsername(e.target.value)}
+  value={localUsername}
+  onChange={(e)=>setLocalUsername(e.target.value)}
   className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-400"
   />
 
