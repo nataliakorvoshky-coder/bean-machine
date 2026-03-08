@@ -28,42 +28,37 @@ export default function HomePage() {
     document.cookie=`user_id=${data.user.id}; path=/`
 
     router.push("/admin")
-
   }
 
   return (
 
-    <main className="relative min-h-screen flex items-center justify-center">
+    <main className="relative min-h-screen flex items-center justify-center bg-emerald-100">
 
-      {/* Coffee background */}
+      {/* Coffee Image */}
 
       <img
         src="/coffee.png"
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute right-0 top-0 h-full w-auto object-contain"
       />
 
-      {/* Mint overlay */}
+      {/* Mint Overlay */}
 
       <div className="absolute inset-0 bg-emerald-100/70"></div>
 
 
-      {/* Login card */}
+      {/* Login Card */}
 
       <div className="relative bg-white p-10 rounded-2xl shadow-2xl w-[360px]">
 
         <div className="text-center mb-8">
 
-          <img
-            src="/logo.png"
-            className="w-16 mx-auto mb-4"
-          />
+          <img src="/logo.png" className="w-16 mx-auto mb-4"/>
 
           <h1 className="text-2xl font-bold text-emerald-700">
             Login
           </h1>
 
         </div>
-
 
         <form onSubmit={login} className="space-y-5">
 
