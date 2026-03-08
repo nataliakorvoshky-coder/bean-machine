@@ -10,18 +10,19 @@ export default function HomePage() {
 
     <main className="min-h-screen bg-emerald-100 flex items-center justify-center">
 
-      <div className="flex w-full max-w-5xl shadow-2xl rounded-2xl overflow-hidden bg-white">
+      <div className="flex w-full max-w-6xl shadow-2xl rounded-2xl overflow-hidden bg-white">
+
 
         {/* LEFT LOGIN PANEL */}
 
-        <div className="w-full md:w-1/2 p-10 flex flex-col justify-center items-center">
+        <div className="w-full md:w-1/2 p-12 flex flex-col justify-center items-center">
 
           <img
             src="/logo.png"
             className="w-20 mb-6"
           />
 
-          <h1 className="text-3xl font-bold text-emerald-700 mb-6">
+          <h1 className="text-3xl font-bold text-emerald-700 mb-8">
             Bean Machine
           </h1>
 
@@ -33,6 +34,7 @@ export default function HomePage() {
           </button>
 
         </div>
+
 
 
         {/* RIGHT IMAGE PANEL */}
