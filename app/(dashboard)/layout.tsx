@@ -141,12 +141,12 @@ Bean Machine
 
   <nav className="flex flex-col gap-2 text-sm pl-3">
 
-  <Link
-  href="/admin"
-  className={`${pathname==="/admin"?"font-semibold text-white":"hover:text-emerald-200"}`}
-  >
-  Admin Panel Page
-  </Link>
+<Link
+href="/admin"
+className={`${pathname==="/admin"?"font-semibold text-white":"hover:text-emerald-200"}`}
+>
+Admin Dashboard
+</Link>
 
   <Link
   href="/dashboard"
