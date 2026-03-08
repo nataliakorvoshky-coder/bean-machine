@@ -84,8 +84,8 @@ return(
 <Image
 src="/logo.png"
 alt="Bean Machine"
-width={48}
-height={48}
+width={54}
+height={54}
 />
 
 <h1 className="text-3xl font-bold leading-tight">
