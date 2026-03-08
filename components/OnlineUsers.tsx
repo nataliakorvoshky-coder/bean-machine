@@ -54,38 +54,40 @@ export default function OnlineUsers(){
 
 
 
- return(
+return(
 
- <div className="bg-white rounded-xl shadow p-4 mt-6">
+<div className="bg-white rounded-xl shadow p-6">
 
- <h2 className="text-sm font-bold text-emerald-700 mb-3">
- Online Users
- </h2>
+<h2 className="text-lg font-bold text-emerald-700 mb-4">
+Online Users
+</h2>
 
- <div className="space-y-2">
+<div className="space-y-2">
 
- {users.map((u:any,i:number)=>(
+{users.map((u:any,i:number)=>(
 
- <div key={i} className="flex items-center gap-2 text-sm">
+<div key={i} className="flex items-center gap-2 text-sm">
 
- <div className="w-2 h-2 bg-green-400 rounded-full" />
+<div className="w-2 h-2 bg-green-400 rounded-full" />
 
- {u.username}
+<span className="text-gray-700">
+{u.username}
+</span>
 
- </div>
+</div>
 
- ))}
+))}
 
- {users.length === 0 && (
-  <div className="text-gray-400 text-sm">
-  No users online
-  </div>
- )}
+{users.length===0 && (
+<div className="text-gray-400 text-sm">
+No users online
+</div>
+)}
 
- </div>
+</div>
 
- </div>
+</div>
 
- )
+)
 
 }

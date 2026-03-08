@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
@@ -45,23 +45,29 @@ export default function Dashboard(){
 
  return(
 
- <main className="p-10">
+ <main className="w-full">
 
- <h1 className="text-2xl font-bold text-emerald-700 mb-4">
+ {/* PAGE HEADER */}
+
+ <div className="mb-10">
+
+ <h1 className="text-2xl font-bold text-emerald-700">
  Dashboard
  </h1>
 
  {user && (
- <p className="mb-8 text-gray-700">
+ <p className="text-gray-600 mt-1">
  Logged in as: {user.email}
  </p>
  )}
 
+ </div>
 
 
- {/* DASHBOARD GRID */}
 
- <div className="grid grid-cols-2 gap-8">
+ {/* DASHBOARD PANELS */}
+
+ <div className="grid grid-cols-2 gap-8 max-w-5xl">
 
  <OnlineUsers />
 
@@ -71,12 +77,18 @@ export default function Dashboard(){
 
 
 
+ {/* LOGOUT */}
+
+ <div className="mt-10">
+
  <button
  onClick={logout}
- className="mt-10 bg-emerald-500 text-white px-5 py-3 rounded hover:bg-emerald-600"
+ className="bg-emerald-500 text-white px-6 py-3 rounded-lg hover:bg-emerald-600 transition"
  >
  Logout
  </button>
+
+ </div>
 
  </main>
 
