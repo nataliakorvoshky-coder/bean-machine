@@ -106,12 +106,22 @@ export default function AdminPage() {
 
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen text-xl">
-        Checking permissions...
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex items-center justify-center">
+
+      <div className="bg-white p-10 rounded-xl shadow-lg flex flex-col items-center gap-4 animate-fadeIn">
+
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+
+        <p className="text-emerald-700 font-semibold">
+          Checking permissions...
+        </p>
+
       </div>
-    )
-  }
+
+    </div>
+  )
+}
 
 
   return (
