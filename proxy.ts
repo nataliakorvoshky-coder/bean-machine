@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
 
   // If not logged in → send to homepage login
   if (!userId || userId === "") {
-    return NextResponse.redirect(new URL("/", request.url))
+    return NextResponse.redirect(new URL("/login", request.url))
   }
 
   return NextResponse.next()

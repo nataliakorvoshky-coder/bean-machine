@@ -79,18 +79,16 @@ export default function AdminPage() {
 
       const { data:{user} } = await supabase.auth.getUser()
 
-      if(!user){
-        window.location.href="/"
-        return
-      }
+     if (!user) {
+  window.location.href="/login"
+}
 
       const res = await fetch(`/api/admin/check-admin?userId=${user.id}`)
       const data = await res.json()
 
-      if(!data.admin){
-        window.location.href="/"
-        return
-      }
+    if (!data.admin) {
+  window.location.href="/login"
+}
 
       setLoading(false)
     }
