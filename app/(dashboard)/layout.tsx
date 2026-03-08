@@ -21,33 +21,33 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
 
 
- useEffect(()=>{
+  useEffect(()=>{
 
-  async function loadUser(){
+    async function loadUser(){
 
-    const { data } = await supabase.auth.getUser()
-    const user = data.user
+      const { data } = await supabase.auth.getUser()
+      const user = data.user
 
-    if(!user){
-      window.location.href="/"
-      return
+      if(!user){
+        window.location.href="/"
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single()
+
+      if(profile?.username){
+        setUsername(profile.username)
+      }
+
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)   // ✅ FIXED HERE
-      .maybeSingle()
+    loadUser()
 
-    if(profile?.username){
-      setUsername(profile.username)
-    }
-
-  }
-
-  loadUser()
-
-},[])
+  },[])
 
 
 
@@ -64,8 +64,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   return(
 
   <main className="flex min-h-screen">
-
-
 
 
   {/* SIDEBAR */}
@@ -85,7 +83,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
   <span className="font-semibold">
-  {username}
+  {username || "User"}
   </span>
 
   </div>

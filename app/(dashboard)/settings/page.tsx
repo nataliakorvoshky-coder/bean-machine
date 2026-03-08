@@ -41,24 +41,27 @@ export default function SettingsPage(){
 
 
 
-  async function updateUsername(){
+async function updateUsername(){
 
-  const { data } = await supabase.auth.getUser()
-  const user = data.user
+ const { data } = await supabase.auth.getUser()
+ const user = data.user
 
-  if(!user) return
+ if(!user) return
 
-  const { error } = await supabase
-    .from("profiles")
-    .upsert({
-      user_id: user.id,
-      username: localUsername
-    })
+ const res = await fetch("/api/user/update-username",{
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({
+   userId:user.id,
+   username
+  })
+ })
 
-  if(!error){
-    setUsername(localUsername)
-    setMessage("Username updated successfully")
-  }
+ const result = await res.json()
+
+ if(result.success){
+  setMessage("Username updated successfully")
+ }
 
 }
 
