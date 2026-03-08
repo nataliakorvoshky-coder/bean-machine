@@ -132,7 +132,7 @@ Bean Machine
 
   <button
   onClick={()=>setAdminOpen(!adminOpen)}
-  className="font-semibold mb-3 hover:text-emerald-200"
+   className="font-semibold mb-3 hover:text-emerald-200"
   >
   Admin Panel
   </button>
@@ -145,7 +145,7 @@ Bean Machine
  href="/admin"
  className={`block pl-4 ${
   pathname === "/admin"
-   ? "text-white font-semibold"
+   ? "text-white"
    : "hover:text-emerald-200"
  }`}
 >
