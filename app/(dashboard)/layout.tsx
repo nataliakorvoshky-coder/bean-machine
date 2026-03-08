@@ -37,20 +37,20 @@ export default function DashboardLayout({
 
       // Fetch username from profile table
       const res = await fetch("/api/user/profile",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          userId:user.id
-        })
-      })
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({
+    userId:user.id
+  })
+})
 
-      const profile = await res.json()
+const profile = await res.json()
 
-      if(profile?.username){
-        setUsername(profile.username)
-      }
-
-    }
+if(profile?.username){
+  setUsername(profile.username)
+} else {
+  setUsername("User")
+}
 
     loadUser()
 

@@ -8,23 +8,24 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
 
-  const { userId, username } = await req.json()
+  const { userId } = await req.json()
 
-  if(!userId || !username){
-    return NextResponse.json({ error: "Missing fields" })
+  if(!userId){
+    return NextResponse.json({ error: "Missing userId" })
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
-    .upsert({
-      user_id: userId,
-      username
-    })
+    .select("username")
+    .eq("user_id", userId)
+    .single()
 
   if(error){
     return NextResponse.json({ error })
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({
+    username: data.username
+  })
 
 }
