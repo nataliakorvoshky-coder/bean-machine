@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
 
 export default function AdminPage() {
 
@@ -9,26 +10,31 @@ export default function AdminPage() {
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
   const [selectedUser, setSelectedUser] = useState("")
+  const [loading, setLoading] = useState(true)
 
-  async function loadUsers() {
+
+  async function loadUsers(){
+
     const res = await fetch("/api/admin/list-users")
     const data = await res.json()
+
     setUsers(data.users || [])
   }
 
-  async function createUser() {
 
-    const res = await fetch("/api/admin/create-user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+  async function createUser(){
+
+    const res = await fetch("/api/admin/create-user",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email,password})
     })
 
     const data = await res.json()
 
-    if (data.error) {
+    if(data.error){
       setMessage(data.error)
-    } else {
+    } else{
       setMessage("User created successfully")
       setEmail("")
       setPassword("")
@@ -36,41 +42,78 @@ export default function AdminPage() {
     }
   }
 
-  async function deleteUser(id: string) {
+
+  async function deleteUser(id:string){
 
     if(!id){
-      alert("Please select a user first")
+      alert("Select a user first")
       return
     }
 
     const confirmed = confirm("Delete this user?")
-    if (!confirmed) return
+    if(!confirmed) return
 
-    await fetch("/api/admin/delete-user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id })
+    await fetch("/api/admin/delete-user",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id})
     })
 
     setSelectedUser("")
     loadUsers()
   }
 
-  function logout() {
-    window.location.href = "/login"
+
+  function logout(){
+
+    document.cookie =
+      "user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+
+    window.location.href="/"
   }
 
+
   useEffect(()=>{
+
+    async function checkAdmin(){
+
+      const { data:{user} } = await supabase.auth.getUser()
+
+      if(!user){
+        window.location.href="/"
+        return
+      }
+
+      const res = await fetch(`/api/admin/check-admin?userId=${user.id}`)
+      const data = await res.json()
+
+      if(!data.admin){
+        window.location.href="/"
+        return
+      }
+
+      setLoading(false)
+    }
+
+    checkAdmin()
     loadUsers()
+
   },[])
 
 
+  if(loading){
+    return(
+      <div className="flex justify-center items-center h-screen text-xl">
+        Checking permissions...
+      </div>
+    )
+  }
 
-  return (
+
+  return(
 
     <main className="min-h-screen bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200">
 
-      {/* HEADER */}
 
       <div className="bg-emerald-700 shadow-md py-5 relative flex justify-center items-center">
 
@@ -78,20 +121,15 @@ export default function AdminPage() {
           Admin Dashboard
         </h1>
 
-        {/* Logout button right side */}
-
         <button
           onClick={logout}
-          className="absolute right-8 text-white font-semibold hover:opacity-80 transition"
+          className="absolute right-8 text-white font-semibold hover:opacity-80"
         >
           Logout
         </button>
 
       </div>
 
-
-
-      {/* PAGE CONTENT */}
 
       <div className="pt-20 pb-32">
 
@@ -100,19 +138,14 @@ export default function AdminPage() {
           <div className="flex justify-center gap-24">
 
 
+            {/* CREATE USER */}
 
-            {/* CREATE USER PANEL */}
-
-            <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl hover:shadow-2xl transition duration-300 flex flex-col">
+            <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl flex flex-col">
 
               <div className="flex items-center justify-center gap-4 mb-10 text-emerald-600 font-semibold">
 
                 <div className="h-[2px] bg-emerald-500 w-24"></div>
-
-                <span className="text-lg font-semibold tracking-wide">
-                  Create User
-                </span>
-
+                <span className="text-lg">Create User</span>
                 <div className="h-[2px] bg-emerald-500 w-24"></div>
 
               </div>
@@ -121,35 +154,39 @@ export default function AdminPage() {
               <div className="space-y-8 flex-grow">
 
                 <div>
+
                   <label className="block text-emerald-700 font-semibold mb-2">
                     Email
                   </label>
 
                   <input
-                    className="border border-emerald-400 p-3 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 transition"
+                    className="border border-emerald-400 p-3 w-full rounded-lg"
                     value={email}
                     onChange={(e)=>setEmail(e.target.value)}
                   />
+
                 </div>
 
 
                 <div>
+
                   <label className="block text-emerald-700 font-semibold mb-2">
                     Temporary Password
                   </label>
 
                   <input
-                    className="border border-emerald-400 p-3 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 transition"
+                    className="border border-emerald-400 p-3 w-full rounded-lg"
                     value={password}
                     onChange={(e)=>setPassword(e.target.value)}
                   />
+
                 </div>
 
               </div>
 
 
               <button
-                className="bg-emerald-500 text-white font-semibold p-3 rounded-lg w-full hover:bg-emerald-600 hover:scale-[1.02] active:scale-[0.98] transition mt-8"
+                className="bg-emerald-500 text-white p-3 rounded-lg w-full hover:bg-emerald-600 mt-8"
                 onClick={createUser}
               >
                 Create User
@@ -166,19 +203,14 @@ export default function AdminPage() {
 
 
 
+            {/* CURRENT USERS */}
 
-            {/* CURRENT USERS PANEL */}
-
-            <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl hover:shadow-2xl transition duration-300 flex flex-col">
+            <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl flex flex-col">
 
               <div className="flex items-center justify-center gap-4 mb-10 text-emerald-600 font-semibold">
 
                 <div className="h-[2px] bg-emerald-500 w-16"></div>
-
-                <span className="text-lg font-semibold tracking-wide">
-                  Current Users ({users.length})
-                </span>
-
+                <span className="text-lg">Current Users ({users.length})</span>
                 <div className="h-[2px] bg-emerald-500 w-16"></div>
 
               </div>
@@ -186,36 +218,27 @@ export default function AdminPage() {
 
               <div className="space-y-8 flex-grow">
 
-                <div>
-                  <label className="block text-emerald-700 font-semibold mb-2">
-                    Select User
-                  </label>
+                <select
+                  className="border border-emerald-400 p-3 w-full rounded-lg"
+                  value={selectedUser}
+                  onChange={(e)=>setSelectedUser(e.target.value)}
+                >
 
-                  <select
-                    className="border border-emerald-400 p-3 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 transition"
-                    value={selectedUser}
-                    onChange={(e)=>setSelectedUser(e.target.value)}
-                  >
+                  <option value="">Select a user</option>
 
-                    <option value="">
-                      Select a user
+                  {users.map((u:any)=>(
+                    <option key={u.id} value={u.id}>
+                      {u.email}
                     </option>
+                  ))}
 
-                    {users.map((u:any)=>(
-                      <option key={u.id} value={u.id}>
-                        {u.email}
-                      </option>
-                    ))}
-
-                  </select>
-
-                </div>
+                </select>
 
               </div>
 
 
               <button
-                className="bg-emerald-500 text-white font-semibold p-3 rounded-lg w-full hover:bg-emerald-600 hover:scale-[1.02] active:scale-[0.98] transition mt-8"
+                className="bg-emerald-500 text-white p-3 rounded-lg w-full hover:bg-emerald-600 mt-8"
                 onClick={()=>deleteUser(selectedUser)}
               >
                 Delete Selected User

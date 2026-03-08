@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const userId = searchParams.get("userId")
 
   if (!userId) {
-    return Response.json({ admin: false })
+    return Response.json({ admin:false })
   }
 
   const { data } = await supabase
