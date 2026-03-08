@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserProvider, useUser } from "@/lib/UserContext"
+import Image from "next/image"
 
 
 
@@ -94,9 +95,20 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   <div className="w-[250px] bg-emerald-800 text-white flex flex-col p-6 shadow-xl">
 
-  <h1 className="text-xl font-bold mb-8">
-  Bean Machine
-  </h1>
+<div className="flex items-center gap-3 mb-10">
+
+<Image
+src="/logo.png"
+alt="Bean Machine"
+width={36}
+height={36}
+/>
+
+<h1 className="text-2xl font-extrabold tracking-wide">
+Bean Machine
+</h1>
+
+</div>
 
 
 
@@ -120,7 +132,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   <button
   onClick={()=>setAdminOpen(!adminOpen)}
-  className="font-semibold mb-2 hover:text-emerald-200"
+  className="font-semibold mb-3 hover:text-emerald-200"
   >
   Admin Panel
   </button>
@@ -157,7 +169,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   <button
   onClick={()=>setStockOpen(!stockOpen)}
-  className="font-semibold mb-2 hover:text-emerald-200"
+  className="font-semibold mb-3 hover:text-emerald-200"
   >
   Stock Management
   </button>
@@ -187,7 +199,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   <button
   onClick={()=>setEmployeeOpen(!employeeOpen)}
-  className="font-semibold mb-2 hover:text-emerald-200"
+  className="font-semibold mb-3 hover:text-emerald-200"
   >
   Employee Management
   </button>
@@ -217,7 +229,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   <button
   onClick={()=>setToolsOpen(!toolsOpen)}
-  className="font-semibold mb-2 hover:text-emerald-200"
+  className="font-semibold mb-3 hover:text-emerald-200"
   >
   User Tools
   </button>
