@@ -62,21 +62,23 @@ export default function HomePage() {
 
         <form onSubmit={login} className="space-y-5">
 
-          <input
-            type="email"
-            placeholder="email"
-            value={email}
-            onChange={(e)=>setEmail(e.target.value)}
-            className="border border-emerald-300 p-3 w-full rounded bg-white text-black"
-          />
+         <input
+  type="email"
+  placeholder="email"
+  value={email}
+  onChange={(e)=>setEmail(e.target.value)}
+  className="border border-emerald-300 p-3 w-full rounded bg-white text-black
+  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+/>
 
           <input
-            type="password"
-            placeholder="password"
-            value={password}
-            onChange={(e)=>setPassword(e.target.value)}
-            className="border border-emerald-300 p-3 w-full rounded bg-white text-black"
-          />
+  type="password"
+  placeholder="password"
+  value={password}
+  onChange={(e)=>setPassword(e.target.value)}
+  className="border border-emerald-300 p-3 w-full rounded bg-white text-black
+  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+/>
 
           <button
             type="submit"
