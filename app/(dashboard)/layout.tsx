@@ -14,11 +14,10 @@ export default function DashboardLayout({
   const [status,setStatus] = useState("online")
 
 
-  async function logout(){
 
+  async function logout(){
     await supabase.auth.signOut()
     window.location.href="/"
-
   }
 
 
@@ -29,9 +28,7 @@ export default function DashboardLayout({
 
       const { data } = await supabase.auth.getUser()
 
-      const user = data.user
-
-      if(!user){
+      if(!data.user){
         window.location.href="/"
         return
       }
@@ -40,7 +37,7 @@ export default function DashboardLayout({
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({
-          userId:user.id
+          userId:data.user.id
         })
       })
 
@@ -70,7 +67,7 @@ export default function DashboardLayout({
 
   return(
 
-  <main className="min-h-screen flex">
+  <main className="flex min-h-screen">
 
 
 
@@ -85,9 +82,9 @@ export default function DashboardLayout({
 
 
 
-  {/* USER NAME PLATE */}
+  {/* USER PANEL */}
 
-  <div className="bg-emerald-700 p-3 rounded mb-8 flex items-center gap-3 shadow">
+  <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-8">
 
   <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
@@ -99,7 +96,7 @@ export default function DashboardLayout({
 
 
 
-  {/* NAV */}
+  {/* NAVIGATION */}
 
   <nav className="flex flex-col gap-4 text-sm">
 
@@ -119,16 +116,14 @@ export default function DashboardLayout({
 
 
 
-  <div className="mt-auto">
+  {/* LOGOUT */}
 
   <button
   onClick={logout}
-  className="text-sm hover:text-emerald-200"
+  className="mt-auto text-sm hover:text-emerald-200"
   >
   Logout
   </button>
-
-  </div>
 
   </div>
 
@@ -137,7 +132,7 @@ export default function DashboardLayout({
 
   {/* PAGE CONTENT */}
 
-  <div className="flex-1 bg-gradient-to-br from-emerald-100 to-emerald-200 p-10">
+  <div className="flex-1 bg-gradient-to-br from-emerald-100 to-emerald-200 flex justify-center items-start pt-20">
 
   {children}
 
