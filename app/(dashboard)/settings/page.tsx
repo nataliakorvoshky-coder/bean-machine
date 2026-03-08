@@ -2,23 +2,33 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import Link from "next/link"
 
-export default function SettingsPage(){
+export default function DashboardLayout({
+  children
+}:{
+  children: React.ReactNode
+}){
 
   const [username,setUsername] = useState("")
-  const [password,setPassword] = useState("")
-  const [usernameMessage,setUsernameMessage] = useState("")
-  const [passwordMessage,setPasswordMessage] = useState("")
+  const [status,setStatus] = useState("online")
 
 
+  async function logout(){
 
-  // LOAD CURRENT USER PROFILE
+    await supabase.auth.signOut()
+    window.location.href="/"
+
+  }
+
+
 
   useEffect(()=>{
 
-    async function loadProfile(){
+    async function loadUser(){
 
       const { data } = await supabase.auth.getUser()
+
       const user = data.user
 
       if(!user){
@@ -29,7 +39,9 @@ export default function SettingsPage(){
       const res = await fetch("/api/user/profile",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ userId:user.id })
+        body: JSON.stringify({
+          userId:user.id
+        })
       })
 
       const profile = await res.json()
@@ -40,52 +52,17 @@ export default function SettingsPage(){
 
     }
 
-    loadProfile()
+    loadUser()
 
   },[])
 
 
 
-  // UPDATE USERNAME
+  function getStatusColor(){
 
-  async function updateUsername(){
-
-    const { data } = await supabase.auth.getUser()
-    const user = data.user
-
-    if(!user) return
-
-    const res = await fetch("/api/user/update-username",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({
-        userId:user.id,
-        username
-      })
-    })
-
-    const result = await res.json()
-
-    if(result.success){
-      setUsernameMessage("Username updated successfully")
-    }
-
-  }
-
-
-
-  // UPDATE PASSWORD
-
-  async function updatePassword(){
-
-    const { error } = await supabase.auth.updateUser({
-      password: password
-    })
-
-    if(!error){
-      setPasswordMessage("Password updated successfully")
-      setPassword("")
-    }
+    if(status==="online") return "bg-green-400"
+    if(status==="idle") return "bg-yellow-400"
+    return "bg-gray-400"
 
   }
 
@@ -93,75 +70,82 @@ export default function SettingsPage(){
 
   return(
 
-  <div className="flex justify-center items-start pt-20">
-
-    <div className="bg-white p-10 rounded-xl shadow w-[420px]">
-
-      {/* USERNAME SECTION */}
-
-      <h1 className="text-xl font-bold mb-6 text-emerald-700">
-        Account Settings
-      </h1>
-
-      <label className="block mb-2 font-semibold">
-        Username
-      </label>
-
-      <input
-        value={username}
-        onChange={(e)=>setUsername(e.target.value)}
-        className="border border-emerald-400 p-3 w-full rounded mb-6 focus:ring-2 focus:ring-emerald-300"
-      />
-
-      <button
-        onClick={updateUsername}
-        className="bg-emerald-500 text-white p-3 rounded w-full hover:bg-emerald-600"
-      >
-        Update Username
-      </button>
-
-      {usernameMessage && (
-        <p className="text-sm text-gray-600 mt-4">
-          {usernameMessage}
-        </p>
-      )}
+  <main className="min-h-screen flex">
 
 
 
-      {/* PASSWORD SECTION */}
 
-      <div className="mt-10 border-t pt-8">
+  {/* SIDEBAR */}
 
-        <h2 className="text-lg font-semibold text-emerald-700 mb-4">
-          Create New Password
-        </h2>
+  <div className="w-[240px] bg-emerald-800 text-white flex flex-col p-6">
 
-        <input
-          type="password"
-          placeholder="New Password"
-          value={password}
-          onChange={(e)=>setPassword(e.target.value)}
-          className="border border-emerald-400 p-3 w-full rounded mb-4 focus:ring-2 focus:ring-emerald-300"
-        />
+  <h1 className="text-xl font-bold mb-8">
+  Bean Machine
+  </h1>
 
-        <button
-          onClick={updatePassword}
-          className="bg-emerald-500 text-white p-3 rounded w-full hover:bg-emerald-600"
-        >
-          Update Password
-        </button>
 
-        {passwordMessage && (
-          <p className="text-sm text-gray-600 mt-4">
-            {passwordMessage}
-          </p>
-        )}
 
-      </div>
+  {/* USER NAME PLATE */}
 
-    </div>
+  <div className="bg-emerald-700 p-3 rounded mb-8 flex items-center gap-3 shadow">
+
+  <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
+
+  <span className="font-semibold">
+  {username || "Loading..."}
+  </span>
 
   </div>
+
+
+
+  {/* NAV */}
+
+  <nav className="flex flex-col gap-4 text-sm">
+
+  <Link href="/dashboard" className="hover:text-emerald-200">
+  Dashboard
+  </Link>
+
+  <Link href="/activity" className="hover:text-emerald-200">
+  Activity
+  </Link>
+
+  <Link href="/settings" className="hover:text-emerald-200">
+  Settings
+  </Link>
+
+  </nav>
+
+
+
+  <div className="mt-auto">
+
+  <button
+  onClick={logout}
+  className="text-sm hover:text-emerald-200"
+  >
+  Logout
+  </button>
+
+  </div>
+
+  </div>
+
+
+
+
+  {/* PAGE CONTENT */}
+
+  <div className="flex-1 bg-gradient-to-br from-emerald-100 to-emerald-200 p-10">
+
+  {children}
+
+  </div>
+
+
+
+  </main>
 
   )
 

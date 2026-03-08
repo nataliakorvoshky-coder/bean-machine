@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import Link from "next/link"
 
 export default function DashboardLayout({
   children
@@ -10,8 +11,7 @@ export default function DashboardLayout({
 }){
 
   const [username,setUsername] = useState("")
-  const [status,setStatus] = useState("active")
-
+  const [status,setStatus] = useState("online")
 
 
   async function logout(){
@@ -22,8 +22,6 @@ export default function DashboardLayout({
   }
 
 
-
-  // LOAD USER PROFILE
 
   useEffect(()=>{
 
@@ -41,17 +39,15 @@ export default function DashboardLayout({
       const res = await fetch("/api/user/profile",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ userId:user.id })
+        body: JSON.stringify({
+          userId:user.id
+        })
       })
 
       const profile = await res.json()
 
-      setUsername(profile.username || "User")
-
-      // FIRST LOGIN → FORCE SETTINGS
-
-      if(!profile.username){
-        window.location.href="/settings"
+      if(profile.username){
+        setUsername(profile.username)
       }
 
     }
@@ -62,126 +58,94 @@ export default function DashboardLayout({
 
 
 
-  // USER ACTIVITY DETECTOR
+  function getStatusColor(){
 
-  useEffect(()=>{
+    if(status==="online") return "bg-green-400"
+    if(status==="idle") return "bg-yellow-400"
+    return "bg-gray-400"
 
-    let idleTimer:any
-
-    function setActive(){
-
-      setStatus("active")
-
-      clearTimeout(idleTimer)
-
-      idleTimer = setTimeout(()=>{
-        setStatus("idle")
-      },60000)
-
-    }
-
-    window.addEventListener("mousemove",setActive)
-    window.addEventListener("keydown",setActive)
-
-    setActive()
-
-    return ()=>{
-      window.removeEventListener("mousemove",setActive)
-      window.removeEventListener("keydown",setActive)
-    }
-
-  },[])
-
-
-
-  // STATUS COLOR
-
-  const statusColor =
-    status === "active"
-      ? "bg-green-400"
-      : status === "idle"
-      ? "bg-yellow-400"
-      : "bg-gray-400"
+  }
 
 
 
   return(
 
-    <main className="min-h-screen bg-emerald-100 flex">
+  <main className="min-h-screen flex">
 
 
 
-      {/* SIDEBAR */}
 
-      <div className="w-64 bg-emerald-700 text-white flex flex-col p-6">
+  {/* SIDEBAR */}
 
-        <h2 className="text-xl font-bold mb-10">
-          Bean Machine
-        </h2>
+  <div className="w-[240px] bg-emerald-800 text-white flex flex-col p-6">
 
-
-
-        {/* USERNAME PLATE */}
-
-        <div className="bg-emerald-600 p-3 rounded mb-8 flex items-center justify-center gap-2 font-semibold shadow-md">
-
-          <div className={`w-3 h-3 rounded-full ${statusColor}`}></div>
-
-          {username}
-
-        </div>
+  <h1 className="text-xl font-bold mb-8">
+  Bean Machine
+  </h1>
 
 
 
-        {/* NAVIGATION */}
+  {/* USER NAME PLATE */}
 
-        <nav className="flex flex-col gap-4">
+  <div className="bg-emerald-700 p-3 rounded mb-8 flex items-center gap-3 shadow">
 
-          <button
-            onClick={()=>window.location.href="/admin"}
-            className="text-left hover:opacity-80"
-          >
-            Dashboard
-          </button>
+  <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
-          <button
-            onClick={()=>window.location.href="/activity"}
-            className="text-left hover:opacity-80"
-          >
-            Activity
-          </button>
+  <span className="font-semibold">
+  {username || "Loading..."}
+  </span>
 
-          <button
-            onClick={()=>window.location.href="/settings"}
-            className="text-left hover:opacity-80"
-          >
-            Settings
-          </button>
-
-          <button
-            onClick={logout}
-            className="text-left hover:opacity-80 mt-10"
-          >
-            Logout
-          </button>
-
-        </nav>
-
-      </div>
+  </div>
 
 
 
-      {/* PAGE CONTENT */}
+  {/* NAV */}
 
-      <div className="flex-1 p-10">
+  <nav className="flex flex-col gap-4 text-sm">
 
-        {children}
+  <Link href="/dashboard" className="hover:text-emerald-200">
+  Dashboard
+  </Link>
 
-      </div>
+  <Link href="/activity" className="hover:text-emerald-200">
+  Activity
+  </Link>
+
+  <Link href="/settings" className="hover:text-emerald-200">
+  Settings
+  </Link>
+
+  </nav>
 
 
 
-    </main>
+  <div className="mt-auto">
+
+  <button
+  onClick={logout}
+  className="text-sm hover:text-emerald-200"
+  >
+  Logout
+  </button>
+
+  </div>
+
+  </div>
+
+
+
+
+  {/* PAGE CONTENT */}
+
+  <div className="flex-1 bg-gradient-to-br from-emerald-100 to-emerald-200 p-10">
+
+  {children}
+
+  </div>
+
+
+
+  </main>
 
   )
 
