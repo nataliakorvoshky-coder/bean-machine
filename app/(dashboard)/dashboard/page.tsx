@@ -1,73 +1,61 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
-
 import OnlineUsers from "@/components/OnlineUsers"
 import ActivityFeed from "@/components/ActivityFeed"
 
-export default function Dashboard() {
+export default function Dashboard(){
 
-  const [user,setUser] = useState<any>(null)
-  const router = useRouter()
+return(
 
-  useEffect(()=>{
+<main className="flex justify-center pt-20 w-full">
 
-    const getUser = async ()=>{
+<div className="max-w-6xl w-full">
 
-      const { data } = await supabase.auth.getUser()
+{/* PAGE TITLE */}
 
-      if(!data.user){
-        router.push("/")
-      }else{
-        setUser(data.user)
-      }
-
-    }
-
-    getUser()
-
-  },[])
+<h1 className="text-xl font-bold text-emerald-700 mb-10">
+Dashboard
+</h1>
 
 
+{/* PANELS */}
 
-  return(
+<div className="grid grid-cols-2 gap-8">
 
-  <main className="flex-1 flex justify-center items-center">
 
-  {/* DASHBOARD CARD */}
+{/* ONLINE USERS PANEL */}
 
-  <div className="bg-white p-10 rounded-xl shadow w-[900px]">
+<div className="bg-white p-8 rounded-xl shadow">
 
-  {/* HEADER */}
+<h2 className="text-lg font-semibold text-emerald-700 mb-6">
+Online Users
+</h2>
 
-  <h1 className="text-xl font-bold mb-6 text-emerald-700">
-  Dashboard
-  </h1>
+<OnlineUsers/>
 
-  {user && (
-  <p className="text-gray-600 mb-8">
-  Logged in as: {user.email}
-  </p>
-  )}
+</div>
 
 
 
-  {/* PANELS */}
+{/* ACTIVITY PANEL */}
 
-  <div className="grid grid-cols-2 gap-8">
+<div className="bg-white p-8 rounded-xl shadow">
 
-  <OnlineUsers />
+<h2 className="text-lg font-semibold text-emerald-700 mb-6">
+Activity Feed
+</h2>
 
-  <ActivityFeed />
+<ActivityFeed/>
 
-  </div>
+</div>
 
-  </div>
 
-  </main>
+</div>
 
-  )
+</div>
+
+</main>
+
+)
 
 }
