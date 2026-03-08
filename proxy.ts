@@ -5,9 +5,11 @@ export function proxy(request: NextRequest) {
 
   const userId = request.cookies.get("user_id")?.value
 
-  // If not logged in → send to homepage login
-  if (!userId || userId === "") {
-    return NextResponse.redirect(new URL("/login", request.url))
+  // Not logged in
+  if (!userId) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/"
+    return NextResponse.redirect(url)
   }
 
   return NextResponse.next()
