@@ -18,8 +18,22 @@ const UserContext = createContext<UserContextType>({
 
 export function UserProvider({children}:{children:React.ReactNode}){
 
- const [username,setUsername] = useState("")
- const [loading,setLoading] = useState(true)
+ const cachedUsername =
+  typeof window !== "undefined"
+   ? localStorage.getItem("username") || ""
+   : ""
+
+ const [username,setUsernameState] = useState(cachedUsername)
+ const [loading,setLoading] = useState(!cachedUsername)
+
+
+
+ function setUsername(name:string){
+
+  localStorage.setItem("username",name)
+  setUsernameState(name)
+
+ }
 
  return(
   <UserContext.Provider value={{
