@@ -324,7 +324,7 @@ export default function AdminPage(){
 
   <div
    key={u.id}
-   className="flex justify-between items-center border p-3 rounded"
+  className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg bg-white"
   >
 
   <span className="font-medium">
