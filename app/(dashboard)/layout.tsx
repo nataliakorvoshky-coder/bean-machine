@@ -35,8 +35,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
 
 
-      /* ensure profile exists */
-
+      // ensure profile exists
       await fetch("/api/user/create-profile",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
@@ -45,16 +44,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
 
 
-      /* load username */
-
+      // load username
       const { data: profile } = await supabase
         .from("profiles")
         .select("username")
         .eq("id", user.id)
-        .single()
+        .maybeSingle()
 
       if(profile?.username){
         setUsername(profile.username)
+      } else {
+        setUsername("User")
       }
 
     }
