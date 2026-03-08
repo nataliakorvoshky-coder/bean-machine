@@ -32,50 +32,6 @@ export default function ActivityPage(){
 
  <main className="min-h-screen bg-gray-100 flex">
 
- {/* SIDEBAR */}
-
- <div className="w-64 bg-emerald-700 text-white flex flex-col p-6">
-
- <h2 className="text-xl font-bold mb-10">
- Bean Machine
- </h2>
-
- <nav className="flex flex-col gap-4">
-
- <button
- onClick={()=>window.location.href="/admin"}
- className="text-left hover:opacity-80"
- >
- Dashboard
- </button>
-
- <button
- onClick={()=>window.location.href="/activity"}
- className="text-left hover:opacity-80"
- >
- Activity
- </button>
-
- <button
- onClick={()=>window.location.href="/settings"}
- className="text-left hover:opacity-80"
- >
- Settings
- </button>
-
- <button
- onClick={()=>window.location.href="/"}
- className="text-left hover:opacity-80 mt-10"
- >
- Logout
- </button>
-
- </nav>
-
- </div>
-
-
-
  {/* ACTIVITY CONTENT */}
 
  <div className="flex-1 p-10">
