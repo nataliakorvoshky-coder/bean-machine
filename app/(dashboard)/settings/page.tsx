@@ -26,7 +26,7 @@ export default function SettingsPage(){
       const { data: profile } = await supabase
         .from("profiles")
         .select("username")
-        .eq("id", user.id)   // FIXED
+        .eq("id", user.id)
         .single()
 
       if(profile?.username){
@@ -48,20 +48,16 @@ export default function SettingsPage(){
 
     if(!user) return
 
-    const res = await fetch("/api/user/update-username",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({
-        userId:user.id,
-        username:localUsername   // FIXED
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        username: localUsername
       })
-    })
 
-    const result = await res.json()
+    if(!error){
 
-    if(result.success){
-
-      setUsername(localUsername)  // update sidebar immediately
+      setUsername(localUsername)
       setMessage("Username updated successfully")
 
     }
