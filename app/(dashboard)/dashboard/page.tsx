@@ -160,9 +160,9 @@ export default function Dashboard(){
    className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
   >
 
-  <span className="font-medium">
-   {u.username || u.email}
-  </span>
+<span className="font-medium">
+ {u.username || "User"}
+</span>
 
   <div className="flex items-center gap-2">
 
