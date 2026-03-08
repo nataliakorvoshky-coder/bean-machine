@@ -43,23 +43,24 @@ export default function SettingsPage(){
 
   async function updateUsername(){
 
-    const { data } = await supabase.auth.getUser()
-    const user = data.user
+  const { data } = await supabase.auth.getUser()
+  const user = data.user
 
-    if(!user) return
+  if(!user) return
 
-    await supabase
-      .from("profiles")
-      .upsert({
-        user_id:user.id,
-        username:localUsername
-      })
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({
+      user_id: user.id,
+      username: localUsername
+    })
 
+  if(!error){
     setUsername(localUsername)
-
     setMessage("Username updated successfully")
-
   }
+
+}
 
 
 

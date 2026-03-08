@@ -1,29 +1,62 @@
 "use client"
 
 import { useEffect,useState } from "react"
+import { supabase } from "@/lib/supabase"
 
 export default function ActivityPage(){
 
  const [logs,setLogs] = useState<any[]>([])
  const [search,setSearch] = useState("")
 
+
+
  async function loadLogs(){
 
-  let url = "/api/activity"
+  let query = supabase
+   .from("activity_log")
+   .select("*")
+   .order("created_at",{ ascending:false })
 
   if(search){
-   url += `?username=${search}`
+   query = query.ilike("username", `%${search}%`)
   }
 
-  const res = await fetch(url)
-  const data = await res.json()
+  const { data } = await query
 
-  setLogs(data.logs || [])
+  setLogs(data || [])
 
  }
 
+
+
  useEffect(()=>{
+
   loadLogs()
+
+  const channel = supabase
+   .channel("activity-stream")
+   .on(
+    "postgres_changes",
+    {
+     event:"INSERT",
+     schema:"public",
+     table:"activity_log"
+    },
+    (payload)=>{
+
+     setLogs((prev)=>[
+      payload.new,
+      ...prev
+     ])
+
+    }
+   )
+   .subscribe()
+
+  return ()=>{
+   supabase.removeChannel(channel)
+  }
+
  },[])
 
 
@@ -32,13 +65,12 @@ export default function ActivityPage(){
 
  <main className="min-h-screen bg-gray-100 flex">
 
- {/* ACTIVITY CONTENT */}
-
  <div className="flex-1 p-10">
 
  <h1 className="text-2xl font-bold text-emerald-700 mb-6">
  User Activity
  </h1>
+
 
 
  {/* SEARCH */}
@@ -49,12 +81,12 @@ export default function ActivityPage(){
  placeholder="Search by username..."
  value={search}
  onChange={(e)=>setSearch(e.target.value)}
- className="border border-emerald-400 p-3 rounded w-[300px]"
+ className="border border-emerald-400 p-3 rounded w-[300px] focus:outline-none focus:ring-2 focus:ring-emerald-400"
  />
 
  <button
  onClick={loadLogs}
- className="ml-3 bg-emerald-500 text-white px-4 py-3 rounded"
+ className="ml-3 bg-emerald-500 text-white px-4 py-3 rounded hover:bg-emerald-600"
  >
  Search
  </button>
@@ -74,7 +106,7 @@ export default function ActivityPage(){
  className="border-b pb-3"
  >
 
- <div className="font-medium">
+ <div className="font-medium text-emerald-700">
  {log.username}
  </div>
 
@@ -89,6 +121,12 @@ export default function ActivityPage(){
  </div>
 
  ))}
+
+ {logs.length === 0 && (
+  <div className="text-gray-500">
+  No activity found
+  </div>
+ )}
 
  </div>
 

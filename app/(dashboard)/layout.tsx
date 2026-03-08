@@ -21,35 +21,33 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
 
 
-  useEffect(()=>{
+ useEffect(()=>{
 
-    async function loadUser(){
+  async function loadUser(){
 
-      const { data } = await supabase.auth.getUser()
+    const { data } = await supabase.auth.getUser()
+    const user = data.user
 
-      const user = data.user
-
-      if(!user){
-        window.location.href="/"
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("user_id", user.id)
-        .single()
-
-      if(profile?.username){
-        setUsername(profile.username)
-      }
-
+    if(!user){
+      window.location.href="/"
+      return
     }
 
-    loadUser()
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("user_id", user.id)
+      .maybeSingle()
 
-  },[])
+    if(profile?.username){
+      setUsername(profile.username)
+    }
 
+  }
+
+  loadUser()
+
+},[])
 
 
   function getStatusColor(){

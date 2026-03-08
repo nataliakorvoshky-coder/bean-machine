@@ -6,24 +6,28 @@ const supabase = createClient(
  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET(req: Request){
+export async function GET(req:Request){
 
  const { searchParams } = new URL(req.url)
-
  const username = searchParams.get("username")
 
  let query = supabase
-  .from("activity_logs")
+  .from("activity_log")
   .select("*")
-  .order("created_at",{ascending:false})
-  .limit(50)
+  .order("created_at",{ ascending:false })
 
  if(username){
-  query = query.eq("username", username)
+  query = query.ilike("username", `%${username}%`)
  }
 
- const { data } = await query
+ const { data,error } = await query
 
- return NextResponse.json({ logs:data })
+ if(error){
+  return NextResponse.json({ error:error.message })
+ }
+
+ return NextResponse.json({
+  logs:data
+ })
 
 }
