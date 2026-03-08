@@ -66,11 +66,11 @@ export default function AdminPage() {
 
   function logout() {
 
-    document.cookie =
-      "user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+  document.cookie =
+    "user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
 
-    window.location.href = "/login"
-  }
+  window.location.href = "/"
+}
 
 
   useEffect(() => {
@@ -81,10 +81,10 @@ export default function AdminPage() {
 
       const user = data.user
 
-      if (!user) {
-        window.location.href = "/login"
-        return
-      }
+     if (!user) {
+  window.location.href = "/"
+  return
+}
 
       const userId = user.id
 
@@ -92,9 +92,9 @@ export default function AdminPage() {
       const adminData = await res.json()
 
       if (!adminData.admin) {
-        window.location.href = "/login"
-        return
-      }
+  window.location.href = "/"
+  return
+}
 
       setLoading(false)
     }
