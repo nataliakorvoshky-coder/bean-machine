@@ -79,12 +79,7 @@ export default function LoginPage() {
           Login
         </button>
 
-        <button
-          className="w-full border border-emerald-400 text-emerald-600 p-2 rounded hover:bg-emerald-50 transition"
-          onClick={signUp}
-        >
-          Sign Up
-        </button>
+    
 
       </div>
 
