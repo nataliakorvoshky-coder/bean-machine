@@ -48,46 +48,38 @@ export default function ActivityFeed(){
 
 
 
- return(
+return(
 
- <div className="bg-white rounded-xl shadow p-6">
+<div className="space-y-3 max-h-[320px] overflow-y-auto">
 
- <h2 className="text-lg font-bold text-emerald-700 mb-4">
- Activity Feed
- </h2>
+{logs.map((log:any)=>(
 
- <div className="space-y-3 max-h-[400px] overflow-y-auto">
+<div key={log.id} className="border-b pb-2">
 
- {logs.map((log:any)=>(
+<div className="text-sm font-medium text-emerald-700">
+{log.username}
+</div>
 
- <div key={log.id} className="border-b pb-2">
+<div className="text-sm text-gray-600">
+{log.action}
+</div>
 
- <div className="text-sm font-medium text-emerald-700">
- {log.username}
- </div>
+<div className="text-xs text-gray-400">
+{new Date(log.created_at).toLocaleString()}
+</div>
 
- <div className="text-sm text-gray-600">
- {log.action}
- </div>
+</div>
 
- <div className="text-xs text-gray-400">
- {new Date(log.created_at).toLocaleString()}
- </div>
+))}
 
- </div>
+{logs.length===0 && (
+<div className="text-gray-400 text-sm">
+No activity yet
+</div>
+)}
 
- ))}
+</div>
 
- {logs.length===0 && (
- <div className="text-gray-400 text-sm">
- No activity yet
- </div>
- )}
-
- </div>
-
- </div>
-
- )
+)
 
 }

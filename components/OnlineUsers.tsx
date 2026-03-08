@@ -1,93 +1,99 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
-export default function OnlineUsers(){
+export default function OnlineUsers() {
 
- const [users,setUsers] = useState<any[]>([])
+  const [users,setUsers] = useState<any[]>([])
 
- useEffect(()=>{
 
-  const channel = supabase.channel("online-users",{
-   config:{ presence:{ key:"user" } }
-  })
 
-  channel.on("presence", { event:"sync" }, () => {
+  useEffect(()=>{
 
-   const state = channel.presenceState()
+    const channel = supabase.channel("online-users",{
+      config:{
+        presence:{ key:"user" }
+      }
+    })
 
-   const online = Object.values(state).flat()
 
-   setUsers(online)
 
-  })
+    channel.on("presence",{ event:"sync" },()=>{
 
-  channel.subscribe(async(status)=>{
+      const state = channel.presenceState()
 
-   if(status==="SUBSCRIBED"){
+      const online = Object.values(state).flat()
 
-    const { data } = await supabase.auth.getUser()
+      setUsers(online)
 
-    const user = data.user
+    })
 
-    if(user){
 
-     const username = user.email?.split("@")[0]
 
-     channel.track({
-      user_id:user.id,
-      username
-     })
+    channel.subscribe(async(status)=>{
 
+      if(status==="SUBSCRIBED"){
+
+        const { data } = await supabase.auth.getUser()
+
+        const user = data.user
+
+        if(user){
+
+          const username = user.email?.split("@")[0]
+
+          channel.track({
+            user_id:user.id,
+            username
+          })
+
+        }
+
+      }
+
+    })
+
+
+
+    return ()=>{
+      supabase.removeChannel(channel)
     }
 
-   }
-
-  })
-
-  return ()=>{
-   supabase.removeChannel(channel)
-  }
-
- },[])
+  },[])
 
 
 
-return(
+  return(
 
-<div className="bg-white rounded-xl shadow p-6">
+  <div className="space-y-2">
 
-<h2 className="text-lg font-bold text-emerald-700 mb-4">
-Online Users
-</h2>
+  {users.map((u:any,i:number)=>(
 
-<div className="space-y-2">
+  <div key={i} className="flex items-center gap-2">
 
-{users.map((u:any,i:number)=>(
+  <div className="w-2 h-2 bg-green-400 rounded-full" />
 
-<div key={i} className="flex items-center gap-2 text-sm">
+  <span className="text-gray-700 text-sm">
+  {u.username}
+  </span>
 
-<div className="w-2 h-2 bg-green-400 rounded-full" />
+  </div>
 
-<span className="text-gray-700">
-{u.username}
-</span>
+  ))}
 
-</div>
 
-))}
 
-{users.length===0 && (
-<div className="text-gray-400 text-sm">
-No users online
-</div>
-)}
+  {users.length===0 && (
 
-</div>
+  <div className="text-gray-400 text-sm">
+  No users online
+  </div>
 
-</div>
+  )}
 
-)
+  </div>
+
+  )
 
 }

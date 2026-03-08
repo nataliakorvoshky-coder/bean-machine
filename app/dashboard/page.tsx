@@ -7,91 +7,67 @@ import { useRouter } from "next/navigation"
 import OnlineUsers from "@/components/OnlineUsers"
 import ActivityFeed from "@/components/ActivityFeed"
 
-export default function Dashboard(){
+export default function Dashboard() {
 
- const [user,setUser] = useState<any>(null)
- const router = useRouter()
+  const [user,setUser] = useState<any>(null)
+  const router = useRouter()
 
+  useEffect(()=>{
 
+    const getUser = async ()=>{
 
- useEffect(()=>{
+      const { data } = await supabase.auth.getUser()
 
-  const getUser = async ()=>{
+      if(!data.user){
+        router.push("/")
+      }else{
+        setUser(data.user)
+      }
 
-   const { data } = await supabase.auth.getUser()
+    }
 
-   if(!data.user){
-    router.push("/")
-   }else{
-    setUser(data.user)
-   }
+    getUser()
 
-  }
-
-  getUser()
-
- },[])
+  },[])
 
 
 
- const logout = async ()=>{
+  return(
 
-  await supabase.auth.signOut()
-  router.push("/")
+  <main className="flex-1 flex justify-center items-center">
 
- }
+  {/* DASHBOARD CARD */}
 
+  <div className="bg-white p-10 rounded-xl shadow w-[900px]">
 
+  {/* HEADER */}
 
- return(
+  <h1 className="text-xl font-bold mb-6 text-emerald-700">
+  Dashboard
+  </h1>
 
- <main className="w-full">
-
- {/* PAGE HEADER */}
-
- <div className="mb-10">
-
- <h1 className="text-2xl font-bold text-emerald-700">
- Dashboard
- </h1>
-
- {user && (
- <p className="text-gray-600 mt-1">
- Logged in as: {user.email}
- </p>
- )}
-
- </div>
+  {user && (
+  <p className="text-gray-600 mb-8">
+  Logged in as: {user.email}
+  </p>
+  )}
 
 
 
- {/* DASHBOARD PANELS */}
+  {/* PANELS */}
 
- <div className="grid grid-cols-2 gap-8 max-w-5xl">
+  <div className="grid grid-cols-2 gap-8">
 
- <OnlineUsers />
+  <OnlineUsers />
 
- <ActivityFeed />
+  <ActivityFeed />
 
- </div>
+  </div>
 
+  </div>
 
+  </main>
 
- {/* LOGOUT */}
-
- <div className="mt-10">
-
- <button
- onClick={logout}
- className="bg-emerald-500 text-white px-6 py-3 rounded-lg hover:bg-emerald-600 transition"
- >
- Logout
- </button>
-
- </div>
-
- </main>
-
- )
+  )
 
 }
