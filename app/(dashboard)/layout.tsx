@@ -9,7 +9,7 @@ import { UserProvider, useUser } from "@/lib/UserContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
-  const { username, setUsername } = useUser()
+  const { username, setUsername, loading, setLoading } = useUser()
   const [status,setStatus] = useState("online")
 
 
@@ -43,6 +43,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         setUsername(profile.username)
       }
 
+      setLoading(false)
+
     }
 
     loadUser()
@@ -65,28 +67,49 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   <main className="flex min-h-screen">
 
+
+
+
+  {/* SIDEBAR */}
+
   <div className="w-[240px] bg-emerald-800 text-white flex flex-col p-6">
 
   <h1 className="text-xl font-bold mb-8">
   Bean Machine
   </h1>
 
+
+
+  {/* USER PANEL */}
+
   <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
   <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
   <span className="font-semibold">
-  {username || "User"}
+  {loading ? "" : username}
   </span>
 
   </div>
 
+
+
+  {/* NAVIGATION */}
+
   <nav className="flex flex-col gap-5 text-sm">
 
-  <Link href="/dashboard">Dashboard</Link>
-  <Link href="/settings">Settings</Link>
+  <Link href="/dashboard" className="hover:text-emerald-200">
+  Dashboard
+  </Link>
 
-  <button onClick={logout} className="text-left">
+  <Link href="/settings" className="hover:text-emerald-200">
+  Settings
+  </Link>
+
+  <button
+  onClick={logout}
+  className="text-left hover:text-emerald-200"
+  >
   Logout
   </button>
 
@@ -96,11 +119,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
 
 
+  {/* PAGE CONTENT */}
+
   <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
   {children}
 
   </div>
+
+
 
   </main>
 
