@@ -11,7 +11,6 @@ export default function HomePage() {
   const [email,setEmail] = useState("")
   const [password,setPassword] = useState("")
 
-
   async function login(e:any){
 
     e.preventDefault()
@@ -29,9 +28,7 @@ export default function HomePage() {
     document.cookie=`user_id=${data.user.id}; path=/`
 
     router.push("/admin")
-
   }
-
 
   return (
 
@@ -57,11 +54,9 @@ export default function HomePage() {
 
           </div>
 
-
           <form onSubmit={login} className="space-y-6">
 
             <div>
-
               <label className="block text-emerald-700 font-semibold mb-2">
                 Email
               </label>
@@ -73,12 +68,9 @@ export default function HomePage() {
                 onChange={(e)=>setEmail(e.target.value)}
                 className="border border-emerald-400 p-3 w-full rounded bg-white text-black focus:ring-2 focus:ring-emerald-300"
               />
-
             </div>
 
-
             <div>
-
               <label className="block text-emerald-700 font-semibold mb-2">
                 Password
               </label>
@@ -90,9 +82,7 @@ export default function HomePage() {
                 onChange={(e)=>setPassword(e.target.value)}
                 className="border border-emerald-400 p-3 w-full rounded bg-white text-black focus:ring-2 focus:ring-emerald-300"
               />
-
             </div>
-
 
             <button
               type="submit"
@@ -106,15 +96,16 @@ export default function HomePage() {
         </div>
 
 
+        {/* IMAGE PANEL */}
 
-        {/* COFFEE IMAGE PANEL */}
+        <div className="hidden md:block md:w-1/2 relative">
 
-        <div
-          className="hidden md:block md:w-1/2 bg-cover bg-center"
-          style={{
-            backgroundImage:"url('/coffee.jpg')"
-          }}
-        />
+          <img
+            src="/coffee.jpg"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+
+        </div>
 
       </div>
 
