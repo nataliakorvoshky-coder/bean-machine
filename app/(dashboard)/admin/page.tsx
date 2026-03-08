@@ -186,21 +186,21 @@ export default function AdminPage(){
     Email
    </label>
 
-   <input
-    value={email}
-    onChange={(e)=>setEmail(e.target.value)}
-    className="border border-emerald-400 p-3 w-full rounded mb-4"
-   />
+  <input
+ value={email}
+ onChange={(e)=>setEmail(e.target.value)}
+ className="border border-emerald-400 p-3 w-full rounded mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500"
+/>
 
    <label className="block text-sm mb-1">
     Temporary Password
    </label>
 
-   <input
-    value={password}
-    onChange={(e)=>setPassword(e.target.value)}
-    className="border border-emerald-400 p-3 w-full rounded mb-6"
-   />
+ <input
+ value={password}
+ onChange={(e)=>setPassword(e.target.value)}
+ className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500"
+/>
 
    <button
     onClick={createUser}
