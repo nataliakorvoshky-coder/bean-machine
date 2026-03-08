@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { ADMIN_EMAIL } from "@/lib/admin"
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,21 +8,66 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
 
-  const { email, password, userEmail } = await req.json()
+  try {
 
-  if (userEmail !== ADMIN_EMAIL) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const { email, password, userId } = await req.json()
+
+    if (!email || !password) {
+      return NextResponse.json({
+        error: "Email and password required"
+      })
+    }
+
+    // check if requester is admin
+    const { data: admin } = await supabaseAdmin
+      .from("admins")
+      .select("*")
+      .eq("user_id", userId)
+      .single()
+
+    if (!admin) {
+      return NextResponse.json({
+        error: "Unauthorized"
+      })
+    }
+
+    // create auth user
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    })
+
+    if (error) {
+      return NextResponse.json({
+        error: error.message
+      })
+    }
+
+    const newUser = data.user
+
+    // generate default username
+    const username = email.split("@")[0]
+
+    // create profile row
+    await supabaseAdmin
+      .from("profiles")
+      .insert({
+        id: newUser.id,
+        username
+      })
+
+    return NextResponse.json({
+      success: true,
+      user: newUser
+    })
+
+  } catch (err) {
+
+    return NextResponse.json({
+      error: "Server error"
+    })
+
   }
 
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true
-  })
-
-  if (error) {
-    return NextResponse.json({ error: error.message })
-  }
-
-  return NextResponse.json({ success: true, user: data.user })
 }

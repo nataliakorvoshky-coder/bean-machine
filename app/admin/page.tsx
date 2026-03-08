@@ -3,41 +3,45 @@
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 
-export default function AdminPage() {
+export default function AdminPage(){
 
-  const [users, setUsers] = useState<any[]>([])
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [message, setMessage] = useState("")
-  const [selectedUser, setSelectedUser] = useState("")
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [users,setUsers] = useState<any[]>([])
+  const [email,setEmail] = useState("")
+  const [password,setPassword] = useState("")
+  const [message,setMessage] = useState("")
+  const [selectedUser,setSelectedUser] = useState("")
+  const [username,setUsername] = useState("")
+  const [menuOpen,setMenuOpen] = useState(false)
+  const [isAdmin,setIsAdmin] = useState(false)
 
 
 
-  async function loadUsers() {
+  async function loadUsers(){
 
-    const res = await fetch("/api/admin/list-users", {
-      method:"POST"
-    })
-
+    const res = await fetch("/api/admin/list-users")
     const data = await res.json()
 
     setUsers(data.users || [])
+
   }
 
 
 
-  async function createUser() {
+  async function createUser(){
 
     const { data } = await supabase.auth.getUser()
 
-    const res = await fetch("/api/admin/create-user", {
+    const user = data.user
+
+    if(!user) return
+
+    const res = await fetch("/api/admin/create-user",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({
         email,
         password,
-        userId: data.user?.id
+        userId:user.id
       })
     })
 
@@ -45,7 +49,7 @@ export default function AdminPage() {
 
     if(result.error){
       setMessage(result.error)
-    } else {
+    }else{
       setMessage("User created successfully")
       setEmail("")
       setPassword("")
@@ -59,22 +63,17 @@ export default function AdminPage() {
   async function deleteUser(id:string){
 
     if(!id){
-      alert("Please select a user")
+      alert("Select a user first")
       return
     }
 
     const confirmed = confirm("Delete this user?")
     if(!confirmed) return
 
-    const { data } = await supabase.auth.getUser()
-
     await fetch("/api/admin/delete-user",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({
-        id,
-        userId: data.user?.id
-      })
+      body: JSON.stringify({ id })
     })
 
     setSelectedUser("")
@@ -84,10 +83,9 @@ export default function AdminPage() {
 
 
 
-  function logout(){
+  async function logout(){
 
-    document.cookie =
-      "user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+    await supabase.auth.signOut()
 
     window.location.href="/"
 
@@ -108,17 +106,32 @@ export default function AdminPage() {
         return
       }
 
-      const res = await fetch("/api/admin/check-admin",{
+      // check admin
+      const adminRes = await fetch("/api/admin/check-admin",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          userId:user.id
-        })
+        body: JSON.stringify({ userId:user.id })
       })
 
-      const result = await res.json()
+      const adminData = await adminRes.json()
 
-      setIsAdmin(result.admin)
+      if(!adminData.admin){
+        window.location.href="/"
+        return
+      }
+
+      setIsAdmin(true)
+
+      // load username
+      const profileRes = await fetch("/api/user/profile",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ userId:user.id })
+      })
+
+      const profileData = await profileRes.json()
+
+      setUsername(profileData.username || "User")
 
       loadUsers()
 
@@ -130,25 +143,57 @@ export default function AdminPage() {
 
 
 
-  return (
+  if(!isAdmin) return null
+
+
+
+  return(
 
     <main className="min-h-screen bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200">
-
 
       {/* HEADER */}
 
       <div className="bg-emerald-700 shadow-md py-5 relative flex justify-center items-center">
 
         <h1 className="text-2xl font-bold text-white tracking-wide">
-          {isAdmin ? "Admin Dashboard" : "User Dashboard"}
+          Admin Dashboard
         </h1>
 
-        <button
-          onClick={logout}
-          className="absolute right-8 text-white font-semibold hover:opacity-80"
-        >
-          Logout
-        </button>
+
+        {/* PROFILE MENU */}
+
+        <div className="absolute right-8">
+
+          <button
+            onClick={()=>setMenuOpen(!menuOpen)}
+            className="text-white font-semibold hover:opacity-80"
+          >
+            {username} ▼
+          </button>
+
+          {menuOpen && (
+
+            <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg w-40 overflow-hidden">
+
+              <button
+                onClick={()=>window.location.href="/settings"}
+                className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              >
+                Settings
+              </button>
+
+              <button
+                onClick={logout}
+                className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              >
+                Logout
+              </button>
+
+            </div>
+
+          )}
+
+        </div>
 
       </div>
 
@@ -159,7 +204,6 @@ export default function AdminPage() {
         <div className="max-w-6xl mx-auto">
 
           <div className="flex justify-center gap-24">
-
 
 
             {/* CREATE USER PANEL */}
@@ -188,7 +232,7 @@ export default function AdminPage() {
                     </label>
 
                     <input
-                      className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                      className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400"
                       value={email}
                       onChange={(e)=>setEmail(e.target.value)}
                     />
@@ -203,7 +247,7 @@ export default function AdminPage() {
                     </label>
 
                     <input
-                      className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                      className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400"
                       value={password}
                       onChange={(e)=>setPassword(e.target.value)}
                     />
@@ -259,7 +303,7 @@ export default function AdminPage() {
                   </label>
 
                   <select
-                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400"
                     value={selectedUser}
                     onChange={(e)=>setSelectedUser(e.target.value)}
                   >
@@ -291,7 +335,6 @@ export default function AdminPage() {
               )}
 
             </div>
-
 
 
           </div>
