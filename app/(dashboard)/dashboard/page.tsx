@@ -13,8 +13,8 @@ return(
 
 {/* PAGE TITLE */}
 
-<h1 className="text-xl font-bold text-emerald-700 mb-10">
-Dashboard
+<h1 className="text-3xl font-bold text-emerald-700 mb-10">
+ Dashboard
 </h1>
 
 
