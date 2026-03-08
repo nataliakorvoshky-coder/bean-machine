@@ -33,28 +33,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         return
       }
 
-
-
-      // ensure profile exists
-      await fetch("/api/user/create-profile",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ userId:user.id })
-      })
-
-
-
-      // load username
       const { data: profile } = await supabase
         .from("profiles")
         .select("username")
         .eq("id", user.id)
-        .maybeSingle()
+        .single()
 
       if(profile?.username){
         setUsername(profile.username)
-      } else {
-        setUsername("User")
       }
 
     }
@@ -79,19 +65,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   <main className="flex min-h-screen">
 
-
-
-  {/* SIDEBAR */}
-
   <div className="w-[240px] bg-emerald-800 text-white flex flex-col p-6">
 
   <h1 className="text-xl font-bold mb-8">
   Bean Machine
   </h1>
-
-
-
-  {/* USER PANEL */}
 
   <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
@@ -103,24 +81,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   </div>
 
-
-
-  {/* NAVIGATION */}
-
   <nav className="flex flex-col gap-5 text-sm">
 
-  <Link href="/dashboard" className="hover:text-emerald-200">
-  Dashboard
-  </Link>
+  <Link href="/dashboard">Dashboard</Link>
+  <Link href="/settings">Settings</Link>
 
-  <Link href="/settings" className="hover:text-emerald-200">
-  Settings
-  </Link>
-
-  <button
-  onClick={logout}
-  className="text-left hover:text-emerald-200"
-  >
+  <button onClick={logout} className="text-left">
   Logout
   </button>
 
@@ -130,15 +96,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
 
 
-  {/* PAGE CONTENT */}
-
   <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
   {children}
 
   </div>
-
-
 
   </main>
 
