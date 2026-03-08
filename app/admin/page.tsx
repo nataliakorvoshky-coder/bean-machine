@@ -13,7 +13,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
 
 
-  async function loadUsers(){
+  async function loadUsers() {
 
     const res = await fetch("/api/admin/list-users")
     const data = await res.json()
@@ -22,19 +22,19 @@ export default function AdminPage() {
   }
 
 
-  async function createUser(){
+  async function createUser() {
 
-    const res = await fetch("/api/admin/create-user",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({email,password})
+    const res = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
     })
 
     const data = await res.json()
 
-    if(data.error){
+    if (data.error) {
       setMessage(data.error)
-    } else{
+    } else {
       setMessage("User created successfully")
       setEmail("")
       setPassword("")
@@ -43,20 +43,20 @@ export default function AdminPage() {
   }
 
 
-  async function deleteUser(id:string){
+  async function deleteUser(id: string) {
 
-    if(!id){
-      alert("Select a user first")
+    if (!id) {
+      alert("Please select a user first")
       return
     }
 
     const confirmed = confirm("Delete this user?")
-    if(!confirmed) return
+    if (!confirmed) return
 
-    await fetch("/api/admin/delete-user",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({id})
+    await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id })
     })
 
     setSelectedUser("")
@@ -64,31 +64,37 @@ export default function AdminPage() {
   }
 
 
-  function logout(){
+  function logout() {
 
     document.cookie =
       "user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
 
-    window.location.href="/"
+    window.location.href = "/login"
   }
 
 
-  useEffect(()=>{
+  useEffect(() => {
 
-    async function checkAdmin(){
+    async function checkAdmin() {
 
-      const { data:{user} } = await supabase.auth.getUser()
+      const { data } = await supabase.auth.getUser()
 
-     if (!user) {
-  window.location.href="/login"
-}
+      const user = data.user
 
-      const res = await fetch(`/api/admin/check-admin?userId=${user.id}`)
-      const data = await res.json()
+      if (!user) {
+        window.location.href = "/login"
+        return
+      }
 
-    if (!data.admin) {
-  window.location.href="/login"
-}
+      const userId = user.id
+
+      const res = await fetch(`/api/admin/check-admin?userId=${userId}`)
+      const adminData = await res.json()
+
+      if (!adminData.admin) {
+        window.location.href = "/login"
+        return
+      }
 
       setLoading(false)
     }
@@ -96,11 +102,11 @@ export default function AdminPage() {
     checkAdmin()
     loadUsers()
 
-  },[])
+  }, [])
 
 
-  if(loading){
-    return(
+  if (loading) {
+    return (
       <div className="flex justify-center items-center h-screen text-xl">
         Checking permissions...
       </div>
@@ -108,10 +114,12 @@ export default function AdminPage() {
   }
 
 
-  return(
+  return (
 
     <main className="min-h-screen bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200">
 
+
+      {/* HEADER */}
 
       <div className="bg-emerald-700 shadow-md py-5 relative flex justify-center items-center">
 
@@ -129,6 +137,7 @@ export default function AdminPage() {
       </div>
 
 
+
       <div className="pt-20 pb-32">
 
         <div className="max-w-6xl mx-auto">
@@ -136,14 +145,16 @@ export default function AdminPage() {
           <div className="flex justify-center gap-24">
 
 
-            {/* CREATE USER */}
+            {/* CREATE USER PANEL */}
 
             <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl flex flex-col">
 
               <div className="flex items-center justify-center gap-4 mb-10 text-emerald-600 font-semibold">
 
                 <div className="h-[2px] bg-emerald-500 w-24"></div>
+
                 <span className="text-lg">Create User</span>
+
                 <div className="h-[2px] bg-emerald-500 w-24"></div>
 
               </div>
@@ -158,7 +169,7 @@ export default function AdminPage() {
                   </label>
 
                   <input
-                    className="border border-emerald-400 p-3 w-full rounded-lg"
+                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-300"
                     value={email}
                     onChange={(e)=>setEmail(e.target.value)}
                   />
@@ -173,7 +184,7 @@ export default function AdminPage() {
                   </label>
 
                   <input
-                    className="border border-emerald-400 p-3 w-full rounded-lg"
+                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-300"
                     value={password}
                     onChange={(e)=>setPassword(e.target.value)}
                   />
@@ -201,14 +212,18 @@ export default function AdminPage() {
 
 
 
-            {/* CURRENT USERS */}
+            {/* CURRENT USERS PANEL */}
 
             <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl flex flex-col">
 
               <div className="flex items-center justify-center gap-4 mb-10 text-emerald-600 font-semibold">
 
                 <div className="h-[2px] bg-emerald-500 w-16"></div>
-                <span className="text-lg">Current Users ({users.length})</span>
+
+                <span className="text-lg">
+                  Current Users ({users.length})
+                </span>
+
                 <div className="h-[2px] bg-emerald-500 w-16"></div>
 
               </div>
@@ -216,21 +231,29 @@ export default function AdminPage() {
 
               <div className="space-y-8 flex-grow">
 
-                <select
-                  className="border border-emerald-400 p-3 w-full rounded-lg"
-                  value={selectedUser}
-                  onChange={(e)=>setSelectedUser(e.target.value)}
-                >
+                <div>
 
-                  <option value="">Select a user</option>
+                  <label className="block text-emerald-700 font-semibold mb-2">
+                    Select User
+                  </label>
 
-                  {users.map((u:any)=>(
-                    <option key={u.id} value={u.id}>
-                      {u.email}
-                    </option>
-                  ))}
+                  <select
+                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-300"
+                    value={selectedUser}
+                    onChange={(e)=>setSelectedUser(e.target.value)}
+                  >
 
-                </select>
+                    <option value="">Select a user</option>
+
+                    {users.map((u:any)=>(
+                      <option key={u.id} value={u.id}>
+                        {u.email}
+                      </option>
+                    ))}
+
+                  </select>
+
+                </div>
 
               </div>
 
