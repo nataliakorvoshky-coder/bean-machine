@@ -33,6 +33,20 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         return
       }
 
+
+
+      /* ensure profile exists */
+
+      await fetch("/api/user/create-profile",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ userId:user.id })
+      })
+
+
+
+      /* load username */
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("username")
@@ -64,6 +78,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   return(
 
   <main className="flex min-h-screen">
+
 
 
   {/* SIDEBAR */}
@@ -117,7 +132,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   {/* PAGE CONTENT */}
 
-  <div className="flex-1 bg-gradient-to-br from-emerald-100 to-emerald-200 flex justify-center items-start pt-20">
+  <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
   {children}
 
