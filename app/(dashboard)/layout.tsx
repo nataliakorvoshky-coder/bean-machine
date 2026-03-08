@@ -28,22 +28,25 @@ export default function DashboardLayout({
 
       const { data } = await supabase.auth.getUser()
 
-      if(!data.user){
+      const user = data.user
+
+      if(!user){
         window.location.href="/"
         return
       }
 
+      // Fetch username from profile table
       const res = await fetch("/api/user/profile",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({
-          userId:data.user.id
+          userId:user.id
         })
       })
 
       const profile = await res.json()
 
-      if(profile.username){
+      if(profile?.username){
         setUsername(profile.username)
       }
 
@@ -71,7 +74,6 @@ export default function DashboardLayout({
 
 
 
-
   {/* SIDEBAR */}
 
   <div className="w-[240px] bg-emerald-800 text-white flex flex-col p-6">
@@ -82,9 +84,9 @@ export default function DashboardLayout({
 
 
 
-  {/* USER PANEL */}
+  {/* USER STATUS */}
 
-  <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-8">
+  <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
   <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
@@ -98,7 +100,7 @@ export default function DashboardLayout({
 
   {/* NAVIGATION */}
 
-  <nav className="flex flex-col gap-4 text-sm">
+  <nav className="flex flex-col gap-5 text-sm">
 
   <Link href="/dashboard" className="hover:text-emerald-200">
   Dashboard
@@ -112,21 +114,16 @@ export default function DashboardLayout({
   Settings
   </Link>
 
-  </nav>
-
-
-
-  {/* LOGOUT */}
-
   <button
   onClick={logout}
-  className="mt-auto text-sm hover:text-emerald-200"
+  className="text-left hover:text-emerald-200"
   >
   Logout
   </button>
 
-  </div>
+  </nav>
 
+  </div>
 
 
 
