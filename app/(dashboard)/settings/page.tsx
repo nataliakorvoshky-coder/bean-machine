@@ -6,7 +6,7 @@ import { useUser } from "@/lib/UserContext"
 
 export default function SettingsPage(){
 
-  const { username,setUsername } = useUser()
+  const { setUsername } = useUser()
 
   const [localUsername,setLocalUsername] = useState("")
   const [password,setPassword] = useState("")
@@ -27,7 +27,7 @@ export default function SettingsPage(){
         .from("profiles")
         .select("username")
         .eq("id", user.id)
-        .single()
+        .maybeSingle()
 
       if(profile?.username){
         setLocalUsername(profile.username)
@@ -48,6 +48,8 @@ export default function SettingsPage(){
 
     if(!user) return
 
+
+
     const { error } = await supabase
       .from("profiles")
       .upsert({
@@ -55,12 +57,17 @@ export default function SettingsPage(){
         username: localUsername
       })
 
-    if(!error){
 
-      setUsername(localUsername)
-      setMessage("Username updated successfully")
 
+    if(error){
+      setMessage(error.message)
+      return
     }
+
+
+
+    setUsername(localUsername)
+    setMessage("Username updated successfully")
 
   }
 
@@ -68,12 +75,14 @@ export default function SettingsPage(){
 
   async function updatePassword(){
 
-    await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       password
     })
 
-    setPassword("")
-    setMessage("Password updated successfully")
+    if(!error){
+      setPassword("")
+      setMessage("Password updated successfully")
+    }
 
   }
 
