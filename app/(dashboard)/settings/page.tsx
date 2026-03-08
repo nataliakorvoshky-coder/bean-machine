@@ -7,8 +7,7 @@ export default function SettingsPage(){
 
   const [username,setUsername] = useState("")
   const [password,setPassword] = useState("")
-  const [usernameMessage,setUsernameMessage] = useState("")
-  const [passwordMessage,setPasswordMessage] = useState("")
+  const [message,setMessage] = useState("")
 
 
 
@@ -18,19 +17,17 @@ export default function SettingsPage(){
 
       const { data } = await supabase.auth.getUser()
 
-      if(!data.user) return
+      const user = data.user
 
-      const res = await fetch("/api/user/profile",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          userId:data.user.id
-        })
-      })
+      if(!user) return
 
-      const profile = await res.json()
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("user_id", user.id)
+        .single()
 
-      if(profile.username){
+      if(profile?.username){
         setUsername(profile.username)
       }
 
@@ -46,20 +43,18 @@ export default function SettingsPage(){
 
     const { data } = await supabase.auth.getUser()
 
-    const res = await fetch("/api/user/update-username",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({
-        userId:data.user?.id,
+    const user = data.user
+
+    if(!user) return
+
+    await supabase
+      .from("profiles")
+      .upsert({
+        user_id:user.id,
         username
       })
-    })
 
-    const result = await res.json()
-
-    if(result.success){
-      setUsernameMessage("Username updated successfully")
-    }
+    setMessage("Username updated successfully")
 
   }
 
@@ -67,14 +62,12 @@ export default function SettingsPage(){
 
   async function updatePassword(){
 
-    const { error } = await supabase.auth.updateUser({
+    await supabase.auth.updateUser({
       password
     })
 
-    if(!error){
-      setPassword("")
-      setPasswordMessage("Password updated successfully")
-    }
+    setPassword("")
+    setMessage("Password updated successfully")
 
   }
 
@@ -83,8 +76,6 @@ export default function SettingsPage(){
   return(
 
   <div className="bg-white p-10 rounded-xl shadow w-[420px]">
-
-
 
   <h1 className="text-xl font-bold mb-6 text-emerald-700">
   Account Settings
@@ -101,7 +92,7 @@ export default function SettingsPage(){
   <input
   value={username}
   onChange={(e)=>setUsername(e.target.value)}
-  className="border border-emerald-400 p-3 w-full rounded mb-6 focus:ring-2 focus:ring-emerald-300"
+  className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-400"
   />
 
   <button
@@ -111,15 +102,7 @@ export default function SettingsPage(){
   Update Username
   </button>
 
-  {usernameMessage && (
-  <p className="text-sm text-gray-600 mt-4">
-  {usernameMessage}
-  </p>
-  )}
 
-
-
-  {/* PASSWORD */}
 
   <div className="mt-10 border-t pt-8">
 
@@ -132,7 +115,7 @@ export default function SettingsPage(){
   placeholder="New Password"
   value={password}
   onChange={(e)=>setPassword(e.target.value)}
-  className="border border-emerald-400 p-3 w-full rounded mb-4 focus:ring-2 focus:ring-emerald-300"
+  className="border border-emerald-400 p-3 w-full rounded mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-400"
   />
 
   <button
@@ -142,15 +125,15 @@ export default function SettingsPage(){
   Update Password
   </button>
 
-  {passwordMessage && (
-  <p className="text-sm text-gray-600 mt-4">
-  {passwordMessage}
-  </p>
-  )}
-
   </div>
 
 
+
+  {message && (
+  <p className="text-sm text-gray-600 mt-4">
+  {message}
+  </p>
+  )}
 
   </div>
 

@@ -10,7 +10,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
 
-  const [username, setUsername] = useState("")
+  const [username, setUsername] = useState("Loading...")
   const [status, setStatus] = useState("online")
 
 
@@ -27,6 +27,7 @@ export default function DashboardLayout({
     async function loadUser() {
 
       const { data } = await supabase.auth.getUser()
+
       const user = data.user
 
       if (!user) {
@@ -34,20 +35,14 @@ export default function DashboardLayout({
         return
       }
 
-      const res = await fetch("/api/user/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id
-        })
-      })
-
-      const profile = await res.json()
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("user_id", user.id)
+        .single()
 
       if (profile?.username) {
         setUsername(profile.username)
-      } else {
-        setUsername("User")
       }
 
     }
@@ -59,9 +54,11 @@ export default function DashboardLayout({
 
 
   function getStatusColor() {
+
     if (status === "online") return "bg-green-400"
     if (status === "idle") return "bg-yellow-400"
     return "bg-gray-400"
+
   }
 
 
@@ -87,7 +84,7 @@ export default function DashboardLayout({
           <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
           <span className="font-semibold">
-            {username || "Loading..."}
+            {username}
           </span>
 
         </div>
