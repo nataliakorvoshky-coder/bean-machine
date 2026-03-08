@@ -100,8 +100,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 <Image
 src="/logo.png"
 alt="Bean Machine"
-width={38}
-height={38}
+width={40}
+height={40}
 />
 
 <h1 className="text-2xl font-extrabold tracking-wide">
