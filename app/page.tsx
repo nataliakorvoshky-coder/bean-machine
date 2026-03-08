@@ -100,8 +100,7 @@ export default function HomePage() {
 
         <div className="hidden md:block md:w-1/2 relative">
 
-          <img
-            src="/coffee.jpg"
+         <img src="/coffee.png"
             className="absolute inset-0 w-full h-full object-cover"
           />
 
