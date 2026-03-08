@@ -1,26 +1,37 @@
+import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-export async function GET(request: Request) {
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+export async function POST(req: Request) {
 
-  const { searchParams } = new URL(request.url)
-  const userId = searchParams.get("userId")
+  try {
 
-  if (!userId) {
-    return Response.json({ admin:false })
+    const { userId } = await req.json()
+
+    if (!userId) {
+      return NextResponse.json({ admin:false })
+    }
+
+    const { data, error } = await supabase
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", userId)
+      .single()
+
+    if (error || !data) {
+      return NextResponse.json({ admin:false })
+    }
+
+    return NextResponse.json({ admin:true })
+
+  } catch (err) {
+
+    return NextResponse.json({ admin:false })
+
   }
 
-  const { data } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("id", userId)
-    .single()
-
-  return Response.json({
-    admin: data?.role === "admin"
-  })
 }

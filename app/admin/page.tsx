@@ -10,118 +10,124 @@ export default function AdminPage() {
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
   const [selectedUser, setSelectedUser] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+
 
 
   async function loadUsers() {
 
-    const res = await fetch("/api/admin/list-users")
+    const res = await fetch("/api/admin/list-users", {
+      method:"POST"
+    })
+
     const data = await res.json()
 
     setUsers(data.users || [])
   }
 
 
+
   async function createUser() {
 
+    const { data } = await supabase.auth.getUser()
+
     const res = await fetch("/api/admin/create-user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        email,
+        password,
+        userId: data.user?.id
+      })
     })
 
-    const data = await res.json()
+    const result = await res.json()
 
-    if (data.error) {
-      setMessage(data.error)
+    if(result.error){
+      setMessage(result.error)
     } else {
       setMessage("User created successfully")
       setEmail("")
       setPassword("")
       loadUsers()
     }
+
   }
 
 
-  async function deleteUser(id: string) {
 
-    if (!id) {
-      alert("Please select a user first")
+  async function deleteUser(id:string){
+
+    if(!id){
+      alert("Please select a user")
       return
     }
 
     const confirmed = confirm("Delete this user?")
-    if (!confirmed) return
+    if(!confirmed) return
 
-    await fetch("/api/admin/delete-user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id })
+    const { data } = await supabase.auth.getUser()
+
+    await fetch("/api/admin/delete-user",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        id,
+        userId: data.user?.id
+      })
     })
 
     setSelectedUser("")
     loadUsers()
+
   }
 
 
-  function logout() {
 
-  document.cookie =
-    "user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+  function logout(){
 
-  window.location.href = "/"
-}
+    document.cookie =
+      "user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+
+    window.location.href="/"
+
+  }
 
 
-  useEffect(() => {
 
-    async function checkAdmin() {
+  useEffect(()=>{
+
+    async function init(){
 
       const { data } = await supabase.auth.getUser()
 
       const user = data.user
 
-     if (!user) {
-  window.location.href = "/"
-  return
-}
+      if(!user){
+        window.location.href="/"
+        return
+      }
 
-      const userId = user.id
+      const res = await fetch("/api/admin/check-admin",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          userId:user.id
+        })
+      })
 
-      const res = await fetch(`/api/admin/check-admin?userId=${userId}`)
-      const adminData = await res.json()
+      const result = await res.json()
 
-      if (!adminData.admin) {
-  window.location.href = "/"
-  return
-}
+      setIsAdmin(result.admin)
 
-      setLoading(false)
+      loadUsers()
+
     }
 
-    checkAdmin()
-    loadUsers()
+    init()
 
-  }, [])
+  },[])
 
-
-  if (loading) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex items-center justify-center">
-
-      <div className="bg-white p-10 rounded-xl shadow-lg flex flex-col items-center gap-4 animate-fadeIn">
-
-        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-
-        <p className="text-emerald-700 font-semibold">
-          Checking permissions...
-        </p>
-
-      </div>
-
-    </div>
-  )
-}
 
 
   return (
@@ -134,7 +140,7 @@ export default function AdminPage() {
       <div className="bg-emerald-700 shadow-md py-5 relative flex justify-center items-center">
 
         <h1 className="text-2xl font-bold text-white tracking-wide">
-          Admin Dashboard
+          {isAdmin ? "Admin Dashboard" : "User Dashboard"}
         </h1>
 
         <button
@@ -155,70 +161,75 @@ export default function AdminPage() {
           <div className="flex justify-center gap-24">
 
 
+
             {/* CREATE USER PANEL */}
 
-            <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl flex flex-col">
+            {isAdmin && (
 
-              <div className="flex items-center justify-center gap-4 mb-10 text-emerald-600 font-semibold">
+              <div className="w-[420px] bg-white p-10 rounded-2xl shadow-xl flex flex-col">
 
-                <div className="h-[2px] bg-emerald-500 w-24"></div>
+                <div className="flex items-center justify-center gap-4 mb-10 text-emerald-600 font-semibold">
 
-                <span className="text-lg">Create User</span>
+                  <div className="h-[2px] bg-emerald-500 w-24"></div>
 
-                <div className="h-[2px] bg-emerald-500 w-24"></div>
+                  <span className="text-lg">Create User</span>
 
-              </div>
-
-
-              <div className="space-y-8 flex-grow">
-
-                <div>
-
-                  <label className="block text-emerald-700 font-semibold mb-2">
-                    Email
-                  </label>
-
-                  <input
-                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-300"
-                    value={email}
-                    onChange={(e)=>setEmail(e.target.value)}
-                  />
+                  <div className="h-[2px] bg-emerald-500 w-24"></div>
 
                 </div>
 
 
-                <div>
+                <div className="space-y-8 flex-grow">
 
-                  <label className="block text-emerald-700 font-semibold mb-2">
-                    Temporary Password
-                  </label>
+                  <div>
 
-                  <input
-                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-300"
-                    value={password}
-                    onChange={(e)=>setPassword(e.target.value)}
-                  />
+                    <label className="block text-emerald-700 font-semibold mb-2">
+                      Email
+                    </label>
+
+                    <input
+                      className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                      value={email}
+                      onChange={(e)=>setEmail(e.target.value)}
+                    />
+
+                  </div>
+
+
+                  <div>
+
+                    <label className="block text-emerald-700 font-semibold mb-2">
+                      Temporary Password
+                    </label>
+
+                    <input
+                      className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                      value={password}
+                      onChange={(e)=>setPassword(e.target.value)}
+                    />
+
+                  </div>
 
                 </div>
 
+
+                <button
+                  className="bg-emerald-500 text-white p-3 rounded-lg w-full hover:bg-emerald-600 mt-8"
+                  onClick={createUser}
+                >
+                  Create User
+                </button>
+
+
+                {message && (
+                  <p className="text-sm text-gray-600 mt-4 text-center">
+                    {message}
+                  </p>
+                )}
+
               </div>
 
-
-              <button
-                className="bg-emerald-500 text-white p-3 rounded-lg w-full hover:bg-emerald-600 mt-8"
-                onClick={createUser}
-              >
-                Create User
-              </button>
-
-
-              {message && (
-                <p className="text-sm text-gray-600 mt-4 text-center">
-                  {message}
-                </p>
-              )}
-
-            </div>
+            )}
 
 
 
@@ -248,7 +259,7 @@ export default function AdminPage() {
                   </label>
 
                   <select
-                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-300"
+                    className="border border-emerald-400 p-3 w-full rounded-lg focus:ring-2 focus:ring-emerald-400 focus:outline-none"
                     value={selectedUser}
                     onChange={(e)=>setSelectedUser(e.target.value)}
                   >
@@ -268,14 +279,19 @@ export default function AdminPage() {
               </div>
 
 
-              <button
-                className="bg-emerald-500 text-white p-3 rounded-lg w-full hover:bg-emerald-600 mt-8"
-                onClick={()=>deleteUser(selectedUser)}
-              >
-                Delete Selected User
-              </button>
+              {isAdmin && (
+
+                <button
+                  className="bg-emerald-500 text-white p-3 rounded-lg w-full hover:bg-emerald-600 mt-8"
+                  onClick={()=>deleteUser(selectedUser)}
+                >
+                  Delete Selected User
+                </button>
+
+              )}
 
             </div>
+
 
 
           </div>
@@ -285,5 +301,7 @@ export default function AdminPage() {
       </div>
 
     </main>
+
   )
+
 }
