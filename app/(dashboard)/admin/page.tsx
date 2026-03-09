@@ -1,62 +1,25 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
 
 export default function AdminPage(){
 
-const { users, refreshUsers } = useUserData()
+const { users } = useUserData()
 
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
-const [isAdmin,setIsAdmin] = useState(false)
-
-useEffect(()=>{
-
-async function checkAdmin(){
-
-const { data } = await supabase.auth.getUser()
-const user = data.user
-
-if(!user){
-window.location.href="/"
-return
-}
-
-const res = await fetch("/api/admin/check-admin",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({ userId:user.id })
-})
-
-const result = await res.json()
-
-if(result.admin){
-setIsAdmin(true)
-}
-
-}
-
-checkAdmin()
-
-},[])
 
 async function createUser(){
-
-const { data } = await supabase.auth.getUser()
-const user = data.user
-
-if(!user) return
 
 const res = await fetch("/api/admin/create-user",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body: JSON.stringify({
 email,
-password,
-userId:user.id
+password
 })
 })
 
@@ -69,26 +32,25 @@ setMessage(result.error)
 }else{
 
 setMessage("User created successfully")
+
 setEmail("")
 setPassword("")
 
-await refreshUsers()
+/* LOG ACTIVITY */
 
-}
+const { data } = await supabase.auth.getUser()
 
-}
-
-async function deleteUser(id:string){
-
-if(!confirm("Delete this user?")) return
-
-await fetch("/api/admin/delete-user",{
+await fetch("/api/activity/create",{
 method:"POST",
-headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({ id })
+headers:{ "Content-Type":"application/json"},
+body: JSON.stringify({
+username:data?.user?.email,
+action:"Created new user",
+type:"Admin"
+})
 })
 
-await refreshUsers()
+}
 
 }
 
@@ -117,7 +79,7 @@ Email
 <input
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-400 p-3 w-full rounded mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+className="border border-emerald-400 p-3 w-full rounded mb-4 focus:ring-2 focus:ring-emerald-400"
 />
 
 <label className="block text-sm mb-1">
@@ -127,20 +89,17 @@ Temporary Password
 <input
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+className="border border-emerald-400 p-3 w-full rounded mb-6 focus:ring-2 focus:ring-emerald-400"
 />
 
 <button
 onClick={createUser}
 className="bg-emerald-500 text-white p-3 w-full rounded hover:bg-emerald-600"
-disabled={!isAdmin}
-
 >
-
-Create User </button>
+Create User
+</button>
 
 {message &&(
-
 <p className="text-sm text-gray-600 mt-4">
 {message}
 </p>
@@ -148,7 +107,7 @@ Create User </button>
 
 </div>
 
-{/* CURRENT USERS */}
+{/* USER LIST */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -158,33 +117,20 @@ Current Users ({users.length})
 
 <div className="space-y-3">
 
-{users.map((u:any)=>{
-
-return(
+{users.map((u:any)=>(
 
 <div
 key={u.id}
-className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+className="border border-emerald-400 p-3 rounded-lg"
 >
 
 <span className="font-medium">
-{u.username ?? "User"}
+{u.username ?? u.email}
 </span>
-
-<button
-onClick={()=>deleteUser(u.id)}
-className="text-red-500 hover:text-red-700 text-sm"
-disabled={!isAdmin}
-
->
-
-Delete </button>
 
 </div>
 
-)
-
-})}
+))}
 
 </div>
 
