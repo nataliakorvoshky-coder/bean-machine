@@ -1,59 +1,64 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { usePathname } from "next/navigation"
 
 type PresenceState = Record<string, any>
 
-interface PresenceContextType {
-  presence: PresenceState
-}
-
-const PresenceContext = createContext<PresenceContextType>({
-  presence: {}
+const PresenceContext = createContext<{presence:PresenceState}>({
+  presence:{}
 })
 
-let channel: any = null
+let channel:any = null
+let currentPresence:PresenceState = {}
 
-export function PresenceProvider({ children }: { children: React.ReactNode }) {
+export function PresenceProvider({children}:{children:React.ReactNode}){
 
   const pathname = usePathname()
-  const [presence, setPresence] = useState<PresenceState>({})
+  const [presence,setPresence] = useState<PresenceState>({})
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    async function initPresence() {
+    async function init(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
-      if (!user) return
+      if(!user) return
 
-      if (!channel) {
+      if(!channel){
 
-        channel = supabase.channel("online-users", {
-          config: { presence: { key: user.id } }
+        channel = supabase.channel("online-users",{
+          config:{ presence:{ key:user.id } }
         })
 
         channel
-          .on("presence", { event: "sync" }, () => {
-            setPresence(channel.presenceState())
-          })
-          .on("presence", { event: "join" }, () => {
-            setPresence(channel.presenceState())
-          })
-          .on("presence", { event: "leave" }, () => {
-            setPresence(channel.presenceState())
-          })
-          .subscribe(async (status: string) => {
+          .on("presence",{event:"sync"},()=>{
 
-            if (status === "SUBSCRIBED") {
+            currentPresence = channel.presenceState()
+            setPresence({...currentPresence})
+
+          })
+          .on("presence",{event:"join"},()=>{
+
+            currentPresence = channel.presenceState()
+            setPresence({...currentPresence})
+
+          })
+          .on("presence",{event:"leave"},()=>{
+
+            currentPresence = channel.presenceState()
+            setPresence({...currentPresence})
+
+          })
+          .subscribe(async(status:string)=>{
+
+            if(status==="SUBSCRIBED"){
 
               await channel.track({
-                id: user.id,
-                page: pathname,
-                status: "active",
-                online_at: new Date().toISOString()
+                id:user.id,
+                page:pathname,
+                online_at:new Date().toISOString()
               })
 
             }
@@ -62,58 +67,30 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
       }
 
-      /* HEARTBEAT (prevents ghost offline state) */
-
-      setInterval(async () => {
-
-        if (!channel) return
-
-        await channel.track({
-          id: user.id,
-          page: pathname,
-          status: "active",
-          online_at: new Date().toISOString()
-        })
-
-      }, 15000)
-
-    }
-
-    initPresence()
-
-  }, [])
-
-  /* Update page location */
-
-  useEffect(() => {
-
-    async function updatePage() {
-
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
-      if (!user || !channel) return
+      /* Immediately track on navigation */
 
       await channel.track({
-        id: user.id,
-        page: pathname,
-        status: "active",
-        online_at: new Date().toISOString()
+        id:user.id,
+        page:pathname,
+        online_at:new Date().toISOString()
       })
 
     }
 
-    updatePage()
+    init()
 
-  }, [pathname])
+  },[pathname])
 
-  return (
-    <PresenceContext.Provider value={{ presence }}>
+  return(
+
+    <PresenceContext.Provider value={{presence}}>
       {children}
     </PresenceContext.Provider>
+
   )
 
 }
 
-export function usePresence() {
+export function usePresence(){
   return useContext(PresenceContext)
 }
