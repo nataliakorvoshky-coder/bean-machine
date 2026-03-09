@@ -7,11 +7,17 @@ const UserContext = createContext<any>(null)
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
 
-  const [username,setUsername] = useState("")
+  const [username,setUsername] = useState<string>("")
 
   useEffect(()=>{
 
-    async function load(){
+    async function loadUser(){
+
+      const cached = localStorage.getItem("username")
+
+      if(cached){
+        setUsername(cached)
+      }
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -19,25 +25,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if(!user) return
 
       const { data:profile } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id",user.id)
-        .single()
+      .from("profiles")
+      .select("username")
+      .eq("id",user.id)
+      .single()
 
       if(profile?.username){
+
         setUsername(profile.username)
+
+        localStorage.setItem(
+          "username",
+          profile.username
+        )
+
       }
 
     }
 
-    load()
+    loadUser()
 
   },[])
 
   return(
 
   <UserContext.Provider value={{username,setUsername}}>
-    {children}
+  {children}
   </UserContext.Provider>
 
   )

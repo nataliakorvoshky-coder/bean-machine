@@ -19,29 +19,33 @@ let channel:any
 async function startPresence(){
 
 const { data } = await supabase.auth.getUser()
-const user = data.user
+const user = data?.user
 
 if(!user) return
 
 channel = supabase.channel("online-users",{
-config:{
-presence:{ key:user.id }
-}
+config:{ presence:{ key:user.id } }
 })
 
-channel
-.on("presence",{event:"sync"},()=>{
+const update = ()=>{
 const state = channel.presenceState()
-setPresence(state)
-})
+setPresence({...state})
+}
+
+channel
+.on("presence",{event:"sync"},update)
+.on("presence",{event:"join"},update)
+.on("presence",{event:"leave"},update)
 .subscribe(async(status:any)=>{
 
 if(status==="SUBSCRIBED"){
 
 await channel.track({
-user:user.id,
+id:user.id,
 status:"active"
 })
+
+update()
 
 }
 
@@ -69,7 +73,7 @@ Dashboard
 
 <div className="flex gap-12">
 
-{/* ONLINE USERS PANEL */}
+{/* ONLINE USERS */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -79,7 +83,7 @@ Online Users
 
 <div className="space-y-3">
 
-{users.length === 0 ? (
+{users.length===0 ? (
 
 <div className="text-gray-400 text-sm">
 Loading users...
@@ -139,7 +143,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 </div>
 
-{/* ACTIVITY PANEL */}
+{/* ACTIVITY FEED */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
