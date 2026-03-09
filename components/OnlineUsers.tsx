@@ -19,30 +19,28 @@ export default function OnlineUsers({ users }:{ users:any[] }){
 
 const presence = usePresence()
 
-/* cache last presence to prevent flicker */
+/* cache presence */
 
 const [cachedPresence,setCachedPresence] = useState<any>({})
+const [presenceReady,setPresenceReady] = useState(false)
 
 useEffect(()=>{
 
 if(Object.keys(presence).length>0){
+
 setCachedPresence(presence)
+setPresenceReady(true)
+
 }
 
 },[presence])
-
-/* choose active presence */
 
 const state =
 Object.keys(presence).length>0
 ? presence
 : cachedPresence
 
-/* flatten connections */
-
 const connections = Object.values(state).flat()
-
-/* remove duplicates */
 
 const uniqueConnections = Array.from(
 new Map(connections.map((c:any)=>[c.id,c])).values()
@@ -58,15 +56,17 @@ Online Users
 
 <div className="space-y-3">
 
-{uniqueConnections.length === 0 ? (
+{/* only show empty message after presence sync */}
+
+{presenceReady && uniqueConnections.length===0 && (
 
 <div className="text-gray-400 text-sm">
 No users online
 </div>
 
-) : (
+)}
 
-uniqueConnections.map((conn:any)=>{
+{uniqueConnections.map((conn:any)=>{
 
 const user = users.find((u:any)=>u.id===conn.id)
 if(!user) return null
@@ -96,9 +96,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 )
 
-})
-
-)}
+})}
 
 </div>
 
