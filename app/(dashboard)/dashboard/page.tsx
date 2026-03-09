@@ -1,88 +1,49 @@
-"use client"
+import OnlineUsers from "@/components/OnlineUsers"
 
-import { createContext, useContext, useEffect, useState } from "react"
+async function getUsers() {
 
-interface UserDataType{
-users:any[]
-refreshUsers:()=>Promise<void>
+  const res = await fetch(
+    process.env.NEXT_PUBLIC_SITE_URL + "/api/admin/list-users",
+    { cache: "no-store" }
+  )
+
+  const data = await res.json()
+
+  return data.users || []
 }
 
-const UserDataContext = createContext<UserDataType>({
-users:[],
-refreshUsers: async ()=>{}
-})
+export default async function DashboardPage() {
 
-export function UserDataProvider({
-children
-}:{children:React.ReactNode}){
+  const users = await getUsers()
 
-const [users,setUsers] = useState<any[]>([])
+  return (
 
-/* load cached users instantly */
+    <div className="w-[1000px]">
 
-useEffect(()=>{
+      <h1 className="text-3xl font-bold text-emerald-700 mb-10">
+        Dashboard
+      </h1>
 
-try{
+      <div className="flex gap-12">
 
-const cached = localStorage.getItem("users-cache")
+        <OnlineUsers users={users} />
 
-if(cached){
-setUsers(JSON.parse(cached))
-}
+        <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
-}catch{}
+          <h2 className="font-semibold mb-6 text-emerald-700">
+            Activity Feed
+          </h2>
 
-},[])
+          <p className="text-gray-500 text-sm">
+            No activity yet
+          </p>
 
-/* API loader */
+        </div>
 
-async function refreshUsers(){
+      </div>
 
-try{
+    </div>
 
-const res = await fetch("/api/admin/list-users")
+  )
 
-if(!res.ok) return
-
-const data = await res.json()
-
-const list = data.users || []
-
-setUsers(list)
-
-/* update cache */
-
-localStorage.setItem(
-"users-cache",
-JSON.stringify(list)
-)
-
-}catch(e){
-
-console.error("User load failed",e)
-
-}
-
-}
-
-/* first load */
-
-useEffect(()=>{
-
-refreshUsers()
-
-},[])
-
-return(
-
-<UserDataContext.Provider value={{users,refreshUsers}}>
-{children}
-</UserDataContext.Provider>
-
-)
-
-}
-
-export function useUserData(){
-return useContext(UserDataContext)
 }
