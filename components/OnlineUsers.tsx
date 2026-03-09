@@ -3,87 +3,82 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-function pageLabel(page?: string){
+function pageLabel(page?: string) {
 
-  if(!page) return ""
+  if (!page) return ""
 
-  if(page.includes("dashboard")) return "Dashboard"
-  if(page.includes("admin")) return "Admin Dashboard"
-  if(page.includes("settings")) return "Settings"
+  if (page.includes("dashboard")) return "Dashboard"
+  if (page.includes("admin")) return "Admin Dashboard"
+  if (page.includes("settings")) return "Settings"
 
   return ""
-
 }
 
-export default function OnlineUsers(){
+export default function OnlineUsers() {
 
   const { presence } = usePresence()
   const { users } = useUserData()
 
   /* flatten presence payload */
 
-  const onlineIds = Object.values(presence)
-    .flat()
-    .map((p:any)=>p.id)
+  const onlinePresence = Object.values(presence).flat()
 
-  const onlineUsers = users.filter((u:any)=>
+  const onlineIds = onlinePresence.map((p: any) => p.id)
+
+  const onlineUsers = users.filter((u: any) =>
     onlineIds.includes(u.id)
   )
 
-  return(
+  return (
 
-  <div className="bg-white p-8 rounded-xl shadow w-[420px]">
+    <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
-  <h2 className="font-semibold mb-6 text-emerald-700">
-  Online Users
-  </h2>
+      <h2 className="font-semibold mb-6 text-emerald-700">
+        Online Users
+      </h2>
 
-  <div className="space-y-3">
+      <div className="space-y-3">
 
-  {onlineUsers.length===0 &&(
+        {onlineUsers.length === 0 && (
+          <p className="text-gray-400 text-sm">
+            No users online
+          </p>
+        )}
 
-  <p className="text-gray-400 text-sm">
-  No users online
-  </p>
+        {onlineUsers.map((u: any) => {
 
-  )}
+          const state = onlinePresence.find((p: any) => p.id === u.id)
 
-  {onlineUsers.map((u:any)=>{
+          return (
 
-  const state = Object.values(presence)
-    .flat()
-    .find((p:any)=>p.id===u.id)
+            <div
+              key={u.id}
+              className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+            >
 
-  return(
+              <span className="font-medium">
+                {u.username ?? "User"}
+              </span>
 
-  <div
-  key={u.id}
-  className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-  >
+              <div className="flex items-center gap-2">
 
-  <span className="font-medium">
-  {u.username ?? "User"}
-  </span>
+                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
-  <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">
+                  {pageLabel(state?.page)}
+                </span>
 
-  <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+              </div>
 
-  <span className="text-sm text-gray-500">
-  {pageLabel(state?.page)}
-  </span>
+            </div>
 
-  </div>
+          )
 
-  </div>
+        })}
 
-  )
+      </div>
 
-  })}
-
-  </div>
-
-  </div>
+    </div>
 
   )
 
