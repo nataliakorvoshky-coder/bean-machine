@@ -4,10 +4,12 @@ import { createContext, useContext, useEffect, useState } from "react"
 
 interface UserDataType{
 users:any[]
+refreshUsers:()=>Promise<void>
 }
 
 const UserDataContext = createContext<UserDataType>({
-users:[]
+users:[],
+refreshUsers: async ()=>{}
 })
 
 export function UserDataProvider({
@@ -32,11 +34,9 @@ setUsers(JSON.parse(cached))
 
 },[])
 
-/* refresh users from API */
+/* API loader */
 
-useEffect(()=>{
-
-async function load(){
+async function refreshUsers(){
 
 try{
 
@@ -50,24 +50,32 @@ const list = data.users || []
 
 setUsers(list)
 
-/* cache for instant reload */
+/* update cache */
 
 localStorage.setItem(
 "users-cache",
 JSON.stringify(list)
 )
 
-}catch{}
+}catch(e){
+
+console.error("User load failed",e)
 
 }
 
-load()
+}
+
+/* first load */
+
+useEffect(()=>{
+
+refreshUsers()
 
 },[])
 
 return(
 
-<UserDataContext.Provider value={{users}}>
+<UserDataContext.Provider value={{users,refreshUsers}}>
 {children}
 </UserDataContext.Provider>
 
