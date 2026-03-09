@@ -1,64 +1,75 @@
 "use client"
 
 import { usePresence } from "@/lib/PresenceContext"
-import { useUserData } from "@/lib/UserDataContext"
 
-export default function OnlineUsers(){
+function pageLabel(page?:string){
 
-  const presence = usePresence()
-  const { users } = useUserData()
+if(!page) return "Online"
 
-  const connections = Object.values(presence).flat()
+if(page.includes("dashboard")) return "Dashboard"
+if(page.includes("admin")) return "Admin Panel"
+if(page.includes("settings")) return "Settings"
 
-  return(
+return "Online"
 
-  <div className="bg-white p-8 rounded-xl shadow w-[420px]">
+}
 
-    <h2 className="font-semibold mb-6 text-emerald-700">
-      Online Users
-    </h2>
+export default function OnlineUsers({users}:{users:any[]}){
 
-    <div className="space-y-3">
+const presence = usePresence()
 
-      {users.map((u:any)=>{
+const connections = Object.values(presence).flat()
 
-        const active = connections.find(
-          (p:any)=>p.id===u.id
-        )
+const unique = Array.from(
+new Map(connections.map((c:any)=>[c.id,c])).values()
+)
 
-        if(!active) return null
+return(
 
-        return(
+<div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
-        <div
-        key={u.id}
-        className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-        >
+<h2 className="font-semibold mb-6 text-emerald-700">
+Online Users
+</h2>
 
-          <span className="font-medium">
-            {u.username}
-          </span>
+<div className="space-y-3">
 
-          <div className="flex items-center gap-2">
+{unique.map((conn:any)=>{
 
-            <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
+const user = users.find((u:any)=>u.id===conn.id)
+if(!user) return null
 
-            <span className="text-sm text-gray-500">
-              Online
-            </span>
+return(
 
-          </div>
+<div
+key={conn.id}
+className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+>
 
-        </div>
+<div className="flex items-center gap-3">
 
-        )
+<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
 
-      })}
+<span className="font-medium">
+{user.username}
+</span>
 
-    </div>
+</div>
 
-  </div>
+<span className="text-sm text-gray-500">
+{pageLabel(conn.page)}
+</span>
 
-  )
+</div>
+
+)
+
+})}
+
+</div>
+
+</div>
+
+)
 
 }
