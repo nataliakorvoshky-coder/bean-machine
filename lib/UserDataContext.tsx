@@ -2,66 +2,79 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 
-interface UserDataType {
-  users: any[]
-  refreshUsers: () => Promise<void>
+interface UserDataType{
+users:any[]
 }
 
 const UserDataContext = createContext<UserDataType>({
-  users: [],
-  refreshUsers: async () => {}
+users:[]
 })
 
-export function UserDataProvider({ children }: { children: React.ReactNode }) {
+export function UserDataProvider({
+children
+}:{children:React.ReactNode}){
 
-  const [users, setUsers] = useState<any[]>([])
+const [users,setUsers] = useState<any[]>([])
 
-  async function refreshUsers() {
+/* load cached users instantly */
 
-    try {
+useEffect(()=>{
 
-      const res = await fetch("/api/admin/list-users")
+try{
 
-      if (!res.ok) return
+const cached = localStorage.getItem("users-cache")
 
-      const data = await res.json()
+if(cached){
+setUsers(JSON.parse(cached))
+}
 
-      setUsers(data.users || [])
+}catch{}
 
-      /* cache users so panels render instantly */
+},[])
 
-      localStorage.setItem("cachedUsers", JSON.stringify(data.users || []))
+/* refresh users from API */
 
-    } catch (err) {
+useEffect(()=>{
 
-      console.error("Failed loading users", err)
+async function load(){
 
-    }
+try{
 
-  }
+const res = await fetch("/api/admin/list-users")
 
-  useEffect(() => {
+if(!res.ok) return
 
-    const cached = localStorage.getItem("cachedUsers")
+const data = await res.json()
 
-    if (cached) {
-      setUsers(JSON.parse(cached))
-    }
+const list = data.users || []
 
-    refreshUsers()
+setUsers(list)
 
-  }, [])
+/* cache for instant reload */
 
-  return (
+localStorage.setItem(
+"users-cache",
+JSON.stringify(list)
+)
 
-    <UserDataContext.Provider value={{ users, refreshUsers }}>
-      {children}
-    </UserDataContext.Provider>
-
-  )
+}catch{}
 
 }
 
-export function useUserData() {
-  return useContext(UserDataContext)
+load()
+
+},[])
+
+return(
+
+<UserDataContext.Provider value={{users}}>
+{children}
+</UserDataContext.Provider>
+
+)
+
+}
+
+export function useUserData(){
+return useContext(UserDataContext)
 }
