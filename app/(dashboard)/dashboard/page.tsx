@@ -2,6 +2,8 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 
 function pageLabel(page?: string){
 
@@ -20,7 +22,28 @@ export default function DashboardPage(){
 const presence = usePresence()
 const { users } = useUserData()
 
-/* flatten realtime connections */
+const [currentUser,setCurrentUser] = useState<string | null>(null)
+
+/* detect current user */
+
+useEffect(()=>{
+
+async function loadUser(){
+
+const { data } = await supabase.auth.getUser()
+const user = data?.user
+
+if(user){
+setCurrentUser(user.id)
+}
+
+}
+
+loadUser()
+
+},[])
+
+/* flatten presence */
 
 const connections = Object.values(presence).flat()
 
@@ -50,7 +73,11 @@ const active = connections.find(
 (p:any)=>p.id===u.id
 )
 
-if(!active) return null
+/* show current user instantly */
+
+const isCurrentUser = u.id === currentUser
+
+if(!active && !isCurrentUser) return null
 
 return(
 
@@ -68,7 +95,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
 <span className="text-sm text-gray-500">
-• {pageLabel(active.page)}
+• {active ? pageLabel(active.page) : "Dashboard"}
 </span>
 
 </div>
