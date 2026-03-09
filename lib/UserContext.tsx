@@ -1,49 +1,55 @@
 "use client"
 
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 
-type UserContextType = {
+interface UserContextType {
  username: string
  setUsername: (name:string)=>void
- loading: boolean
- setLoading: (value:boolean)=>void
 }
 
 const UserContext = createContext<UserContextType>({
  username:"",
- setUsername:()=>{},
- loading:true,
- setLoading:()=>{}
+ setUsername:()=>{}
 })
 
 export function UserProvider({children}:{children:React.ReactNode}){
 
- const cachedUsername =
-  typeof window !== "undefined"
-   ? localStorage.getItem("username") || ""
-   : ""
+ const [username,setUsername] = useState("")
 
- const [username,setUsernameState] = useState(cachedUsername)
- const [loading,setLoading] = useState(!cachedUsername)
+ useEffect(()=>{
 
+  async function loadProfile(){
 
+   const { data } = await supabase.auth.getUser()
+   const user = data.user
 
- function setUsername(name:string){
+   if(!user) return
 
-  localStorage.setItem("username",name)
-  setUsernameState(name)
+   const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .maybeSingle()
 
- }
+   if(profile?.username){
+    setUsername(profile.username)
+   }else{
+    setUsername("User")
+   }
+
+  }
+
+  loadProfile()
+
+ },[])
 
  return(
-  <UserContext.Provider value={{
-   username,
-   setUsername,
-   loading,
-   setLoading
-  }}>
-   {children}
-  </UserContext.Provider>
+
+ <UserContext.Provider value={{username,setUsername}}>
+  {children}
+ </UserContext.Provider>
+
  )
 
 }

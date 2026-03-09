@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -10,9 +10,7 @@ import { UserProvider, useUser } from "@/lib/UserContext"
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
 const pathname = usePathname()
-const { username, setUsername } = useUser()
-
-const [status,setStatus] = useState("online")
+const { username } = useUser()
 
 const [adminOpen,setAdminOpen] = useState(true)
 const [stockOpen,setStockOpen] = useState(false)
@@ -30,45 +28,6 @@ async function logout(){
 
 
 
-useEffect(()=>{
-
- async function loadUser(){
-
-  const { data } = await supabase.auth.getUser()
-  const user = data.user
-
-  if(!user) return
-
-  const { data: profile } = await supabase
-   .from("profiles")
-   .select("username")
-   .eq("id", user.id)
-   .maybeSingle()
-
-  if(profile?.username){
-   setUsername(profile.username)
-  } else {
-   setUsername("User")
-  }
-
- }
-
- loadUser()
-
-},[])
-
-
-
-function getStatusColor(){
-
- if(status==="online") return "bg-green-400"
- if(status==="idle") return "bg-yellow-400"
- return "bg-gray-400"
-
-}
-
-
-
 return(
 
 <main className="flex min-h-screen">
@@ -77,15 +36,15 @@ return(
 
 <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6 space-y-6 shadow-xl">
 
-{/* LOGO HEADER */}
+{/* LOGO */}
 
-<div className="flex items-center gap-3 mb-4">
+<div className="flex items-center gap-3 mb-2">
 
 <Image
 src="/logo.png"
 alt="Bean Machine"
-width={54}
-height={54}
+width={48}
+height={48}
 />
 
 <h1 className="text-3xl font-bold leading-tight">
@@ -100,7 +59,7 @@ Bean Machine
 
 <div className="bg-emerald-700 rounded-lg px-4 py-3 flex items-center gap-3 shadow">
 
-<div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
+<div className="w-3 h-3 rounded-full bg-green-400" />
 
 <span className="font-semibold">
 {username}
@@ -127,14 +86,22 @@ Admin Panel
 
 <Link
 href="/admin"
-className={`hover:text-emerald-200 ${pathname==="/admin"?"text-white font-semibold":""}`}
+className={`block ${
+ pathname === "/admin"
+  ? "text-white font-semibold"
+  : "hover:text-emerald-200"
+}`}
 >
 Admin Dashboard
 </Link>
 
 <Link
 href="/dashboard"
-className={`hover:text-emerald-200 ${pathname==="/dashboard"?"text-white font-semibold":""}`}
+className={`block ${
+ pathname === "/dashboard"
+  ? "text-white font-semibold"
+  : "hover:text-emerald-200"
+}`}
 >
 Dashboard
 </Link>
@@ -154,17 +121,11 @@ Stock Management
 
 <div className={`flex flex-col gap-2 pl-4 transition-all duration-300 ${stockOpen ? "max-h-40" : "max-h-0 overflow-hidden"}`}>
 
-<Link
-href="#"
-className="hover:text-emerald-200"
->
+<Link href="#" className="hover:text-emerald-200">
 Inventory
 </Link>
 
-<Link
-href="#"
-className="hover:text-emerald-200"
->
+<Link href="#" className="hover:text-emerald-200">
 Suppliers
 </Link>
 
@@ -183,17 +144,11 @@ Employee Management
 
 <div className={`flex flex-col gap-2 pl-4 transition-all duration-300 ${employeeOpen ? "max-h-40" : "max-h-0 overflow-hidden"}`}>
 
-<Link
-href="#"
-className="hover:text-emerald-200"
->
+<Link href="#" className="hover:text-emerald-200">
 Employees
 </Link>
 
-<Link
-href="#"
-className="hover:text-emerald-200"
->
+<Link href="#" className="hover:text-emerald-200">
 Roles
 </Link>
 
@@ -214,7 +169,11 @@ User Tools
 
 <Link
 href="/settings"
-className={`hover:text-emerald-200 ${pathname==="/settings"?"text-white font-semibold":""}`}
+className={`block ${
+ pathname === "/settings"
+  ? "text-white font-semibold"
+  : "hover:text-emerald-200"
+}`}
 >
 Settings
 </Link>

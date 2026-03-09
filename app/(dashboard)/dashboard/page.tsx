@@ -3,209 +3,167 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
-export default function Dashboard(){
+export default function DashboardPage(){
 
- const [users,setUsers] = useState<any[]>([])
- const [presence,setPresence] = useState<any>({})
- const [status,setStatus] = useState("active")
+const [users,setUsers] = useState<any[]>([])
+const [presence,setPresence] = useState<any>({})
+const [loading,setLoading] = useState(true)
 
+async function loadUsers(){
 
+const res = await fetch("/api/admin/list-users")
+const data = await res.json()
 
- async function loadUsers(){
+setUsers(data.users || [])
+setLoading(false)
 
-  const res = await fetch("/api/admin/list-users")
-  const data = await res.json()
+}
 
-  setUsers(data.users || [])
+useEffect(()=>{
+loadUsers()
+},[])
 
- }
+useEffect(()=>{
 
+let channel:any
 
+async function startPresence(){
 
- /* ACTIVITY / IDLE DETECTION */
+const { data } = await supabase.auth.getUser()
+const user = data.user
 
- useEffect(()=>{
+if(!user) return
 
-  let idleTimer:any
+channel = supabase.channel("online-users",{
+config:{
+presence:{ key:user.id }
+}
+})
 
-  function setActive(){
+channel
+.on("presence",{event:"sync"},()=>{
+const state = channel.presenceState()
+setPresence(state)
+})
+.subscribe(async(status:any)=>{
 
-   setStatus("active")
+if(status==="SUBSCRIBED"){
 
-   clearTimeout(idleTimer)
+await channel.track({
+user:user.id,
+status:"active"
+})
 
-   idleTimer = setTimeout(()=>{
-    setStatus("idle")
-   },60000)
+}
 
-  }
+})
 
-  window.addEventListener("mousemove",setActive)
-  window.addEventListener("keydown",setActive)
+}
 
-  setActive()
+startPresence()
 
-  return ()=>{
-   window.removeEventListener("mousemove",setActive)
-   window.removeEventListener("keydown",setActive)
-  }
+return ()=>{
+if(channel){
+supabase.removeChannel(channel)
+}
+}
 
- },[])
+},[])
 
+if(loading) return null
 
+return(
 
- /* REALTIME PRESENCE */
+<div className="w-[1000px]">
 
- useEffect(()=>{
+<h1 className="text-3xl font-bold text-emerald-700 mb-10">
+Dashboard
+</h1>
 
-  let channel:any
+<div className="flex gap-12">
 
-  async function startPresence(){
+{/* ONLINE USERS */}
 
-   const { data } = await supabase.auth.getUser()
-   const user = data.user
+<div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
-   if(!user) return
+<h2 className="font-semibold mb-6 text-emerald-700">
+Online Users
+</h2>
 
-   channel = supabase.channel("online-users",{
-    config:{
-     presence:{ key:user.id }
-    }
-   })
+<div className="space-y-3">
 
-   channel
-    .on("presence",{event:"sync"},()=>{
-     const state = channel.presenceState()
-     setPresence(state)
-    })
-    .subscribe(async(statusResp:any)=>{
+{users.map((u:any)=>{
 
-     if(statusResp==="SUBSCRIBED"){
+const state = presence[u.id]
 
-      await channel.track({
-       user:user.id,
-       status
-      })
+let color="bg-gray-400"
+let text="Offline"
 
-     }
+if(state){
 
-    })
+const userState = state[0]?.status
 
-  }
+if(userState==="active"){
+color="bg-green-400"
+text="Active"
+}
 
-  startPresence()
-  loadUsers()
+if(userState==="idle"){
+color="bg-yellow-400"
+text="Idle"
+}
 
-  return ()=>{
-   if(channel){
-    supabase.removeChannel(channel)
-   }
-  }
+}
 
- },[status])
+return(
 
-
-
- return(
-
- <div className="w-[1000px]">
-
- <h1 className="text-3xl font-bold text-emerald-700 mb-10">
- Dashboard
- </h1>
-
-
-
- <div className="flex gap-12">
-
-
-
- {/* ONLINE USERS */}
-
- <div className="w-[420px] bg-white p-8 rounded-xl shadow">
-
- <h2 className="font-semibold mb-6 text-emerald-700">
-  Online Users
- </h2>
-
- <div className="space-y-3">
-
- {users.map((u:any)=>{
-
-  const state = presence[u.id]
-
-  let color="bg-gray-400"
-  let text="Offline"
-
-  if(state){
-
-   const userState = state[0]?.status
-
-   if(userState==="active"){
-    color="bg-green-400"
-    text="Active"
-   }
-
-   if(userState==="idle"){
-    color="bg-yellow-400"
-    text="Idle"
-   }
-
-  }
-
-  return(
-
-  <div
-   key={u.id}
-   className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-  >
+<div
+key={u.id}
+className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+>
 
 <span className="font-medium">
- {u.username || "User"}
+{u.username || u.email}
 </span>
 
-  <div className="flex items-center gap-2">
+<div className="flex items-center gap-2">
 
-  <div className={`w-3 h-3 rounded-full ${color}`} />
+<div className={`w-3 h-3 rounded-full ${color}`} />
 
-  <span className="text-sm text-gray-500">
-  {text}
-  </span>
+<span className="text-sm text-gray-500">
+{text}
+</span>
 
-  </div>
+</div>
 
-  </div>
+</div>
 
-  )
+)
 
- })}
+})}
 
- </div>
+</div>
 
- </div>
+</div>
 
+{/* ACTIVITY PANEL */}
 
+<div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
- {/* ACTIVITY FEED */}
+<h2 className="font-semibold mb-6 text-emerald-700">
+Activity Feed
+</h2>
 
- <div className="w-[420px] bg-white p-8 rounded-xl shadow">
+<p className="text-gray-500 text-sm">
+No activity yet
+</p>
 
- <h2 className="font-semibold mb-6 text-emerald-700">
-  Activity Feed
- </h2>
+</div>
 
- <p className="text-gray-500">
-  No activity yet
- </p>
+</div>
 
- </div>
+</div>
 
-
-
- </div>
-
- </div>
-
- )
+)
 
 }
