@@ -14,17 +14,17 @@ const PresenceContext = createContext<PresenceContextType>({
   presence: {}
 })
 
-let channel:any = null
-let heartbeat:any = null
+let channel: any = null
+let cachedPresence: PresenceState = {}
 
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-  const [presence,setPresence] = useState<PresenceState>({})
+  const [presence,setPresence] = useState<PresenceState>(cachedPresence)
 
   useEffect(()=>{
 
-    async function init(){
+    async function start(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -40,13 +40,22 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
         channel
           .on("presence",{event:"sync"},()=>{
-            setPresence(channel.presenceState())
+
+            cachedPresence = channel.presenceState()
+            setPresence({...cachedPresence})
+
           })
           .on("presence",{event:"join"},()=>{
-            setPresence(channel.presenceState())
+
+            cachedPresence = channel.presenceState()
+            setPresence({...cachedPresence})
+
           })
           .on("presence",{event:"leave"},()=>{
-            setPresence(channel.presenceState())
+
+            cachedPresence = channel.presenceState()
+            setPresence({...cachedPresence})
+
           })
           .subscribe(async(status:string)=>{
 
@@ -58,58 +67,18 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
                 online_at:new Date().toISOString()
               })
 
+              /* force instant sync */
+
+              cachedPresence = channel.presenceState()
+              setPresence({...cachedPresence})
+
             }
 
           })
 
       }
 
-      /* heartbeat prevents ghost offline */
-
-      if(!heartbeat){
-
-        heartbeat = setInterval(async()=>{
-
-          if(!channel) return
-
-          await channel.track({
-            id:user.id,
-            page:pathname,
-            online_at:new Date().toISOString()
-          })
-
-        },10000)
-
-      }
-
-      /* detect tab close instantly */
-
-      window.addEventListener("beforeunload",async()=>{
-
-        if(channel){
-
-          await channel.untrack()
-
-        }
-
-      })
-
-    }
-
-    init()
-
-  },[])
-
-  /* instant update when navigating */
-
-  useEffect(()=>{
-
-    async function update(){
-
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
-
-      if(!user || !channel) return
+      /* immediate update on navigation */
 
       await channel.track({
         id:user.id,
@@ -117,9 +86,12 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
         online_at:new Date().toISOString()
       })
 
+      cachedPresence = channel.presenceState()
+      setPresence({...cachedPresence})
+
     }
 
-    update()
+    start()
 
   },[pathname])
 
