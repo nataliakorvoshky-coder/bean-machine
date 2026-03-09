@@ -20,9 +20,8 @@ export default function OnlineUsers({ users }:{ users:any[] }){
 const presence = usePresence()
 
 const [cachedPresence,setCachedPresence] = useState<any>({})
-const [ready,setReady] = useState(false)
 
-/* load cached presence before first paint */
+/* load cached presence instantly */
 
 useEffect(()=>{
 
@@ -36,13 +35,9 @@ setCachedPresence(JSON.parse(stored))
 
 }catch{}
 
-requestAnimationFrame(()=>{
-setReady(true)
-})
-
 },[])
 
-/* update cache */
+/* update cache when presence changes */
 
 useEffect(()=>{
 
@@ -60,8 +55,6 @@ JSON.stringify(presence)
 }
 
 },[presence])
-
-if(!ready) return null
 
 const state =
 Object.keys(presence).length>0
