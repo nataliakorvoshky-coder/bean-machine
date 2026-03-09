@@ -1,136 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
 export default function OnlineUsers(){
 
 const { users } = useUserData()
 
-const pathname = usePathname()
-
-const [presence,setPresence] = useState<any>({})
-const [status,setStatus] = useState("active")
-
-const channelRef = useRef<any>(null)
-const userIdRef = useRef<string | null>(null)
-
-/* -------------------------------- */
-/* ACTIVE / IDLE DETECTION */
-/* -------------------------------- */
-
-useEffect(()=>{
-
-let idleTimer:any
-
-function setActive(){
-
-setStatus("active")
-
-clearTimeout(idleTimer)
-
-idleTimer = setTimeout(()=>{
-setStatus("idle")
-},60000)
-
-}
-
-window.addEventListener("mousemove",setActive)
-window.addEventListener("keydown",setActive)
-
-setActive()
-
-return ()=>{
-
-window.removeEventListener("mousemove",setActive)
-window.removeEventListener("keydown",setActive)
-
-}
-
-},[])
-
-/* -------------------------------- */
-/* PRESENCE CHANNEL */
-/* -------------------------------- */
-
-useEffect(()=>{
-
-async function startPresence(){
-
-const { data } = await supabase.auth.getUser()
-const user = data.user
-
-if(!user) return
-
-userIdRef.current = user.id
-
-const channel = supabase.channel("online-users",{
-config:{
-presence:{ key:user.id }
-}
-})
-
-channel
-.on("presence",{event:"sync"},()=>{
-setPresence(channel.presenceState())
-})
-.on("presence",{event:"join"},()=>{
-setPresence(channel.presenceState())
-})
-.on("presence",{event:"leave"},()=>{
-setPresence(channel.presenceState())
-})
-.subscribe(async(statusResp)=>{
-
-if(statusResp==="SUBSCRIBED"){
-
-await channel.track({
-id:user.id,
-status:"active",
-page:pathname
-})
-
-}
-
-})
-
-channelRef.current = channel
-
-}
-
-startPresence()
-
-return ()=>{
-
-if(channelRef.current){
-supabase.removeChannel(channelRef.current)
-}
-
-}
-
-},[])
-
-/* -------------------------------- */
-/* UPDATE STATUS + PAGE */
-/* -------------------------------- */
-
-useEffect(()=>{
-
-if(!channelRef.current) return
-
-channelRef.current.track({
-id:userIdRef.current,
-status,
-page:pathname
-})
-
-},[status,pathname])
-
-/* -------------------------------- */
-/* PAGE LABEL */
-/* -------------------------------- */
+const { presence } = usePresence()
 
 function pageLabel(path:string){
 
@@ -144,10 +21,6 @@ return "Other"
 
 }
 
-/* -------------------------------- */
-/* FILTER ONLINE USERS */
-/* -------------------------------- */
-
 const onlineUsers = users.filter((u:any)=>{
 
 const state = presence[String(u.id)]
@@ -160,10 +33,6 @@ return userState==="active" || userState==="idle"
 
 })
 
-/* -------------------------------- */
-/* UI */
-/* -------------------------------- */
-
 return(
 
 <div className="bg-white p-8 rounded-xl shadow w-[420px]">
@@ -174,11 +43,12 @@ Online Users
 
 <div className="space-y-3">
 
-{onlineUsers.length===0 &&(
+{onlineUsers.length===0 && (
 
 <p className="text-sm text-gray-500">
 No users online
 </p>
+
 )}
 
 {onlineUsers.map((u:any)=>{
