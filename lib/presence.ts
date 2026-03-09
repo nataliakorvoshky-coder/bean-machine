@@ -20,16 +20,6 @@ export async function startPresence(page: string) {
 
   if (!user) return
 
-  /* optimistic local presence */
-
-  state[user.id] = [{
-    id: user.id,
-    page,
-    status: "active"
-  }]
-
-  notify()
-
   if (channel) return
 
   channel = supabase.channel("online-users", {
@@ -38,16 +28,22 @@ export async function startPresence(page: string) {
 
   channel
     .on("presence", { event: "sync" }, () => {
+
       state = channel.presenceState()
       notify()
+
     })
     .on("presence", { event: "join" }, () => {
+
       state = channel.presenceState()
       notify()
+
     })
     .on("presence", { event: "leave" }, () => {
+
       state = channel.presenceState()
       notify()
+
     })
     .subscribe(async (status: string) => {
 
@@ -68,10 +64,12 @@ export async function startPresence(page: string) {
 
 export async function updatePresence(page: string) {
 
+  if (!channel) return
+
   const { data } = await supabase.auth.getUser()
   const user = data?.user
 
-  if (!user || !channel) return
+  if (!user) return
 
   await channel.track({
     id: user.id,

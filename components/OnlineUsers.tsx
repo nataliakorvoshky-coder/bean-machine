@@ -33,11 +33,9 @@ export default function OnlineUsers(){
   <div className="space-y-3">
 
   {onlineUsers.length===0 && (
-
   <p className="text-gray-400 text-sm">
   No users online
   </p>
-
   )}
 
   {onlineUsers.map((u:any)=>{

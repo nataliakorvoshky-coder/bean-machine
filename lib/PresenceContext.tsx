@@ -14,7 +14,6 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
 
     startPresence(pathname)
-
     subscribePresence(setPresence)
 
   }, [])
