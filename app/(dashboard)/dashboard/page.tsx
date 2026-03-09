@@ -2,8 +2,6 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 
 function pageLabel(page?: string){
 
@@ -22,28 +20,7 @@ export default function DashboardPage(){
 const presence = usePresence()
 const { users } = useUserData()
 
-const [currentUser,setCurrentUser] = useState<string | null>(null)
-
-/* detect current user */
-
-useEffect(()=>{
-
-async function loadUser(){
-
-const { data } = await supabase.auth.getUser()
-const user = data?.user
-
-if(user){
-setCurrentUser(user.id)
-}
-
-}
-
-loadUser()
-
-},[])
-
-/* flatten presence */
+/* flatten realtime connections */
 
 const connections = Object.values(presence).flat()
 
@@ -70,14 +47,10 @@ Online Users
 {users.map((u:any)=>{
 
 const active = connections.find(
-(p:any)=>p.id===u.id
+(p:any)=>p.id === u.id
 )
 
-/* show current user instantly */
-
-const isCurrentUser = u.id === currentUser
-
-if(!active && !isCurrentUser) return null
+if(!active) return null
 
 return(
 
@@ -86,19 +59,23 @@ key={u.id}
 className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
 >
 
-<span className="font-medium">
-{u.username}
-</span>
+{/* LEFT SIDE */}
 
 <div className="flex items-center gap-3">
 
 <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
-<span className="text-sm text-gray-500">
-{active ? pageLabel(active.page) : "Dashboard"}
+<span className="font-medium">
+{u.username}
 </span>
 
 </div>
+
+{/* RIGHT SIDE */}
+
+<span className="text-sm text-gray-500">
+{pageLabel(active.page)}
+</span>
 
 </div>
 
@@ -110,7 +87,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 </div>
 
-{/* ACTIVITY PANEL */}
+{/* ACTIVITY FEED */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
