@@ -1,42 +1,51 @@
-import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 
-const supabaseAdmin = createClient(
- process.env.NEXT_PUBLIC_SUPABASE_URL!,
- process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabase = createClient(
+process.env.NEXT_PUBLIC_SUPABASE_URL!,
+process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 export async function GET(){
 
- try{
+try{
 
-  const { data: users } = await supabaseAdmin.auth.admin.listUsers()
+/* get auth users */
 
-  const { data: profiles } = await supabaseAdmin
-   .from("profiles")
-   .select("id,username")
+const { data: authUsers, error } = await supabase.auth.admin.listUsers()
 
-  const merged = users.users.map((u:any)=>{
+if(error){
+return NextResponse.json({ users: [] })
+}
 
-   const profile = profiles?.find(p => p.id === u.id)
+/* get profile usernames */
 
-   return{
-    id:u.id,
-    email:u.email,
-    username:profile?.username || "User"
-   }
+const { data: profiles } = await supabase
+.from("profiles")
+.select("id, username")
 
-  })
+const profileMap:any = {}
 
-  return NextResponse.json({
-   users:merged
-  })
+profiles?.forEach((p:any)=>{
+profileMap[p.id] = p.username
+})
 
- }catch(err){
+/* merge users */
 
-  return NextResponse.json({
-   users:[]
-  })
+const users = authUsers.users.map((u:any)=>({
 
- }
+id: u.id,
+email: u.email,
+username: profileMap[u.id] || null
+
+}))
+
+return NextResponse.json({ users })
+
+}catch(err){
+
+return NextResponse.json({ users: [] })
+
+}
+
 }

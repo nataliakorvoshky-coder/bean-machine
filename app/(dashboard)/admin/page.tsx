@@ -13,8 +13,6 @@ const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
 const [isAdmin,setIsAdmin] = useState(false)
 
-/* ADMIN CHECK */
-
 useEffect(()=>{
 
 async function checkAdmin(){
@@ -44,8 +42,6 @@ setIsAdmin(true)
 checkAdmin()
 
 },[])
-
-/* CREATE USER */
 
 async function createUser(){
 
@@ -82,13 +78,9 @@ await refreshUsers()
 
 }
 
-/* DELETE USER */
-
 async function deleteUser(id:string){
 
-const confirmDelete = confirm("Delete this user?")
-
-if(!confirmDelete) return
+if(!confirm("Delete this user?")) return
 
 await fetch("/api/admin/delete-user",{
 method:"POST",
@@ -166,13 +158,7 @@ Current Users ({users.length})
 
 <div className="space-y-3">
 
-{users.length === 0 ? (
-
-<p className="text-gray-400 text-sm">
-No users found
-</p>
-
-) : users.map((u:any)=>{
+{users.map((u:any)=>{
 
 return(
 
@@ -182,7 +168,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 >
 
 <span className="font-medium">
-{u.username || "User"}
+{u.username ?? "User"}
 </span>
 
 <button

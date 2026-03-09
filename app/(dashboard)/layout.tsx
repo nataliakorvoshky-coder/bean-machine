@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { UserProvider, useUser } from "@/lib/UserContext"
+import { UserDataProvider } from "@/lib/UserDataContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
@@ -114,7 +115,7 @@ Admin Panel </button>
 <Link
 href="/admin"
 prefetch
-className={`${pathname==="/admin"?"font-semibold text-white":"hover:text-emerald-200"}`}
+className={pathname==="/admin" ? "font-semibold text-white" : "hover:text-emerald-200"}
 >
 Admin Dashboard
 </Link>
@@ -122,7 +123,7 @@ Admin Dashboard
 <Link
 href="/dashboard"
 prefetch
-className={`${pathname==="/dashboard"?"font-semibold text-white":"hover:text-emerald-200"}`}
+className={pathname==="/dashboard" ? "font-semibold text-white" : "hover:text-emerald-200"}
 >
 Dashboard
 </Link>
@@ -206,7 +207,7 @@ User Tools
 <Link
 href="/settings"
 prefetch
-className={`${pathname==="/settings"?"font-semibold text-white":"hover:text-emerald-200"}`}
+className={pathname==="/settings" ? "font-semibold text-white" : "hover:text-emerald-200"}
 >
 Settings
 </Link>
@@ -251,11 +252,15 @@ return(
 
 <UserProvider>
 
+<UserDataProvider>
+
 <DashboardShell>
 
 {children}
 
 </DashboardShell>
+
+</UserDataProvider>
 
 </UserProvider>
 
