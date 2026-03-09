@@ -3,81 +3,90 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-function pageLabel(page?: string) {
+function pageLabel(page?:string){
 
-  if (!page) return ""
+if(!page) return ""
 
-  if (page.includes("dashboard")) return "Dashboard"
-  if (page.includes("admin")) return "Admin"
-  if (page.includes("settings")) return "Settings"
+if(page.includes("dashboard")) return "Dashboard"
+if(page.includes("admin")) return "Admin"
+if(page.includes("settings")) return "Settings"
 
-  return ""
+return ""
+
 }
 
-export default function OnlineUsers() {
+export default function OnlineUsers(){
 
-  const presence = usePresence()
-  const { users } = useUserData()
+const presence = usePresence()
+const { users } = useUserData()
 
-  const connections = Object.values(presence).flat()
+const connections = Object.values(presence).flat()
 
-  const activeUsers: Record<string, any> = {}
+const active:Record<string,any> = {}
 
-  connections.forEach((p: any) => {
+connections.forEach((p:any)=>{
 
-    if (!activeUsers[p.id]) {
-      activeUsers[p.id] = p
-    }
+if(!active[p.id]){
+active[p.id] = p
+}
 
-  })
+})
 
-  return (
+return(
 
-    <div className="bg-white p-8 rounded-xl shadow w-[420px]">
+<div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
-      <h2 className="font-semibold mb-6 text-emerald-700">
-        Online Users
-      </h2>
+<h2 className="font-semibold mb-6 text-emerald-700">
+Online Users
+</h2>
 
-      <div className="space-y-3">
+<div className="space-y-3">
 
-        {users
-          .filter((u: any) => activeUsers[u.id])
-          .map((u: any) => {
+{users
+.filter((u:any)=>active[u.id])
+.map((u:any)=>{
 
-            const state = activeUsers[u.id]
+const state = active[u.id]
 
-            return (
+return(
 
-              <div
-                key={u.id}
-                className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-              >
+<div
+key={u.id}
+className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+>
 
-                <span className="font-medium">
-                  {u.username}
-                </span>
+<span className="font-medium">
+{u.username}
+</span>
 
-                <div className="flex items-center gap-2">
+<div className="flex items-center gap-2">
 
-                  <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
-                  <span className="text-sm text-gray-500">
-                    {pageLabel(state.page)}
-                  </span>
+<span className="text-sm text-gray-500">
+{pageLabel(state.page)}
+</span>
 
-                </div>
+</div>
 
-              </div>
+</div>
 
-            )
+)
 
-          })}
+})}
 
-      </div>
+{Object.keys(active).length===0 && (
 
-    </div>
+<p className="text-sm text-gray-500">
+No users online
+</p>
 
-  )
+)}
+
+</div>
+
+</div>
+
+)
 
 }

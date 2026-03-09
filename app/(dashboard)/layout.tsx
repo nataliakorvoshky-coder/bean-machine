@@ -5,213 +5,188 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-import { UserProvider, useUser } from "@/lib/UserContext"
+import { UserProvider,useUser } from "@/lib/UserContext"
 import { UserDataProvider } from "@/lib/UserDataContext"
 
-function DashboardShell({ children }: { children: React.ReactNode }) {
+function DashboardShell({children}:{children:React.ReactNode}){
 
-  const pathname = usePathname()
-  const { username } = useUser()
+const pathname = usePathname()
+const { username } = useUser()
 
-  const [adminOpen,setAdminOpen] = useState(true)
-  const [stockOpen,setStockOpen] = useState(false)
-  const [employeeOpen,setEmployeeOpen] = useState(false)
-  const [toolsOpen,setToolsOpen] = useState(true)
+const [adminOpen,setAdminOpen] = useState(true)
+const [stockOpen,setStockOpen] = useState(false)
+const [employeeOpen,setEmployeeOpen] = useState(false)
+const [toolsOpen,setToolsOpen] = useState(true)
 
-  async function logout(){
-    await supabase.auth.signOut()
-    window.location.href="/"
-  }
+async function logout(){
+await supabase.auth.signOut()
+window.location.href="/"
+}
 
-  return(
+return(
 
-  <main className="flex min-h-screen">
+<main className="flex min-h-screen">
 
-    {/* SIDEBAR */}
+<div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
 
-    <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
+<div className="flex items-center gap-3 mb-10">
 
-      {/* LOGO */}
+<img src="/logo.png" className="w-10 h-10"/>
 
-      <div className="flex items-center gap-3 mb-10">
+<h1 className="text-2xl font-bold">
+Bean Machine
+</h1>
 
-        <img
-          src="/logo.png"
-          className="w-10 h-10"
-        />
+</div>
 
-        <h1 className="text-2xl font-bold">
-          Bean Machine
-        </h1>
+<div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
-      </div>
+<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
-      {/* USER */}
+<span className="font-semibold">
+{username || "User"}
+</span>
 
-      <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
+</div>
 
-        <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+<nav className="flex flex-col gap-3 text-sm">
 
-        <span className="font-semibold">
-          {username || "User"}
-        </span>
+<button
+onClick={()=>setAdminOpen(!adminOpen)}
+className="text-left font-semibold text-emerald-200"
+>
+Admin Panel
+</button>
 
-      </div>
+{adminOpen && (
 
-      {/* NAVIGATION */}
+<div className="ml-3 flex flex-col gap-2">
 
-      <nav className="flex flex-col gap-3 text-sm">
+<Link
+href="/admin"
+className={pathname==="/admin"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
+Admin Dashboard
+</Link>
 
-        {/* ADMIN */}
+<Link
+href="/dashboard"
+className={pathname==="/dashboard"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
+Dashboard
+</Link>
 
-        <button
-          onClick={()=>setAdminOpen(!adminOpen)}
-          className="text-left font-semibold text-emerald-200"
-        >
-          Admin Panel
-        </button>
+</div>
 
-        {adminOpen && (
+)}
 
-          <div className="ml-3 flex flex-col gap-2">
+<button
+onClick={()=>setStockOpen(!stockOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+Stock Management
+</button>
 
-            <Link
-              href="/admin"
-              className={pathname==="/admin"
-                ? "font-semibold text-white"
-                : "hover:text-emerald-200"}
-            >
-              Admin Dashboard
-            </Link>
+{stockOpen && (
 
-            <Link
-              href="/dashboard"
-              className={pathname==="/dashboard"
-                ? "font-semibold text-white"
-                : "hover:text-emerald-200"}
-            >
-              Dashboard
-            </Link>
+<div className="ml-3 flex flex-col gap-2">
 
-          </div>
+<Link href="#">Inventory</Link>
+<Link href="#">Orders</Link>
 
-        )}
+</div>
 
-        {/* STOCK */}
+)}
 
-        <button
-          onClick={()=>setStockOpen(!stockOpen)}
-          className="text-left font-semibold text-emerald-200 mt-4"
-        >
-          Stock Management
-        </button>
+<button
+onClick={()=>setEmployeeOpen(!employeeOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+Employee Management
+</button>
 
-        {stockOpen && (
+{employeeOpen && (
 
-          <div className="ml-3 flex flex-col gap-2">
+<div className="ml-3 flex flex-col gap-2">
 
-            <Link href="#">Inventory</Link>
-            <Link href="#">Orders</Link>
+<Link href="#">Employees</Link>
+<Link href="#">Scheduling</Link>
 
-          </div>
+</div>
 
-        )}
+)}
 
-        {/* EMPLOYEES */}
+<button
+onClick={()=>setToolsOpen(!toolsOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+User Tools
+</button>
 
-        <button
-          onClick={()=>setEmployeeOpen(!employeeOpen)}
-          className="text-left font-semibold text-emerald-200 mt-4"
-        >
-          Employee Management
-        </button>
+{toolsOpen && (
 
-        {employeeOpen && (
+<div className="ml-3 flex flex-col gap-2">
 
-          <div className="ml-3 flex flex-col gap-2">
+<Link
+href="/settings"
+className={pathname==="/settings"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
+Settings
+</Link>
 
-            <Link href="#">Employees</Link>
-            <Link href="#">Scheduling</Link>
+</div>
 
-          </div>
+)}
 
-        )}
+<button
+onClick={logout}
+className="text-left hover:text-emerald-200 mt-6"
+>
+Logout
+</button>
 
-        {/* USER */}
+</nav>
 
-        <button
-          onClick={()=>setToolsOpen(!toolsOpen)}
-          className="text-left font-semibold text-emerald-200 mt-4"
-        >
-          User Tools
-        </button>
+</div>
 
-        {toolsOpen && (
+<div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
-          <div className="ml-3 flex flex-col gap-2">
+{children}
 
-            <Link
-              href="/settings"
-              className={pathname==="/settings"
-                ? "font-semibold text-white"
-                : "hover:text-emerald-200"}
-            >
-              Settings
-            </Link>
+</div>
 
-          </div>
+</main>
 
-        )}
-
-        {/* LOGOUT */}
-
-        <button
-          onClick={logout}
-          className="text-left hover:text-emerald-200 mt-6"
-        >
-          Logout
-        </button>
-
-      </nav>
-
-    </div>
-
-    {/* PAGE */}
-
-    <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
-
-      {children}
-
-    </div>
-
-  </main>
-
-  )
+)
 
 }
 
 export default function DashboardLayout({
-  children
-}:{
-  children:React.ReactNode
-}){
+children
+}:{children:React.ReactNode}){
 
-  return(
+return(
 
-    <UserProvider>
+<UserProvider>
 
-      <UserDataProvider>
+<UserDataProvider>
 
-        <DashboardShell>
+<DashboardShell>
 
-          {children}
+{children}
 
-        </DashboardShell>
+</DashboardShell>
 
-      </UserDataProvider>
+</UserDataProvider>
 
-    </UserProvider>
+</UserProvider>
 
-  )
+)
 
 }
