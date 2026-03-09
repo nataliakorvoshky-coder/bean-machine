@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePathname } from "next/navigation"
 
@@ -10,53 +10,91 @@ const PresenceContext = createContext<PresenceState>({})
 
 let channel: any = null
 
-export function PresenceProvider({ children }: { children: ReactNode }) {
+export function PresenceProvider({
+  children
+}: {
+  children: React.ReactNode
+}) {
 
   const pathname = usePathname()
-  const [presence, setPresence] = useState<PresenceState>({})
 
-  /* create channel once */
+  const [presence, setPresence] = useState<PresenceState>({})
+  const [status, setStatus] = useState<string>("active")
 
   useEffect(() => {
 
-    async function startPresence() {
+    let idleTimer: any
+
+    async function init() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
       if (!user) return
 
-      if (!channel) {
+      if (channel) return
 
-        channel = supabase.channel("online-users", {
-          config: { presence: { key: user.id } }
-        })
+      channel = supabase.channel("online-users", {
+        config: { presence: { key: user.id } }
+      })
 
-        channel.subscribe(async (status: string) => {
+      const refresh = () => {
+        const state = channel.presenceState()
+        setPresence(state as PresenceState)
+      }
 
-          if (status === "SUBSCRIBED") {
+      channel
+        .on("presence", { event: "sync" }, refresh)
+        .on("presence", { event: "join" }, refresh)
+        .on("presence", { event: "leave" }, refresh)
+        .subscribe(async (statusResp: string) => {
+
+          if (statusResp === "SUBSCRIBED") {
 
             await channel.track({
               id: user.id,
-              page: pathname
+              page: pathname,
+              status
             })
+
+            refresh()
 
           }
 
         })
 
-      }
+    }
+
+    init()
+
+    function setActive() {
+
+      setStatus("active")
+
+      clearTimeout(idleTimer)
+
+      idleTimer = setTimeout(() => {
+        setStatus("idle")
+      }, 60000)
 
     }
 
-    startPresence()
+    window.addEventListener("mousemove", setActive)
+    window.addEventListener("keydown", setActive)
+
+    setActive()
+
+    return () => {
+
+      window.removeEventListener("mousemove", setActive)
+      window.removeEventListener("keydown", setActive)
+
+    }
 
   }, [])
 
-  /* update page when navigating */
-
   useEffect(() => {
 
-    async function updatePage() {
+    async function update() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -65,32 +103,18 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
       await channel.track({
         id: user.id,
-        page: pathname
+        page: pathname,
+        status
       })
+
+      const state = channel.presenceState()
+      setPresence(state as PresenceState)
 
     }
 
-    updatePage()
+    update()
 
-  }, [pathname])
-
-  /* force UI refresh every second */
-
-  useEffect(() => {
-
-    const interval = setInterval(() => {
-
-      if (!channel) return
-
-      const state = channel.presenceState()
-
-      setPresence({ ...state })
-
-    }, 1000)
-
-    return () => clearInterval(interval)
-
-  }, [])
+  }, [pathname, status])
 
   return (
 
