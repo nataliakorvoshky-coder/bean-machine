@@ -3,28 +3,30 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-function pageLabel(page?:string){
+function pageLabel(page?: string) {
 
-  if(!page) return ""
+  if (!page) return ""
 
-  if(page.includes("dashboard")) return "Dashboard"
-  if(page.includes("admin")) return "Admin Dashboard"
-  if(page.includes("settings")) return "Settings"
+  if (page.includes("dashboard")) return "Dashboard"
+  if (page.includes("admin")) return "Admin Dashboard"
+  if (page.includes("settings")) return "Settings"
 
   return ""
 
 }
 
-export default function OnlineUsers(){
+export default function OnlineUsers() {
 
   const { presence } = usePresence()
   const { users } = useUserData()
 
   const onlineIds = Object.keys(presence)
 
-  const onlineUsers = users.filter((u:any)=> onlineIds.includes(u.id))
+  const onlineUsers = users.filter((u: any) =>
+    onlineIds.includes(u.id)
+  )
 
-  return(
+  return (
 
     <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
@@ -34,17 +36,11 @@ export default function OnlineUsers(){
 
       <div className="space-y-3">
 
-        {onlineUsers.length===0 &&(
-          <p className="text-gray-400 text-sm">
-            No users online
-          </p>
-        )}
-
-        {onlineUsers.map((u:any)=>{
+        {onlineUsers.map((u: any) => {
 
           const state = presence[u.id]?.[0]
 
-          return(
+          return (
 
             <div
               key={u.id}
