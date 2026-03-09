@@ -2,6 +2,7 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
+import { useMemo } from "react"
 
 function pageLabel(page?: string){
 
@@ -20,9 +21,13 @@ export default function DashboardPage(){
 const presence = usePresence()
 const { users } = useUserData()
 
-/* flatten realtime connections */
+/* flatten presence instantly */
 
-const connections = Object.values(presence).flat()
+const connections = useMemo(()=>{
+
+return Object.values(presence).flat()
+
+},[presence])
 
 return(
 
@@ -50,8 +55,6 @@ const active = connections.find(
 (p:any)=>p.id === u.id
 )
 
-if(!active) return null
-
 return(
 
 <div
@@ -63,7 +66,11 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 <div className="flex items-center gap-3">
 
-<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+<div
+className={`w-3 h-3 rounded-full ${
+active ? "bg-green-400 animate-pulse" : "bg-gray-400"
+}`}
+/>
 
 <span className="font-medium">
 {u.username}
@@ -74,7 +81,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 {/* RIGHT SIDE */}
 
 <span className="text-sm text-gray-500">
-{pageLabel(active.page)}
+{active ? pageLabel(active.page) : "Offline"}
 </span>
 
 </div>
