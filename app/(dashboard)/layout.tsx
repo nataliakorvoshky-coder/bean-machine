@@ -1,18 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
 import { UserProvider, useUser } from "@/lib/UserContext"
 import { UserDataProvider } from "@/lib/UserDataContext"
-import { PresenceProvider } from "@/lib/PresenceContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-  const { username, setUsername } = useUser()
+  const { username } = useUser()
 
   const [adminOpen,setAdminOpen] = useState(true)
   const [stockOpen,setStockOpen] = useState(false)
@@ -23,34 +22,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
     window.location.href="/"
   }
-
-  useEffect(()=>{
-
-    async function loadUser(){
-
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
-
-      if(!user){
-        window.location.href="/"
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id",user.id)
-        .maybeSingle()
-
-      if(profile?.username){
-        setUsername(profile.username)
-      }
-
-    }
-
-    loadUser()
-
-  },[])
 
   return(
 
@@ -75,14 +46,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
       </div>
 
-      {/* USER PANEL */}
+      {/* USER */}
 
       <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
         <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
         <span className="font-semibold">
-          {username ?? "..."}
+          {username || "User"}
         </span>
 
       </div>
@@ -91,7 +62,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <nav className="flex flex-col gap-3 text-sm">
 
-        {/* ADMIN PANEL */}
+        {/* ADMIN */}
 
         <button
           onClick={()=>setAdminOpen(!adminOpen)}
@@ -126,7 +97,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
         )}
 
-        {/* STOCK MANAGEMENT */}
+        {/* STOCK */}
 
         <button
           onClick={()=>setStockOpen(!stockOpen)}
@@ -139,19 +110,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <div className="ml-3 flex flex-col gap-2">
 
-            <Link href="#">
-              Inventory
-            </Link>
-
-            <Link href="#">
-              Orders
-            </Link>
+            <Link href="#">Inventory</Link>
+            <Link href="#">Orders</Link>
 
           </div>
 
         )}
 
-        {/* EMPLOYEE MANAGEMENT */}
+        {/* EMPLOYEES */}
 
         <button
           onClick={()=>setEmployeeOpen(!employeeOpen)}
@@ -164,19 +130,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <div className="ml-3 flex flex-col gap-2">
 
-            <Link href="#">
-              Employees
-            </Link>
-
-            <Link href="#">
-              Scheduling
-            </Link>
+            <Link href="#">Employees</Link>
+            <Link href="#">Scheduling</Link>
 
           </div>
 
         )}
 
-        {/* USER TOOLS */}
+        {/* USER */}
 
         <button
           onClick={()=>setToolsOpen(!toolsOpen)}
@@ -215,7 +176,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
     </div>
 
-    {/* PAGE CONTENT */}
+    {/* PAGE */}
 
     <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
@@ -232,28 +193,24 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({
   children
 }:{
-  children: React.ReactNode
+  children:React.ReactNode
 }){
 
   return(
 
-    <PresenceProvider>
+    <UserProvider>
 
-      <UserProvider>
+      <UserDataProvider>
 
-        <UserDataProvider>
+        <DashboardShell>
 
-          <DashboardShell>
+          {children}
 
-            {children}
+        </DashboardShell>
 
-          </DashboardShell>
+      </UserDataProvider>
 
-        </UserDataProvider>
-
-      </UserProvider>
-
-    </PresenceProvider>
+    </UserProvider>
 
   )
 

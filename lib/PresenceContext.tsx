@@ -17,10 +17,11 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
 
-    async function startPresence() {
+    async function initPresence() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
+
       if (!user) return
 
       if (!channel) {
@@ -29,23 +30,21 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
           config: { presence: { key: user.id } }
         })
 
-        const updatePresence = () => {
-          const state = channel.presenceState()
-          setPresence({ ...state })
+        const update = () => {
+          setPresence(channel.presenceState())
         }
 
         channel
-          .on("presence", { event: "sync" }, updatePresence)
-          .on("presence", { event: "join" }, updatePresence)
-          .on("presence", { event: "leave" }, updatePresence)
+          .on("presence", { event: "sync" }, update)
+          .on("presence", { event: "join" }, update)
+          .on("presence", { event: "leave" }, update)
           .subscribe(async (status: string) => {
 
             if (status === "SUBSCRIBED") {
 
               await channel.track({
                 id: user.id,
-                page: pathname,
-                lastActive: Date.now()
+                page: pathname
               })
 
             }
@@ -56,15 +55,15 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     }
 
-    startPresence()
+    initPresence()
 
   }, [])
 
-  /* update activity every 15 seconds */
+  /* update page when navigating */
 
   useEffect(() => {
 
-    const interval = setInterval(async () => {
+    async function updatePage() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -73,13 +72,12 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
       await channel.track({
         id: user.id,
-        page: pathname,
-        lastActive: Date.now()
+        page: pathname
       })
 
-    }, 15000)
+    }
 
-    return () => clearInterval(interval)
+    updatePage()
 
   }, [pathname])
 
