@@ -1,33 +1,72 @@
 "use client"
 
-import { usePresence } from "@/lib/PresenceContext"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
 
-function pageLabel(page?: string) {
-
-  if (!page) return ""
-
-  if (page.includes("dashboard")) return "Dashboard"
-  if (page.includes("admin")) return "Admin Dashboard"
-  if (page.includes("settings")) return "Settings"
-
-  return ""
-}
+type PresenceState = Record<string, any[]>
 
 export default function OnlineUsers() {
 
-  const { presence } = usePresence()
   const { users } = useUserData()
 
-  /* flatten presence payload */
+  const [presence, setPresence] = useState<PresenceState>({})
 
-  const onlinePresence = Object.values(presence).flat()
+  useEffect(() => {
 
-  const onlineIds = onlinePresence.map((p: any) => p.id)
+    let channel: any
 
-  const onlineUsers = users.filter((u: any) =>
-    onlineIds.includes(u.id)
-  )
+    async function initPresence() {
+
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
+
+      if (!user) return
+
+      channel = supabase.channel("online-users", {
+        config: {
+          presence: { key: user.id }
+        }
+      })
+
+      channel
+        .on("presence", { event: "sync" }, () => {
+          const state = channel.presenceState()
+          setPresence({ ...state })
+        })
+        .on("presence", { event: "join" }, () => {
+          const state = channel.presenceState()
+          setPresence({ ...state })
+        })
+        .on("presence", { event: "leave" }, () => {
+          const state = channel.presenceState()
+          setPresence({ ...state })
+        })
+        .subscribe(async (status: string) => {
+
+          if (status === "SUBSCRIBED") {
+
+            await channel.track({
+              id: user.id
+            })
+
+          }
+
+        })
+
+    }
+
+    initPresence()
+
+    return () => {
+      if (channel) supabase.removeChannel(channel)
+    }
+
+  }, [])
+
+  /* Flatten presence payload */
+
+  const connections = Object.values(presence).flat()
 
   return (
 
@@ -39,15 +78,12 @@ export default function OnlineUsers() {
 
       <div className="space-y-3">
 
-        {onlineUsers.length === 0 && (
-          <p className="text-gray-400 text-sm">
-            No users online
-          </p>
-        )}
+        {users.map((u: any) => {
 
-        {onlineUsers.map((u: any) => {
+          const online = connections.find((p: any) => p?.id === u.id)
 
-          const state = onlinePresence.find((p: any) => p.id === u.id)
+          const color = online ? "bg-green-400" : "bg-gray-400"
+          const text = online ? "Active" : "Offline"
 
           return (
 
@@ -62,10 +98,10 @@ export default function OnlineUsers() {
 
               <div className="flex items-center gap-2">
 
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                <div className={`w-3 h-3 rounded-full ${color}`} />
 
                 <span className="text-sm text-gray-500">
-                  {pageLabel(state?.page)}
+                  {text}
                 </span>
 
               </div>
