@@ -1,70 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
-
-type PresenceState = Record<string, any[]>
+import { startPresence } from "@/lib/presence"
 
 export default function OnlineUsers() {
 
   const { users } = useUserData()
 
-  const [presence, setPresence] = useState<PresenceState>({})
+  const [presence, setPresence] = useState<any>({})
 
   useEffect(() => {
 
-    let channel: any
-
-    async function initPresence() {
-
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
-
-      if (!user) return
-
-      channel = supabase.channel("online-users", {
-        config: {
-          presence: { key: user.id }
-        }
-      })
-
-      channel
-        .on("presence", { event: "sync" }, () => {
-          const state = channel.presenceState()
-          setPresence({ ...state })
-        })
-        .on("presence", { event: "join" }, () => {
-          const state = channel.presenceState()
-          setPresence({ ...state })
-        })
-        .on("presence", { event: "leave" }, () => {
-          const state = channel.presenceState()
-          setPresence({ ...state })
-        })
-        .subscribe(async (status: string) => {
-
-          if (status === "SUBSCRIBED") {
-
-            await channel.track({
-              id: user.id
-            })
-
-          }
-
-        })
-
-    }
-
-    initPresence()
-
-    return () => {
-      if (channel) supabase.removeChannel(channel)
-    }
+    startPresence((state) => {
+      setPresence(state)
+    })
 
   }, [])
-
-  /* Flatten presence payload */
 
   const connections = Object.values(presence).flat()
 
