@@ -1,21 +1,61 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { UserProvider, useUser } from "@/lib/UserContext"
-import { UserDataProvider } from "@/lib/UserDataContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
 const pathname = usePathname()
-const { username } = useUser()
+
+const { username, setUsername } = useUser()
+
+const [adminOpen,setAdminOpen] = useState(true)
+const [stockOpen,setStockOpen] = useState(true)
+const [employeeOpen,setEmployeeOpen] = useState(true)
+
+const [status,setStatus] = useState("online")
 
 async function logout(){
-
 await supabase.auth.signOut()
 window.location.href="/"
+}
+
+useEffect(()=>{
+
+async function loadUser(){
+
+const { data } = await supabase.auth.getUser()
+const user = data.user
+
+if(!user){
+window.location.href="/"
+return
+}
+
+const { data: profile } = await supabase
+.from("profiles")
+.select("username")
+.eq("id", user.id)
+.maybeSingle()
+
+if(profile?.username){
+setUsername(profile.username)
+}
+
+}
+
+loadUser()
+
+},[])
+
+function getStatusColor(){
+
+if(status==="online") return "bg-green-400"
+if(status==="idle") return "bg-yellow-400"
+return "bg-gray-400"
 
 }
 
@@ -25,30 +65,25 @@ return(
 
 {/* SIDEBAR */}
 
-<div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6 space-y-6 shadow-xl">
+<div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
 
-{/* LOGO */}
+{/* HEADER */}
 
-<div className="flex items-center gap-3 mb-4">
+<div className="flex items-center gap-3 mb-10">
 
-<Image
-src="/logo.png"
-alt="Bean Machine"
-width={42}
-height={42}
-/>
+<img src="/logo.png" className="w-10 h-10"/>
 
-<h1 className="text-3xl font-bold">
+<h1 className="text-2xl font-bold">
 Bean Machine
 </h1>
 
 </div>
 
-{/* USER */}
+{/* USER PANEL */}
 
-<div className="bg-emerald-700 rounded-lg px-4 py-3 flex items-center gap-3">
+<div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
-<div className="w-3 h-3 rounded-full bg-green-400" />
+<div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
 
 <span className="font-semibold">
 {username || "User"}
@@ -58,44 +93,135 @@ Bean Machine
 
 {/* NAVIGATION */}
 
-<nav className="flex flex-col gap-4 text-sm mt-6">
+<nav className="flex flex-col gap-6 text-sm">
 
-<p className="text-emerald-300 uppercase text-xs tracking-wider">
-Admin Panel
-</p>
+{/* ADMIN PANEL */}
+
+<div>
+
+<button
+onClick={()=>setAdminOpen(!adminOpen)}
+className="text-xs uppercase tracking-wide text-emerald-200 mb-2"
+
+>
+
+Admin Panel </button>
+
+{adminOpen && (
+
+<div className="flex flex-col gap-3 ml-3">
 
 <Link
 href="/admin"
-className={pathname==="/admin" ? "font-semibold text-white" : "hover:text-emerald-200"}
+prefetch
+className={`${pathname==="/admin"?"font-semibold text-white":"hover:text-emerald-200"}`}
 >
 Admin Dashboard
 </Link>
 
 <Link
 href="/dashboard"
-className={pathname==="/dashboard" ? "font-semibold text-white" : "hover:text-emerald-200"}
+prefetch
+className={`${pathname==="/dashboard"?"font-semibold text-white":"hover:text-emerald-200"}`}
 >
 Dashboard
 </Link>
 
-<p className="text-emerald-300 uppercase text-xs tracking-wider mt-6">
+</div>
+
+)}
+
+</div>
+
+{/* STOCK MANAGEMENT */}
+
+<div>
+
+<button
+onClick={()=>setStockOpen(!stockOpen)}
+className="text-xs uppercase tracking-wide text-emerald-200 mb-2"
+
+>
+
+Stock Management </button>
+
+{stockOpen && (
+
+<div className="flex flex-col gap-3 ml-3">
+
+<Link
+href="/stock"
+prefetch
+className="hover:text-emerald-200"
+>
+Stock
+</Link>
+
+</div>
+
+)}
+
+</div>
+
+{/* EMPLOYEE MANAGEMENT */}
+
+<div>
+
+<button
+onClick={()=>setEmployeeOpen(!employeeOpen)}
+className="text-xs uppercase tracking-wide text-emerald-200 mb-2"
+
+>
+
+Employee Management </button>
+
+{employeeOpen && (
+
+<div className="flex flex-col gap-3 ml-3">
+
+<Link
+href="/employees"
+prefetch
+className="hover:text-emerald-200"
+>
+Employees
+</Link>
+
+</div>
+
+)}
+
+</div>
+
+{/* USER TOOLS */}
+
+<div>
+
+<p className="text-xs uppercase tracking-wide text-emerald-200 mb-2">
 User Tools
 </p>
 
+<div className="flex flex-col gap-3 ml-3">
+
 <Link
 href="/settings"
-className={pathname==="/settings" ? "font-semibold text-white" : "hover:text-emerald-200"}
+prefetch
+className={`${pathname==="/settings"?"font-semibold text-white":"hover:text-emerald-200"}`}
 >
 Settings
 </Link>
 
 <button
 onClick={logout}
-className="text-left hover:text-emerald-200 mt-6"
+className="text-left hover:text-emerald-200"
 
 >
 
 Logout </button>
+
+</div>
+
+</div>
 
 </nav>
 
@@ -124,9 +250,13 @@ children: React.ReactNode
 return(
 
 <UserProvider>
-<UserDataProvider>
-<DashboardShell>{children}</DashboardShell>
-</UserDataProvider>
+
+<DashboardShell>
+
+{children}
+
+</DashboardShell>
+
 </UserProvider>
 
 )

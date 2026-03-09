@@ -8,11 +8,42 @@ export default function AdminPage(){
 
 const { users, refreshUsers } = useUserData()
 
-const [presence,setPresence] = useState<any>({})
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
 const [isAdmin,setIsAdmin] = useState(false)
+
+/* ADMIN CHECK */
+
+useEffect(()=>{
+
+async function checkAdmin(){
+
+const { data } = await supabase.auth.getUser()
+const user = data.user
+
+if(!user){
+window.location.href="/"
+return
+}
+
+const res = await fetch("/api/admin/check-admin",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify({ userId:user.id })
+})
+
+const result = await res.json()
+
+if(result.admin){
+setIsAdmin(true)
+}
+
+}
+
+checkAdmin()
+
+},[])
 
 /* CREATE USER */
 
@@ -69,90 +100,6 @@ await refreshUsers()
 
 }
 
-/* ADMIN CHECK */
-
-useEffect(()=>{
-
-async function init(){
-
-const { data } = await supabase.auth.getUser()
-const user = data.user
-
-if(!user){
-window.location.href="/"
-return
-}
-
-const res = await fetch("/api/admin/check-admin",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({ userId:user.id })
-})
-
-const result = await res.json()
-
-if(!result.admin){
-window.location.href="/"
-return
-}
-
-setIsAdmin(true)
-
-}
-
-init()
-
-},[])
-
-/* REALTIME PRESENCE */
-
-useEffect(()=>{
-
-let channel:any
-
-async function startPresence(){
-
-const { data } = await supabase.auth.getUser()
-const user = data.user
-
-if(!user) return
-
-channel = supabase.channel("online-users",{
-config:{ presence:{ key:user.id }}
-})
-
-channel
-.on("presence",{event:"sync"},()=>{
-const state = channel.presenceState()
-setPresence(state)
-})
-.subscribe(async(status:any)=>{
-
-if(status==="SUBSCRIBED"){
-
-await channel.track({
-user:user.id,
-status:"active"
-})
-
-}
-
-})
-
-}
-
-startPresence()
-
-return ()=>{
-if(channel){
-supabase.removeChannel(channel)
-}
-}
-
-},[])
-
-if(!isAdmin) return null
-
 return(
 
 <div className="w-[1000px]">
@@ -194,6 +141,7 @@ className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none 
 <button
 onClick={createUser}
 className="bg-emerald-500 text-white p-3 w-full rounded hover:bg-emerald-600"
+disabled={!isAdmin}
 
 >
 
@@ -220,32 +168,11 @@ Current Users ({users.length})
 
 {users.length === 0 ? (
 
-<div className="text-gray-400 text-sm">
-No users yet
-</div>
+<p className="text-gray-400 text-sm">
+No users found
+</p>
 
 ) : users.map((u:any)=>{
-
-const state = presence[u.id]
-
-let color="bg-gray-400"
-let text="Offline"
-
-if(state){
-
-const userState = state[0]?.status
-
-if(userState==="active"){
-color="bg-green-400"
-text="Active"
-}
-
-if(userState==="idle"){
-color="bg-yellow-400"
-text="Idle"
-}
-
-}
 
 return(
 
@@ -258,27 +185,14 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 {u.username || "User"}
 </span>
 
-<div className="flex items-center gap-3">
-
-<div className="flex items-center gap-2">
-
-<div className={`w-3 h-3 rounded-full ${color}`} />
-
-<span className="text-sm text-gray-500">
-{text}
-</span>
-
-</div>
-
 <button
 onClick={()=>deleteUser(u.id)}
 className="text-red-500 hover:text-red-700 text-sm"
+disabled={!isAdmin}
 
 >
 
 Delete </button>
-
-</div>
 
 </div>
 
