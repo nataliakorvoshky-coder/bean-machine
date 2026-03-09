@@ -8,7 +8,7 @@ export default function OnlineUsers(){
 const { presence } = usePresence()
 const { users } = useUserData()
 
-function pageLabel(page?: string){
+function pageLabel(page?:string){
 
 if(!page) return ""
 
@@ -20,7 +20,7 @@ return "Other"
 
 }
 
-const onlineUsers = users.filter((u:any)=> presence[u.id])
+const onlineUsers = users.filter((u:any)=>presence[u.id])
 
 return(
 

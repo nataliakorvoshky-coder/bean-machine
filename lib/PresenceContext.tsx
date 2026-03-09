@@ -1,63 +1,45 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext,useContext,useEffect,useState } from "react"
 import { usePathname } from "next/navigation"
-import { startPresence, updatePresence, getPresenceChannel } from "@/lib/presenceManager"
+import { initPresence,updatePage,subscribePresence } from "@/lib/presence"
 
-type PresenceState = Record<string, any>
+type PresenceState = Record<string,any>
 
-interface PresenceContextType {
-presence: PresenceState
-}
-
-const PresenceContext = createContext<PresenceContextType>({
-presence: {}
+const PresenceContext = createContext<{presence:PresenceState}>({
+presence:{}
 })
 
-export function PresenceProvider({ children }: { children: React.ReactNode }) {
+export function PresenceProvider({children}:{children:React.ReactNode}){
 
 const pathname = usePathname()
 
-const [presence, setPresence] = useState<PresenceState>({})
+const [presence,setPresence] = useState<PresenceState>({})
 
-useEffect(() => {
+useEffect(()=>{
 
-async function init() {
+initPresence(pathname)
 
-await startPresence(pathname)
+subscribePresence(setPresence)
 
-const channel = getPresenceChannel()
+},[])
 
-if (!channel) return
+useEffect(()=>{
 
-channel.on("presence", { event: "sync" }, () => {
+updatePage(pathname)
 
-const state = channel.presenceState()
+},[pathname])
 
-setPresence({ ...state })
+return(
 
-})
-
-}
-
-init()
-
-}, [])
-
-useEffect(() => {
-
-updatePresence(pathname)
-
-}, [pathname])
-
-return (
-<PresenceContext.Provider value={{ presence }}>
+<PresenceContext.Provider value={{presence}}>
 {children}
 </PresenceContext.Provider>
+
 )
 
 }
 
-export function usePresence() {
+export function usePresence(){
 return useContext(PresenceContext)
 }
