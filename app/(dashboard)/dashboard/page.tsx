@@ -20,6 +20,10 @@ export default function DashboardPage(){
 const presence = usePresence()
 const { users } = useUserData()
 
+/* flatten realtime connections */
+
+const connections = Object.values(presence).flat()
+
 return(
 
 <div className="w-[1000px]">
@@ -42,23 +46,11 @@ Online Users
 
 {users.map((u:any)=>{
 
-const state = presence[u.id]
+const active = connections.find(
+(p:any)=>p.id===u.id
+)
 
-let color="bg-gray-400"
-let text="Offline"
-
-if(state){
-
-const data = state[0]
-
-if(data){
-
-color="bg-green-400"
-text = pageLabel(data.page)
-
-}
-
-}
+if(!active) return null
 
 return(
 
@@ -68,15 +60,15 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 >
 
 <span className="font-medium">
-{u.username || "User"}
+{u.username}
 </span>
 
 <div className="flex items-center gap-2">
 
-<div className={`w-3 h-3 rounded-full ${color}`} />
+<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
 <span className="text-sm text-gray-500">
-{text}
+• {pageLabel(active.page)}
 </span>
 
 </div>
