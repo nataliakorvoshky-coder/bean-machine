@@ -19,28 +19,55 @@ export default function OnlineUsers({ users }:{ users:any[] }){
 
 const presence = usePresence()
 
-/* cache presence */
-
 const [cachedPresence,setCachedPresence] = useState<any>({})
-const [presenceReady,setPresenceReady] = useState(false)
+
+/* load cached presence instantly */
+
+useEffect(()=>{
+
+try{
+
+const stored = sessionStorage.getItem("presence-cache")
+
+if(stored){
+setCachedPresence(JSON.parse(stored))
+}
+
+}catch{}
+
+},[])
+
+/* update cache whenever presence updates */
 
 useEffect(()=>{
 
 if(Object.keys(presence).length>0){
 
 setCachedPresence(presence)
-setPresenceReady(true)
+
+try{
+sessionStorage.setItem(
+"presence-cache",
+JSON.stringify(presence)
+)
+}catch{}
 
 }
 
 },[presence])
+
+/* use realtime presence or cached version */
 
 const state =
 Object.keys(presence).length>0
 ? presence
 : cachedPresence
 
+/* flatten presence */
+
 const connections = Object.values(state).flat()
+
+/* remove duplicates */
 
 const uniqueConnections = Array.from(
 new Map(connections.map((c:any)=>[c.id,c])).values()
@@ -55,16 +82,6 @@ Online Users
 </h2>
 
 <div className="space-y-3">
-
-{/* only show empty message after presence sync */}
-
-{presenceReady && uniqueConnections.length===0 && (
-
-<div className="text-gray-400 text-sm">
-No users online
-</div>
-
-)}
 
 {uniqueConnections.map((conn:any)=>{
 
