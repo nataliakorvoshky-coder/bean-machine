@@ -1,91 +1,95 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
 
-export default function OnlineUsers() {
+export default function OnlineUsers(){
 
 const { users } = useUserData()
 
-const [presence, setPresence] = useState<any>({})
-const [status, setStatus] = useState("active")
+const pathname = usePathname()
+
+const [presence,setPresence] = useState<any>({})
+const [status,setStatus] = useState("active")
 
 const channelRef = useRef<any>(null)
 const userIdRef = useRef<string | null>(null)
 
-/* ----------------------------- */
-/* IDLE / ACTIVE DETECTION */
-/* ----------------------------- */
+/* -------------------------------- */
+/* ACTIVE / IDLE DETECTION */
+/* -------------------------------- */
 
-useEffect(() => {
+useEffect(()=>{
 
 let idleTimer:any
 
-function setActive() {
+function setActive(){
 
 setStatus("active")
 
 clearTimeout(idleTimer)
 
-idleTimer = setTimeout(() => {
+idleTimer = setTimeout(()=>{
 setStatus("idle")
-}, 60000)
+},60000)
 
 }
 
-window.addEventListener("mousemove", setActive)
-window.addEventListener("keydown", setActive)
+window.addEventListener("mousemove",setActive)
+window.addEventListener("keydown",setActive)
 
 setActive()
 
-return () => {
+return ()=>{
 
-window.removeEventListener("mousemove", setActive)
-window.removeEventListener("keydown", setActive)
+window.removeEventListener("mousemove",setActive)
+window.removeEventListener("keydown",setActive)
 
 }
 
-}, [])
+},[])
 
-/* ----------------------------- */
+/* -------------------------------- */
 /* PRESENCE CHANNEL */
-/* ----------------------------- */
+/* -------------------------------- */
 
-useEffect(() => {
+useEffect(()=>{
 
-async function startPresence() {
+async function startPresence(){
 
 const { data } = await supabase.auth.getUser()
 const user = data.user
 
-if (!user) return
+if(!user) return
 
 userIdRef.current = user.id
 
-const channel = supabase.channel("online-users", {
-config: {
-presence: {
-key: user.id
-}
+const channel = supabase.channel("online-users",{
+config:{
+presence:{ key:user.id }
 }
 })
 
 channel
-.on("presence", { event: "sync" }, () => {
-
-const state = channel.presenceState()
-setPresence(state)
-
+.on("presence",{event:"sync"},()=>{
+setPresence(channel.presenceState())
 })
-.subscribe(async (resp) => {
+.on("presence",{event:"join"},()=>{
+setPresence(channel.presenceState())
+})
+.on("presence",{event:"leave"},()=>{
+setPresence(channel.presenceState())
+})
+.subscribe(async(statusResp)=>{
 
-if (resp === "SUBSCRIBED") {
+if(statusResp==="SUBSCRIBED"){
 
 await channel.track({
-id: user.id,
-status: "active",
-page: window.location.pathname
+id:user.id,
+status:"active",
+page:pathname
 })
 
 }
@@ -98,69 +102,69 @@ channelRef.current = channel
 
 startPresence()
 
-return () => {
+return ()=>{
 
-if (channelRef.current) {
+if(channelRef.current){
 supabase.removeChannel(channelRef.current)
 }
 
 }
 
-}, [])
+},[])
 
-/* ----------------------------- */
-/* STATUS + PAGE UPDATE */
-/* ----------------------------- */
+/* -------------------------------- */
+/* UPDATE STATUS + PAGE */
+/* -------------------------------- */
 
-useEffect(() => {
+useEffect(()=>{
 
-if (!channelRef.current) return
+if(!channelRef.current) return
 
 channelRef.current.track({
-id: userIdRef.current,
+id:userIdRef.current,
 status,
-page: window.location.pathname
+page:pathname
 })
 
-}, [status])
+},[status,pathname])
 
-/* ----------------------------- */
-/* PAGE NAME HELPER */
-/* ----------------------------- */
+/* -------------------------------- */
+/* PAGE LABEL */
+/* -------------------------------- */
 
-function pageLabel(path:string) {
+function pageLabel(path:string){
 
-if (!path) return "Unknown"
+if(!path) return "Unknown"
 
-if (path.includes("dashboard")) return "Dashboard"
-if (path.includes("admin")) return "Admin Panel"
-if (path.includes("settings")) return "Settings"
+if(path.includes("dashboard")) return "Dashboard"
+if(path.includes("admin")) return "Admin Panel"
+if(path.includes("settings")) return "Settings"
 
 return "Other"
 
 }
 
-/* ----------------------------- */
+/* -------------------------------- */
 /* FILTER ONLINE USERS */
-/* ----------------------------- */
+/* -------------------------------- */
 
-const onlineUsers = users.filter((u:any) => {
+const onlineUsers = users.filter((u:any)=>{
 
 const state = presence[String(u.id)]
 
-if (!state || !state.length) return false
+if(!state || !state.length) return false
 
 const userState = state[0]?.status
 
-return userState === "active" || userState === "idle"
+return userState==="active" || userState==="idle"
 
 })
 
-/* ----------------------------- */
+/* -------------------------------- */
 /* UI */
-/* ----------------------------- */
+/* -------------------------------- */
 
-return (
+return(
 
 <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
@@ -170,29 +174,29 @@ Online Users
 
 <div className="space-y-3">
 
-{onlineUsers.length === 0 && (
+{onlineUsers.length===0 &&(
 
 <p className="text-sm text-gray-500">
 No users online
 </p>
 )}
 
-{onlineUsers.map((u:any) => {
+{onlineUsers.map((u:any)=>{
 
 const state = presence[String(u.id)]
 
 const userState = state[0]?.status
 const page = state[0]?.page
 
-let color = "bg-green-400"
-let text = "Active"
+let color="bg-green-400"
+let text="Active"
 
-if (userState === "idle") {
-color = "bg-yellow-400"
-text = "Idle"
+if(userState==="idle"){
+color="bg-yellow-400"
+text="Idle"
 }
 
-return (
+return(
 
 <div
 key={u.id}
