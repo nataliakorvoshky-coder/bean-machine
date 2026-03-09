@@ -7,7 +7,6 @@ export default function DashboardPage(){
 
 const [users,setUsers] = useState<any[]>([])
 const [presence,setPresence] = useState<any>({})
-const [loading,setLoading] = useState(true)
 
 async function loadUsers(){
 
@@ -15,7 +14,6 @@ const res = await fetch("/api/admin/list-users")
 const data = await res.json()
 
 setUsers(data.users || [])
-setLoading(false)
 
 }
 
@@ -70,8 +68,6 @@ supabase.removeChannel(channel)
 
 },[])
 
-if(loading) return null
-
 return(
 
 <div className="w-[1000px]">
@@ -92,7 +88,13 @@ Online Users
 
 <div className="space-y-3">
 
-{users.map((u:any)=>{
+{users.length === 0 ? (
+
+<div className="text-gray-400 text-sm">
+Loading users...
+</div>
+
+) : users.map((u:any)=>{
 
 const state = presence[u.id]
 
@@ -123,7 +125,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 >
 
 <span className="font-medium">
-{u.username || u.email}
+{u.username || "User"}
 </span>
 
 <div className="flex items-center gap-2">

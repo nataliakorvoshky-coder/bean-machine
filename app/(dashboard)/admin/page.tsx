@@ -12,7 +12,6 @@ const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
 const [status,setStatus] = useState("active")
 const [isAdmin,setIsAdmin] = useState(false)
-const [loading,setLoading] = useState(true)
 
 async function loadUsers(){
 
@@ -100,9 +99,7 @@ return
 
 setIsAdmin(true)
 
-await loadUsers()
-
-setLoading(false)
+loadUsers()
 
 }
 
@@ -157,7 +154,7 @@ supabase.removeChannel(channel)
 
 },[status])
 
-if(!isAdmin || loading) return null
+if(!isAdmin) return null
 
 return(
 
@@ -214,7 +211,7 @@ Create User </button>
 
 </div>
 
-{/* USERS */}
+{/* CURRENT USERS */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -224,7 +221,13 @@ Current Users ({users.length})
 
 <div className="space-y-3">
 
-{users.map((u:any)=>{
+{users.length === 0 ? (
+
+<div className="text-gray-400 text-sm">
+Loading users...
+</div>
+
+) : users.map((u:any)=>{
 
 const state = presence[u.id]
 
@@ -255,7 +258,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 >
 
 <span className="font-medium">
-{u.username || u.email}
+{u.username || "User"}
 </span>
 
 <div className="flex items-center gap-3">
