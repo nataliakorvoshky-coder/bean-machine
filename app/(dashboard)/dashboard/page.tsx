@@ -10,8 +10,6 @@ const { users } = useUserData()
 
 const [presence,setPresence] = useState<any>({})
 
-/* REALTIME PRESENCE */
-
 useEffect(()=>{
 
 let channel:any
@@ -20,22 +18,21 @@ async function startPresence(){
 
 const { data } = await supabase.auth.getUser()
 const user = data?.user
-
 if(!user) return
 
 channel = supabase.channel("online-users",{
 config:{ presence:{ key:user.id } }
 })
 
-const update = ()=>{
+const refresh = ()=>{
 const state = channel.presenceState()
 setPresence({...state})
 }
 
 channel
-.on("presence",{event:"sync"},update)
-.on("presence",{event:"join"},update)
-.on("presence",{event:"leave"},update)
+.on("presence",{event:"sync"},refresh)
+.on("presence",{event:"join"},refresh)
+.on("presence",{event:"leave"},refresh)
 .subscribe(async(status:any)=>{
 
 if(status==="SUBSCRIBED"){
@@ -45,7 +42,8 @@ id:user.id,
 status:"active"
 })
 
-update()
+/* instant UI update */
+refresh()
 
 }
 
@@ -143,7 +141,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 </div>
 
-{/* ACTIVITY FEED */}
+{/* ACTIVITY PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
