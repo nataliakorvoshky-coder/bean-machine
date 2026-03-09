@@ -4,61 +4,58 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePathname } from "next/navigation"
 
-type PresenceState = Record<string, any>
+type PresenceState = Record<string, { id: string; page?: string }[]>
 
-const PresenceContext = createContext<{presence:PresenceState}>({
-  presence:{}
+interface PresenceContextType {
+  presence: PresenceState
+}
+
+const PresenceContext = createContext<PresenceContextType>({
+  presence: {}
 })
 
-let channel:any = null
-let currentPresence:PresenceState = {}
+let channel: ReturnType<typeof supabase.channel> | null = null
 
-export function PresenceProvider({children}:{children:React.ReactNode}){
+export function PresenceProvider({
+  children
+}: {
+  children: React.ReactNode
+}) {
 
   const pathname = usePathname()
-  const [presence,setPresence] = useState<PresenceState>({})
+  const [presence, setPresence] = useState<PresenceState>({})
 
-  useEffect(()=>{
+  useEffect(() => {
 
-    async function init(){
+    async function startPresence() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
-      if(!user) return
 
-      if(!channel){
+      if (!user) return
 
-        channel = supabase.channel("online-users",{
-          config:{ presence:{ key:user.id } }
+      if (!channel) {
+
+        channel = supabase.channel("online-users", {
+          config: {
+            presence: { key: user.id }
+          }
         })
 
         channel
-          .on("presence",{event:"sync"},()=>{
+          .on("presence", { event: "sync" }, () => {
 
-            currentPresence = channel.presenceState()
-            setPresence({...currentPresence})
-
-          })
-          .on("presence",{event:"join"},()=>{
-
-            currentPresence = channel.presenceState()
-            setPresence({...currentPresence})
+            const state = channel?.presenceState() as PresenceState
+            setPresence({ ...state })
 
           })
-          .on("presence",{event:"leave"},()=>{
+          .subscribe(async status => {
 
-            currentPresence = channel.presenceState()
-            setPresence({...currentPresence})
-
-          })
-          .subscribe(async(status:string)=>{
-
-            if(status==="SUBSCRIBED"){
+            if (status === "SUBSCRIBED" && channel) {
 
               await channel.track({
-                id:user.id,
-                page:pathname,
-                online_at:new Date().toISOString()
+                id: user.id,
+                page: pathname
               })
 
             }
@@ -67,30 +64,40 @@ export function PresenceProvider({children}:{children:React.ReactNode}){
 
       }
 
-      /* Immediately track on navigation */
+    }
+
+    startPresence()
+
+  }, [])
+
+  useEffect(() => {
+
+    async function updatePage() {
+
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
+
+      if (!user || !channel) return
 
       await channel.track({
-        id:user.id,
-        page:pathname,
-        online_at:new Date().toISOString()
+        id: user.id,
+        page: pathname
       })
 
     }
 
-    init()
+    updatePage()
 
-  },[pathname])
+  }, [pathname])
 
-  return(
-
-    <PresenceContext.Provider value={{presence}}>
+  return (
+    <PresenceContext.Provider value={{ presence }}>
       {children}
     </PresenceContext.Provider>
-
   )
 
 }
 
-export function usePresence(){
+export function usePresence() {
   return useContext(PresenceContext)
 }
