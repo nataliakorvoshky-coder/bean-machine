@@ -4,84 +4,88 @@ import { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
 
-export default function OnlineUsers(){
+export default function OnlineUsers() {
 
 const { users } = useUserData()
 
-const [presence,setPresence] = useState<any>({})
-const [status,setStatus] = useState("active")
+const [presence, setPresence] = useState<any>({})
+const [status, setStatus] = useState("active")
 
 const channelRef = useRef<any>(null)
 const userIdRef = useRef<string | null>(null)
 
-useEffect(()=>{
+/* ----------------------------- */
+/* IDLE / ACTIVE DETECTION */
+/* ----------------------------- */
+
+useEffect(() => {
 
 let idleTimer:any
 
-function setActive(){
+function setActive() {
 
 setStatus("active")
 
 clearTimeout(idleTimer)
 
-idleTimer = setTimeout(()=>{
-
+idleTimer = setTimeout(() => {
 setStatus("idle")
-
-},60000)
+}, 60000)
 
 }
 
-window.addEventListener("mousemove",setActive)
-window.addEventListener("keydown",setActive)
+window.addEventListener("mousemove", setActive)
+window.addEventListener("keydown", setActive)
 
 setActive()
 
-return ()=>{
+return () => {
 
-window.removeEventListener("mousemove",setActive)
-window.removeEventListener("keydown",setActive)
+window.removeEventListener("mousemove", setActive)
+window.removeEventListener("keydown", setActive)
 
 }
 
-},[])
+}, [])
 
-/* CREATE CHANNEL ONLY ONCE */
+/* ----------------------------- */
+/* PRESENCE CHANNEL */
+/* ----------------------------- */
 
-useEffect(()=>{
+useEffect(() => {
 
-async function startPresence(){
+async function startPresence() {
 
 const { data } = await supabase.auth.getUser()
 const user = data.user
 
-if(!user) return
+if (!user) return
 
 userIdRef.current = user.id
 
-const channel = supabase.channel("online-users",{
-config:{
-presence:{
-key:user.id
+const channel = supabase.channel("online-users", {
+config: {
+presence: {
+key: user.id
 }
 }
 })
 
 channel
-.on("presence",{ event:"sync" },()=>{
+.on("presence", { event: "sync" }, () => {
 
 const state = channel.presenceState()
-
 setPresence(state)
 
 })
+.subscribe(async (resp) => {
 
-.subscribe(async(resp)=>{
-
-if(resp==="SUBSCRIBED"){
+if (resp === "SUBSCRIBED") {
 
 await channel.track({
-status:"active"
+id: user.id,
+status: "active",
+page: window.location.pathname
 })
 
 }
@@ -94,29 +98,69 @@ channelRef.current = channel
 
 startPresence()
 
-return ()=>{
+return () => {
 
-if(channelRef.current){
+if (channelRef.current) {
 supabase.removeChannel(channelRef.current)
 }
 
 }
 
-},[])
+}, [])
 
-/* UPDATE STATUS WITHOUT RECREATING CHANNEL */
+/* ----------------------------- */
+/* STATUS + PAGE UPDATE */
+/* ----------------------------- */
 
-useEffect(()=>{
+useEffect(() => {
 
-if(!channelRef.current) return
+if (!channelRef.current) return
 
 channelRef.current.track({
-status
+id: userIdRef.current,
+status,
+page: window.location.pathname
 })
 
-},[status])
+}, [status])
 
-return(
+/* ----------------------------- */
+/* PAGE NAME HELPER */
+/* ----------------------------- */
+
+function pageLabel(path:string) {
+
+if (!path) return "Unknown"
+
+if (path.includes("dashboard")) return "Dashboard"
+if (path.includes("admin")) return "Admin Panel"
+if (path.includes("settings")) return "Settings"
+
+return "Other"
+
+}
+
+/* ----------------------------- */
+/* FILTER ONLINE USERS */
+/* ----------------------------- */
+
+const onlineUsers = users.filter((u:any) => {
+
+const state = presence[String(u.id)]
+
+if (!state || !state.length) return false
+
+const userState = state[0]?.status
+
+return userState === "active" || userState === "idle"
+
+})
+
+/* ----------------------------- */
+/* UI */
+/* ----------------------------- */
+
+return (
 
 <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
@@ -126,43 +170,50 @@ Online Users
 
 <div className="space-y-3">
 
-{users.map((u:any)=>{
+{onlineUsers.length === 0 && (
 
-const state = presence[u.id]
+<p className="text-sm text-gray-500">
+No users online
+</p>
+)}
 
-let color="bg-gray-400"
-let text="Offline"
+{onlineUsers.map((u:any) => {
 
-if(state){
+const state = presence[String(u.id)]
 
 const userState = state[0]?.status
+const page = state[0]?.page
 
-if(userState==="active"){
-color="bg-green-400"
-text="Active"
+let color = "bg-green-400"
+let text = "Active"
+
+if (userState === "idle") {
+color = "bg-yellow-400"
+text = "Idle"
 }
 
-if(userState==="idle"){
-color="bg-yellow-400"
-text="Idle"
-}
-
-}
-
-return(
+return (
 
 <div
 key={u.id}
 className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
 >
 
-<span className="font-medium">
+<div>
+
+<div className="font-medium">
 {u.username ?? "User"}
-</span>
+</div>
+
+<div className="text-xs text-gray-500">
+{pageLabel(page)}
+</div>
+
+</div>
 
 <div className="flex items-center gap-2">
 
-<div className={`w-3 h-3 rounded-full ${color}`} />
+<div className={`w-3 h-3 rounded-full ${color} animate-pulse`} />
 
 <span className="text-sm text-gray-500">
 {text}
