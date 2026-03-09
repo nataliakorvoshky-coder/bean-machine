@@ -14,71 +14,75 @@ const PresenceContext = createContext<PresenceContextType>({
   presence: {}
 })
 
-let channel: any = null
-let cachedPresence: PresenceState = {}
+let channel:any = null
+let initialized = false
 
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-  const [presence,setPresence] = useState<PresenceState>(cachedPresence)
+  const [presence,setPresence] = useState<PresenceState>({})
+
+  /* INITIALIZE ONCE */
 
   useEffect(()=>{
 
-    async function start(){
+    async function init(){
+
+      if(initialized) return
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
+
       if(!user) return
 
-      if(!channel){
+      channel = supabase.channel("online-users",{
+        config:{
+          presence:{ key:user.id }
+        }
+      })
 
-        channel = supabase.channel("online-users",{
-          config:{
-            presence:{ key:user.id }
+      channel
+        .on("presence",{event:"sync"},()=>{
+          setPresence(channel.presenceState())
+        })
+        .on("presence",{event:"join"},()=>{
+          setPresence(channel.presenceState())
+        })
+        .on("presence",{event:"leave"},()=>{
+          setPresence(channel.presenceState())
+        })
+        .subscribe(async(status:string)=>{
+
+          if(status==="SUBSCRIBED"){
+
+            await channel.track({
+              id:user.id,
+              page:pathname,
+              online_at:new Date().toISOString()
+            })
+
           }
+
         })
 
-        channel
-          .on("presence",{event:"sync"},()=>{
+      initialized = true
 
-            cachedPresence = channel.presenceState()
-            setPresence({...cachedPresence})
+    }
 
-          })
-          .on("presence",{event:"join"},()=>{
+    init()
 
-            cachedPresence = channel.presenceState()
-            setPresence({...cachedPresence})
+  },[])
 
-          })
-          .on("presence",{event:"leave"},()=>{
+  /* UPDATE PAGE ONLY */
 
-            cachedPresence = channel.presenceState()
-            setPresence({...cachedPresence})
+  useEffect(()=>{
 
-          })
-          .subscribe(async(status:string)=>{
+    async function updatePage(){
 
-            if(status==="SUBSCRIBED"){
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
 
-              await channel.track({
-                id:user.id,
-                page:pathname,
-                online_at:new Date().toISOString()
-              })
-
-              /* force instant sync */
-
-              cachedPresence = channel.presenceState()
-              setPresence({...cachedPresence})
-
-            }
-
-          })
-
-      }
-
-      /* immediate update on navigation */
+      if(!user || !channel) return
 
       await channel.track({
         id:user.id,
@@ -86,12 +90,9 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
         online_at:new Date().toISOString()
       })
 
-      cachedPresence = channel.presenceState()
-      setPresence({...cachedPresence})
-
     }
 
-    start()
+    updatePage()
 
   },[pathname])
 
