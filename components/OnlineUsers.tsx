@@ -3,14 +3,29 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
+function pageLabel(page?: string) {
+
+  if (!page) return ""
+
+  if (page.includes("dashboard")) return "Dashboard"
+  if (page.includes("admin")) return "Admin"
+  if (page.includes("settings")) return "Settings"
+
+  return ""
+}
+
 export default function OnlineUsers() {
 
   const presence = usePresence()
   const { users } = useUserData()
 
-  const activeUsers = Object.values(presence)
-    .flat()
-    .map((p: any) => p.id)
+  /* flatten presence safely */
+
+  const connections = Object.values(presence).flat()
+
+  const activeUsers = users.filter((u: any) =>
+    connections.some((p: any) => p?.id === u.id)
+  )
 
   return (
 
@@ -22,9 +37,11 @@ export default function OnlineUsers() {
 
       <div className="space-y-3">
 
-        {users
-          .filter((u: any) => activeUsers.includes(u.id))
-          .map((u: any) => (
+        {activeUsers.map((u: any) => {
+
+          const state = connections.find((p: any) => p?.id === u.id)
+
+          return (
 
             <div
               key={u.id}
@@ -40,14 +57,16 @@ export default function OnlineUsers() {
                 <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
                 <span className="text-sm text-gray-500">
-                  Active
+                  {pageLabel(state?.page)}
                 </span>
 
               </div>
 
             </div>
 
-        ))}
+          )
+
+        })}
 
         {activeUsers.length === 0 && (
           <p className="text-sm text-gray-500">
