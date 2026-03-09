@@ -8,13 +8,7 @@ export default function OnlineUsers(){
 const { presence } = usePresence()
 const { users } = useUserData()
 
-const onlineUsers = users.filter((u:any)=>{
-
-return presence[u.id]
-
-})
-
-function getPageLabel(page:string){
+function pageLabel(page?: string){
 
 if(!page) return ""
 
@@ -25,6 +19,8 @@ if(page.includes("settings")) return "Settings"
 return "Other"
 
 }
+
+const onlineUsers = users.filter((u:any)=> presence[u.id])
 
 return(
 
@@ -55,7 +51,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 </div>
 
 <div className="text-xs text-gray-500">
-{getPageLabel(page)}
+{pageLabel(page)}
 </div>
 
 </div>

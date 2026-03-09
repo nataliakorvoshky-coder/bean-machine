@@ -1,127 +1,63 @@
 "use client"
 
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { startPresence, updatePresence, getPresenceChannel } from "@/lib/presenceManager"
 
-const PresenceContext = createContext<any>(null)
+type PresenceState = Record<string, any>
+
+interface PresenceContextType {
+presence: PresenceState
+}
+
+const PresenceContext = createContext<PresenceContextType>({
+presence: {}
+})
 
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
 const pathname = usePathname()
 
-const [presence,setPresence] = useState<any>({})
+const [presence, setPresence] = useState<PresenceState>({})
 
-const channelRef = useRef<any>(null)
-const userIdRef = useRef<string | null>(null)
-const presenceCacheRef = useRef<any>({})
+useEffect(() => {
 
-useEffect(()=>{
+async function init() {
 
-async function startPresence(){
+await startPresence(pathname)
 
-const { data } = await supabase.auth.getUser()
-const user = data.user
+const channel = getPresenceChannel()
 
-if(!user) return
+if (!channel) return
 
-userIdRef.current = user.id
-
-const channel = supabase.channel("online-users",{
-config:{ presence:{ key:user.id } }
-})
-
-channel
-.on("presence",{event:"sync"},()=>{
+channel.on("presence", { event: "sync" }, () => {
 
 const state = channel.presenceState()
 
-presenceCacheRef.current = state
-setPresence({...state})
+setPresence({ ...state })
 
-})
-.on("presence",{event:"join"},()=>{
-
-const state = channel.presenceState()
-
-presenceCacheRef.current = state
-setPresence({...state})
-
-})
-.on("presence",{event:"leave"},()=>{
-
-const state = channel.presenceState()
-
-presenceCacheRef.current = state
-setPresence({...state})
-
-})
-.subscribe(async(status)=>{
-
-if(status==="SUBSCRIBED"){
-
-await channel.track({
-id:user.id,
-status:"active",
-page:pathname
 })
 
 }
 
-})
+init()
 
-channelRef.current = channel
+}, [])
 
-}
+useEffect(() => {
 
-startPresence()
+updatePresence(pathname)
 
-return ()=>{
+}, [pathname])
 
-if(channelRef.current){
-supabase.removeChannel(channelRef.current)
-}
-
-}
-
-},[])
-
-/* update location when page changes */
-
-useEffect(()=>{
-
-if(!channelRef.current || !userIdRef.current) return
-
-channelRef.current.track({
-id:userIdRef.current,
-status:"active",
-page:pathname
-})
-
-},[pathname])
-
-/* restore cached presence immediately */
-
-useEffect(()=>{
-
-if(Object.keys(presenceCacheRef.current).length){
-
-setPresence({...presenceCacheRef.current})
-
-}
-
-},[])
-
-return(
-
-<PresenceContext.Provider value={{presence}}>
+return (
+<PresenceContext.Provider value={{ presence }}>
 {children}
 </PresenceContext.Provider>
-
 )
 
 }
 
-export function usePresence(){
+export function usePresence() {
 return useContext(PresenceContext)
 }
