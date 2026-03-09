@@ -1,7 +1,7 @@
 "use client"
 
 import { usePresence } from "@/lib/PresenceContext"
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 
 function pageLabel(page?: string){
 
@@ -19,25 +19,29 @@ export default function OnlineUsers({ users }:{ users:any[] }){
 
 const presence = usePresence()
 
-const [cachedPresence,setCachedPresence] = useState<any>({})
+/* preload cached presence before first render */
 
-/* load cached presence instantly */
+const [cachedPresence,setCachedPresence] = useState<any>(()=>{
 
-useEffect(()=>{
+if(typeof window !== "undefined"){
 
 try{
 
 const stored = sessionStorage.getItem("presence-cache")
 
 if(stored){
-setCachedPresence(JSON.parse(stored))
+return JSON.parse(stored)
 }
 
 }catch{}
 
-},[])
+}
 
-/* update cache when presence changes */
+return {}
+
+})
+
+/* update cache when realtime presence changes */
 
 useEffect(()=>{
 
