@@ -5,13 +5,13 @@ import { useUserData } from "@/lib/UserDataContext"
 
 function pageLabel(page?:string){
 
-if(!page) return "Online"
+if(!page) return "Active"
 
 if(page.includes("dashboard")) return "Dashboard"
-if(page.includes("admin")) return "Admin Panel"
+if(page.includes("admin")) return "Admin"
 if(page.includes("settings")) return "Settings"
 
-return "Online"
+return "Active"
 
 }
 
@@ -20,13 +20,9 @@ export default function OnlineUsers(){
 const presence = usePresence()
 const { users } = useUserData()
 
-/* flatten presence */
-
 const connections = Object.values(presence).flat()
 
-/* remove duplicates */
-
-const uniqueConnections = Array.from(
+const unique = Array.from(
 new Map(connections.map((c:any)=>[c.id,c])).values()
 )
 
@@ -40,10 +36,9 @@ Online Users
 
 <div className="space-y-3">
 
-{uniqueConnections.map((conn:any)=>{
+{unique.map((conn:any)=>{
 
 const user = users.find((u:any)=>u.id===conn.id)
-
 if(!user) return null
 
 return(
