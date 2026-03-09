@@ -1,65 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
 export default function DashboardPage(){
 
+const presence = usePresence()
 const { users } = useUserData()
-
-const [presence,setPresence] = useState<any>({})
-
-useEffect(()=>{
-
-let channel:any
-
-async function startPresence(){
-
-const { data } = await supabase.auth.getUser()
-const user = data?.user
-if(!user) return
-
-channel = supabase.channel("online-users",{
-config:{ presence:{ key:user.id } }
-})
-
-const refresh = ()=>{
-const state = channel.presenceState()
-setPresence({...state})
-}
-
-channel
-.on("presence",{event:"sync"},refresh)
-.on("presence",{event:"join"},refresh)
-.on("presence",{event:"leave"},refresh)
-.subscribe(async(status:any)=>{
-
-if(status==="SUBSCRIBED"){
-
-await channel.track({
-id:user.id,
-status:"active"
-})
-
-/* instant UI update */
-refresh()
-
-}
-
-})
-
-}
-
-startPresence()
-
-return ()=>{
-if(channel){
-supabase.removeChannel(channel)
-}
-}
-
-},[])
 
 return(
 
@@ -81,13 +28,7 @@ Online Users
 
 <div className="space-y-3">
 
-{users.length===0 ? (
-
-<div className="text-gray-400 text-sm">
-Loading users...
-</div>
-
-) : users.map((u:any)=>{
+{users.map((u:any)=>{
 
 const state = presence[u.id]
 
@@ -96,16 +37,11 @@ let text="Offline"
 
 if(state){
 
-const userState = state[0]?.status
+const userState = state[0]
 
-if(userState==="active"){
+if(userState){
 color="bg-green-400"
-text="Active"
-}
-
-if(userState==="idle"){
-color="bg-yellow-400"
-text="Idle"
+text="Online"
 }
 
 }

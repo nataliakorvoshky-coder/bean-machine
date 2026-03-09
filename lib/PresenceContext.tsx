@@ -1,12 +1,12 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePathname } from "next/navigation"
 
-const PresenceContext = createContext<any>({})
+type PresenceState = Record<string, any[]>
 
-let channel: any = null
+const PresenceContext = createContext<PresenceState>({})
 
 export function PresenceProvider({
   children,
@@ -15,17 +15,17 @@ export function PresenceProvider({
 }) {
 
   const pathname = usePathname()
-  const [presence, setPresence] = useState<any>({})
+  const [presence, setPresence] = useState<PresenceState>({})
 
   useEffect(() => {
+
+    let channel: any
 
     async function start() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
       if (!user) return
-
-      if (channel) return
 
       channel = supabase.channel("online-users", {
         config: { presence: { key: user.id } }
@@ -40,7 +40,7 @@ export function PresenceProvider({
         .on("presence", { event: "sync" }, update)
         .on("presence", { event: "join" }, update)
         .on("presence", { event: "leave" }, update)
-        .subscribe(async (status: any) => {
+        .subscribe(async (status: string) => {
 
           if (status === "SUBSCRIBED") {
 
@@ -59,6 +59,10 @@ export function PresenceProvider({
 
     start()
 
+    return () => {
+      if (channel) supabase.removeChannel(channel)
+    }
+
   }, [])
 
   useEffect(() => {
@@ -68,15 +72,17 @@ export function PresenceProvider({
       const { data } = await supabase.auth.getUser()
       const user = data?.user
 
-      if (!user || !channel) return
+      if (!user) return
+
+      const channels = supabase.getChannels()
+      const channel = channels.find(c => c.topic === "online-users")
+
+      if (!channel) return
 
       await channel.track({
         id: user.id,
         page: pathname
       })
-
-      const state = channel.presenceState()
-      setPresence({ ...state })
 
     }
 
