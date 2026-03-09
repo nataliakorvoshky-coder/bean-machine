@@ -6,32 +6,36 @@ import { usePathname } from "next/navigation"
 
 const PresenceContext = createContext<any>({})
 
+let presenceChannel: any = null
+
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
+
   const [presence, setPresence] = useState({})
 
-  useEffect(() => {
+  /* create channel once */
 
-    let channel: any
+  useEffect(() => {
 
     async function start() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
-
       if (!user) return
 
-      channel = supabase.channel("online-users", {
+      if (presenceChannel) return
+
+      presenceChannel = supabase.channel("online-users", {
         config: { presence: { key: user.id } }
       })
 
       const update = () => {
-        const state = channel.presenceState()
+        const state = presenceChannel.presenceState()
         setPresence({ ...state })
       }
 
-      channel
+      presenceChannel
         .on("presence", { event: "sync" }, update)
         .on("presence", { event: "join" }, update)
         .on("presence", { event: "leave" }, update)
@@ -39,7 +43,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
           if (status === "SUBSCRIBED") {
 
-            await channel.track({
+            await presenceChannel.track({
               id: user.id,
               page: pathname
             })
@@ -54,41 +58,36 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     start()
 
-    return () => {
-      if (channel) supabase.removeChannel(channel)
-    }
-
   }, [])
+
+  /* update location when page changes */
 
   useEffect(() => {
 
-    async function updatePage() {
+    async function updateLocation() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
-      if (!user) return
 
-      const channel = supabase.getChannels().find(
-        (c: any) => c.topic === "online-users"
-      )
+      if (!user || !presenceChannel) return
 
-      if (!channel) return
-
-      await channel.track({
+      await presenceChannel.track({
         id: user.id,
         page: pathname
       })
 
     }
 
-    updatePage()
+    updateLocation()
 
   }, [pathname])
 
   return (
+
     <PresenceContext.Provider value={presence}>
       {children}
     </PresenceContext.Provider>
+
   )
 
 }
