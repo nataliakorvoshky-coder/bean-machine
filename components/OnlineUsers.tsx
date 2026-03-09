@@ -21,7 +21,7 @@ const presence = usePresence()
 
 /* cache last presence to prevent flicker */
 
-const [cachedPresence,setCachedPresence] = useState<any>(null)
+const [cachedPresence,setCachedPresence] = useState<any>({})
 
 useEffect(()=>{
 
@@ -33,17 +33,16 @@ setCachedPresence(presence)
 
 /* choose active presence */
 
-const state = Object.keys(presence).length>0
+const state =
+Object.keys(presence).length>0
 ? presence
 : cachedPresence
-
-if(!state) return null
 
 /* flatten connections */
 
 const connections = Object.values(state).flat()
 
-/* remove duplicate connections */
+/* remove duplicates */
 
 const uniqueConnections = Array.from(
 new Map(connections.map((c:any)=>[c.id,c])).values()
@@ -59,10 +58,17 @@ Online Users
 
 <div className="space-y-3">
 
-{uniqueConnections.map((conn:any)=>{
+{uniqueConnections.length === 0 ? (
+
+<div className="text-gray-400 text-sm">
+No users online
+</div>
+
+) : (
+
+uniqueConnections.map((conn:any)=>{
 
 const user = users.find((u:any)=>u.id===conn.id)
-
 if(!user) return null
 
 return(
@@ -72,19 +78,15 @@ key={conn.id}
 className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
 >
 
-{/* LEFT SIDE */}
-
 <div className="flex items-center gap-3">
 
-<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
+<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
 <span className="font-medium">
 {user.username}
 </span>
 
 </div>
-
-{/* RIGHT SIDE */}
 
 <span className="text-sm text-gray-500">
 {pageLabel(conn.page)}
@@ -94,7 +96,9 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 )
 
-})}
+})
+
+)}
 
 </div>
 
