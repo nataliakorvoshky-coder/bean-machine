@@ -21,7 +21,7 @@ export function PresenceProvider({
 
   useEffect(() => {
 
-    async function init() {
+    async function startPresence() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -35,25 +35,26 @@ export function PresenceProvider({
           }
         })
 
-        const updatePresence = () => {
+        const update = () => {
           const state = channel.presenceState()
           setPresence({ ...state })
         }
 
         channel
-          .on("presence", { event: "sync" }, updatePresence)
-          .on("presence", { event: "join" }, updatePresence)
-          .on("presence", { event: "leave" }, updatePresence)
+          .on("presence", { event: "sync" }, update)
+          .on("presence", { event: "join" }, update)
+          .on("presence", { event: "leave" }, update)
           .subscribe(async (status: string) => {
 
             if (status === "SUBSCRIBED") {
 
               await channel.track({
                 id: user.id,
-                page: pathname
+                page: pathname,
+                lastSeen: Date.now()
               })
 
-              updatePresence()
+              update()
 
             }
 
@@ -63,9 +64,11 @@ export function PresenceProvider({
 
     }
 
-    init()
+    startPresence()
 
   }, [])
+
+  /* update location instantly when navigating */
 
   useEffect(() => {
 
@@ -78,7 +81,8 @@ export function PresenceProvider({
 
       await channel.track({
         id: user.id,
-        page: pathname
+        page: pathname,
+        lastSeen: Date.now()
       })
 
     }
@@ -86,6 +90,25 @@ export function PresenceProvider({
     updateLocation()
 
   }, [pathname])
+
+  /* detect tab close → instant offline */
+
+  useEffect(() => {
+
+    const handleUnload = () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+        channel = null
+      }
+    }
+
+    window.addEventListener("beforeunload", handleUnload)
+
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload)
+    }
+
+  }, [])
 
   return (
     <PresenceContext.Provider value={presence}>
