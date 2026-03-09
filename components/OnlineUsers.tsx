@@ -21,30 +21,30 @@ export default function OnlineUsers() {
       if (!user) return
 
       channel = supabase.channel("online-users", {
-        config: { presence: { key: user.id } }
+        config: {
+          presence: { key: user.id }
+        }
       })
 
+      const updatePresence = () => {
+        const state = channel.presenceState()
+        setPresence({ ...state })
+      }
+
       channel
-        .on("presence", { event: "sync" }, () => {
-          setPresence({ ...channel.presenceState() })
-        })
-        .on("presence", { event: "join" }, () => {
-          setPresence({ ...channel.presenceState() })
-        })
-        .on("presence", { event: "leave" }, () => {
-          setPresence({ ...channel.presenceState() })
-        })
+        .on("presence", { event: "sync" }, updatePresence)
+        .on("presence", { event: "join" }, updatePresence)
+        .on("presence", { event: "leave" }, updatePresence)
         .subscribe(async (status: string) => {
 
           if (status === "SUBSCRIBED") {
 
             await channel.track({
-              id: user.id
+              user_id: user.id
             })
 
-            /* CRITICAL FIX — load current state immediately */
-
-            setPresence({ ...channel.presenceState() })
+            // force initial update
+            updatePresence()
 
           }
 
@@ -60,9 +60,11 @@ export default function OnlineUsers() {
 
   }, [])
 
-  /* Flatten presence payload */
+  /* flatten presence state */
 
-  const connections = Object.values(presence).flat()
+  const activeUsers = Object.values(presence)
+    .flat()
+    .map((p: any) => p.user_id)
 
   return (
 
@@ -74,13 +76,9 @@ export default function OnlineUsers() {
 
       <div className="space-y-3">
 
-        {users.map((u: any) => {
-
-          const online = connections.find((p: any) => p?.id === u.id)
-
-          if (!online) return null  // hide offline users
-
-          return (
+        {users
+          .filter((u: any) => activeUsers.includes(u.id))
+          .map((u: any) => (
 
             <div
               key={u.id}
@@ -103,9 +101,13 @@ export default function OnlineUsers() {
 
             </div>
 
-          )
+        ))}
 
-        })}
+        {activeUsers.length === 0 && (
+          <p className="text-sm text-gray-500">
+            No users online
+          </p>
+        )}
 
       </div>
 
