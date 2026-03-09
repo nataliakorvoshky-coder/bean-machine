@@ -90,12 +90,12 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 {u.username}
 </span>
 
-<div className="flex items-center gap-2">
+<div className="flex items-center gap-3">
 
 <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
 <span className="text-sm text-gray-500">
-• {active ? pageLabel(active.page) : "Dashboard"}
+{active ? pageLabel(active.page) : "Dashboard"}
 </span>
 
 </div>
