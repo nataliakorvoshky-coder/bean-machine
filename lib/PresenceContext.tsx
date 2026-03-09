@@ -14,6 +14,7 @@ const [presence,setPresence] = useState<any>({})
 
 const channelRef = useRef<any>(null)
 const userIdRef = useRef<string | null>(null)
+const presenceCacheRef = useRef<any>({})
 
 useEffect(()=>{
 
@@ -33,7 +34,26 @@ config:{ presence:{ key:user.id } }
 channel
 .on("presence",{event:"sync"},()=>{
 
-setPresence(channel.presenceState())
+const state = channel.presenceState()
+
+presenceCacheRef.current = state
+setPresence({...state})
+
+})
+.on("presence",{event:"join"},()=>{
+
+const state = channel.presenceState()
+
+presenceCacheRef.current = state
+setPresence({...state})
+
+})
+.on("presence",{event:"leave"},()=>{
+
+const state = channel.presenceState()
+
+presenceCacheRef.current = state
+setPresence({...state})
 
 })
 .subscribe(async(status)=>{
@@ -41,7 +61,7 @@ setPresence(channel.presenceState())
 if(status==="SUBSCRIBED"){
 
 await channel.track({
-user:user.id,
+id:user.id,
 status:"active",
 page:pathname
 })
@@ -64,19 +84,33 @@ supabase.removeChannel(channelRef.current)
 
 }
 
-},[])   // IMPORTANT — runs only once
+},[])
+
+/* update location when page changes */
 
 useEffect(()=>{
 
 if(!channelRef.current || !userIdRef.current) return
 
 channelRef.current.track({
-user:userIdRef.current,
+id:userIdRef.current,
 status:"active",
 page:pathname
 })
 
 },[pathname])
+
+/* restore cached presence immediately */
+
+useEffect(()=>{
+
+if(Object.keys(presenceCacheRef.current).length){
+
+setPresence({...presenceCacheRef.current})
+
+}
+
+},[])
 
 return(
 
