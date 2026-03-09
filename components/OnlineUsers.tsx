@@ -3,73 +3,87 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-function pageLabel(page?: string) {
+function pageLabel(page?: string){
 
-  if (!page) return ""
+  if(!page) return ""
 
-  if (page.includes("dashboard")) return "Dashboard"
-  if (page.includes("admin")) return "Admin Dashboard"
-  if (page.includes("settings")) return "Settings"
+  if(page.includes("dashboard")) return "Dashboard"
+  if(page.includes("admin")) return "Admin Dashboard"
+  if(page.includes("settings")) return "Settings"
 
   return ""
 
 }
 
-export default function OnlineUsers() {
+export default function OnlineUsers(){
 
   const { presence } = usePresence()
   const { users } = useUserData()
 
-  const onlineIds = Object.keys(presence)
+  /* flatten presence payload */
 
-  const onlineUsers = users.filter((u: any) =>
+  const onlineIds = Object.values(presence)
+    .flat()
+    .map((p:any)=>p.id)
+
+  const onlineUsers = users.filter((u:any)=>
     onlineIds.includes(u.id)
   )
 
-  return (
+  return(
 
-    <div className="bg-white p-8 rounded-xl shadow w-[420px]">
+  <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
-      <h2 className="font-semibold mb-6 text-emerald-700">
-        Online Users
-      </h2>
+  <h2 className="font-semibold mb-6 text-emerald-700">
+  Online Users
+  </h2>
 
-      <div className="space-y-3">
+  <div className="space-y-3">
 
-        {onlineUsers.map((u: any) => {
+  {onlineUsers.length===0 &&(
 
-          const state = presence[u.id]?.[0]
+  <p className="text-gray-400 text-sm">
+  No users online
+  </p>
 
-          return (
+  )}
 
-            <div
-              key={u.id}
-              className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-            >
+  {onlineUsers.map((u:any)=>{
 
-              <span className="font-medium">
-                {u.username ?? "User"}
-              </span>
+  const state = Object.values(presence)
+    .flat()
+    .find((p:any)=>p.id===u.id)
 
-              <div className="flex items-center gap-2">
+  return(
 
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+  <div
+  key={u.id}
+  className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+  >
 
-                <span className="text-sm text-gray-500">
-                  {pageLabel(state?.page)}
-                </span>
+  <span className="font-medium">
+  {u.username ?? "User"}
+  </span>
 
-              </div>
+  <div className="flex items-center gap-2">
 
-            </div>
+  <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
-          )
+  <span className="text-sm text-gray-500">
+  {pageLabel(state?.page)}
+  </span>
 
-        })}
+  </div>
 
-      </div>
+  </div>
 
-    </div>
+  )
+
+  })}
+
+  </div>
+
+  </div>
 
   )
 

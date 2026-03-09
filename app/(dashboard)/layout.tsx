@@ -58,9 +58,20 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
     <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
 
-      <h1 className="text-2xl font-bold mb-8">
-        Bean Machine
-      </h1>
+      {/* LOGO */}
+
+      <div className="flex items-center gap-3 mb-10">
+
+        <img
+          src="/logo.png"
+          className="w-10 h-10"
+        />
+
+        <h1 className="text-2xl font-bold">
+          Bean Machine
+        </h1>
+
+      </div>
 
       {/* USER PANEL */}
 
@@ -93,14 +104,18 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
             <Link
               href="/admin"
-              className={pathname==="/admin" ? "font-semibold text-white":"hover:text-emerald-200"}
+              className={pathname==="/admin"
+                ? "font-semibold text-white"
+                : "hover:text-emerald-200"}
             >
               Admin Dashboard
             </Link>
 
             <Link
               href="/dashboard"
-              className={pathname==="/dashboard" ? "font-semibold text-white":"hover:text-emerald-200"}
+              className={pathname==="/dashboard"
+                ? "font-semibold text-white"
+                : "hover:text-emerald-200"}
             >
               Dashboard
             </Link>
@@ -174,7 +189,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
             <Link
               href="/settings"
-              className={pathname==="/settings" ? "font-semibold text-white":"hover:text-emerald-200"}
+              className={pathname==="/settings"
+                ? "font-semibold text-white"
+                : "hover:text-emerald-200"}
             >
               Settings
             </Link>
@@ -196,7 +213,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
     </div>
 
-    {/* PAGE */}
+    {/* PAGE CONTENT */}
 
     <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
