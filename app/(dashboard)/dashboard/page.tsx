@@ -3,6 +3,18 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
+function pageLabel(page?: string){
+
+  if(!page) return ""
+
+  if(page.includes("dashboard")) return "Dashboard"
+  if(page.includes("admin")) return "Admin Panel"
+  if(page.includes("settings")) return "Settings"
+
+  return "Online"
+
+}
+
 export default function DashboardPage(){
 
 const presence = usePresence()
@@ -37,11 +49,13 @@ let text="Offline"
 
 if(state){
 
-const userState = state[0]
+const data = state[0]
 
-if(userState){
+if(data){
+
 color="bg-green-400"
-text="Online"
+text = pageLabel(data.page)
+
 }
 
 }
