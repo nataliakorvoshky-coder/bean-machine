@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePathname } from "next/navigation"
 
-type PresenceState = Record<string, { id: string; page?: string }[]>
+type PresenceState = Record<string, any>
 
 interface PresenceContextType {
   presence: PresenceState
@@ -14,48 +14,48 @@ const PresenceContext = createContext<PresenceContextType>({
   presence: {}
 })
 
-let channel: ReturnType<typeof supabase.channel> | null = null
+let channel:any = null
+let heartbeat:any = null
 
-export function PresenceProvider({
-  children
-}: {
-  children: React.ReactNode
-}) {
+export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-  const [presence, setPresence] = useState<PresenceState>({})
+  const [presence,setPresence] = useState<PresenceState>({})
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    async function startPresence() {
+    async function init(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
+      if(!user) return
 
-      if (!user) return
+      if(!channel){
 
-      if (!channel) {
-
-        channel = supabase.channel("online-users", {
-          config: {
-            presence: { key: user.id }
+        channel = supabase.channel("online-users",{
+          config:{
+            presence:{ key:user.id }
           }
         })
 
         channel
-          .on("presence", { event: "sync" }, () => {
-
-            const state = channel?.presenceState() as PresenceState
-            setPresence({ ...state })
-
+          .on("presence",{event:"sync"},()=>{
+            setPresence(channel.presenceState())
           })
-          .subscribe(async status => {
+          .on("presence",{event:"join"},()=>{
+            setPresence(channel.presenceState())
+          })
+          .on("presence",{event:"leave"},()=>{
+            setPresence(channel.presenceState())
+          })
+          .subscribe(async(status:string)=>{
 
-            if (status === "SUBSCRIBED" && channel) {
+            if(status==="SUBSCRIBED"){
 
               await channel.track({
-                id: user.id,
-                page: pathname
+                id:user.id,
+                page:pathname,
+                online_at:new Date().toISOString()
               })
 
             }
@@ -64,40 +64,75 @@ export function PresenceProvider({
 
       }
 
-    }
+      /* heartbeat prevents ghost offline */
 
-    startPresence()
+      if(!heartbeat){
 
-  }, [])
+        heartbeat = setInterval(async()=>{
 
-  useEffect(() => {
+          if(!channel) return
 
-    async function updatePage() {
+          await channel.track({
+            id:user.id,
+            page:pathname,
+            online_at:new Date().toISOString()
+          })
 
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
+        },10000)
 
-      if (!user || !channel) return
+      }
 
-      await channel.track({
-        id: user.id,
-        page: pathname
+      /* detect tab close instantly */
+
+      window.addEventListener("beforeunload",async()=>{
+
+        if(channel){
+
+          await channel.untrack()
+
+        }
+
       })
 
     }
 
-    updatePage()
+    init()
 
-  }, [pathname])
+  },[])
 
-  return (
-    <PresenceContext.Provider value={{ presence }}>
+  /* instant update when navigating */
+
+  useEffect(()=>{
+
+    async function update(){
+
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
+
+      if(!user || !channel) return
+
+      await channel.track({
+        id:user.id,
+        page:pathname,
+        online_at:new Date().toISOString()
+      })
+
+    }
+
+    update()
+
+  },[pathname])
+
+  return(
+
+    <PresenceContext.Provider value={{presence}}>
       {children}
     </PresenceContext.Provider>
+
   )
 
 }
 
-export function usePresence() {
+export function usePresence(){
   return useContext(PresenceContext)
 }
