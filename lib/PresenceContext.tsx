@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase"
 
 const PresenceContext = createContext<any>(null)
 
-export function PresenceProvider({children}:{children:React.ReactNode}){
+export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
 const pathname = usePathname()
 
@@ -17,7 +17,7 @@ const userIdRef = useRef<string | null>(null)
 
 useEffect(()=>{
 
-async function start(){
+async function startPresence(){
 
 const { data } = await supabase.auth.getUser()
 const user = data.user
@@ -32,20 +32,16 @@ config:{ presence:{ key:user.id } }
 
 channel
 .on("presence",{event:"sync"},()=>{
+
 setPresence(channel.presenceState())
-})
-.on("presence",{event:"join"},()=>{
-setPresence(channel.presenceState())
-})
-.on("presence",{event:"leave"},()=>{
-setPresence(channel.presenceState())
+
 })
 .subscribe(async(status)=>{
 
 if(status==="SUBSCRIBED"){
 
 await channel.track({
-id:user.id,
+user:user.id,
 status:"active",
 page:pathname
 })
@@ -58,7 +54,7 @@ channelRef.current = channel
 
 }
 
-start()
+startPresence()
 
 return ()=>{
 
@@ -68,14 +64,14 @@ supabase.removeChannel(channelRef.current)
 
 }
 
-},[])
+},[])   // IMPORTANT — runs only once
 
 useEffect(()=>{
 
 if(!channelRef.current || !userIdRef.current) return
 
 channelRef.current.track({
-id:userIdRef.current,
+user:userIdRef.current,
 status:"active",
 page:pathname
 })

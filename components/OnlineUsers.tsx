@@ -5,30 +5,26 @@ import { useUserData } from "@/lib/UserDataContext"
 
 export default function OnlineUsers(){
 
-const { users } = useUserData()
 const { presence } = usePresence()
+const { users } = useUserData()
 
-function pageLabel(path:string){
+const onlineUsers = users.filter((u:any)=>{
 
-if(!path) return "Unknown"
+return presence[u.id]
 
-if(path.includes("dashboard")) return "Dashboard"
-if(path.includes("admin")) return "Admin Panel"
-if(path.includes("settings")) return "Settings"
+})
+
+function getPageLabel(page:string){
+
+if(!page) return ""
+
+if(page.includes("dashboard")) return "Dashboard"
+if(page.includes("admin")) return "Admin Panel"
+if(page.includes("settings")) return "Settings"
 
 return "Other"
 
 }
-
-const onlineUsers = users.filter((u:any)=>{
-
-const state = presence[String(u.id)]
-
-if(!state || !state.length) return false
-
-return true
-
-})
 
 return(
 
@@ -42,10 +38,8 @@ Online Users
 
 {onlineUsers.map((u:any)=>{
 
-const state = presence[String(u.id)]
-
-const userState = state[0]?.status
-const page = state[0]?.page
+const state = presence[u.id]
+const page = state?.[0]?.page
 
 return(
 
@@ -61,7 +55,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 </div>
 
 <div className="text-xs text-gray-500">
-{pageLabel(page)}
+{getPageLabel(page)}
 </div>
 
 </div>
@@ -71,7 +65,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
 
 <span className="text-sm text-gray-500">
-{userState}
+Active
 </span>
 
 </div>
