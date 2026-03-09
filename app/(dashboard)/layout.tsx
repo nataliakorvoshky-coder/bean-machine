@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
 import { UserProvider, useUser } from "@/lib/UserContext"
@@ -14,6 +14,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 const pathname = usePathname()
 const { username, setUsername } = useUser()
 
+const [adminOpen,setAdminOpen] = useState(true)
+const [stockOpen,setStockOpen] = useState(false)
+const [employeeOpen,setEmployeeOpen] = useState(false)
+const [userOpen,setUserOpen] = useState(true)
+
 async function logout(){
 await supabase.auth.signOut()
 window.location.href="/"
@@ -21,21 +26,18 @@ window.location.href="/"
 
 useEffect(()=>{
 
-async function loadUser(){
+async function loadProfile(){
 
 const { data } = await supabase.auth.getUser()
 const user = data.user
 
-if(!user){
-window.location.href="/"
-return
-}
+if(!user) return
 
 const { data: profile } = await supabase
 .from("profiles")
 .select("username")
 .eq("id",user.id)
-.maybeSingle()
+.single()
 
 if(profile?.username){
 setUsername(profile.username)
@@ -43,7 +45,7 @@ setUsername(profile.username)
 
 }
 
-loadUser()
+loadProfile()
 
 },[])
 
@@ -55,7 +57,7 @@ return(
 
 <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
 
-{/* HEADER */}
+{/* LOGO */}
 
 <div className="flex items-center gap-3 mb-10">
 
@@ -74,32 +76,120 @@ Bean Machine
 <div className="w-3 h-3 rounded-full bg-green-400"/>
 
 <span className="font-semibold">
-{username || "User"}
+{username || "Loading..."}
 </span>
 
 </div>
 
-{/* NAVIGATION */}
+<nav className="flex flex-col gap-6 text-sm">
 
-<nav className="flex flex-col gap-5 text-sm">
+{/* ADMIN PANEL */}
+
+<div>
+
+<button
+onClick={()=>setAdminOpen(!adminOpen)}
+className="font-semibold text-emerald-200"
+
+>
+
+Admin Panel </button>
+
+{adminOpen && (
+
+<div className="flex flex-col gap-3 ml-4 mt-2">
 
 <Link
 href="/admin"
-className={pathname==="/admin" ? "font-semibold text-white" : "hover:text-emerald-200"}
+className={pathname==="/admin"?"font-semibold text-white":"hover:text-emerald-200"}
 >
 Admin Dashboard
 </Link>
 
 <Link
 href="/dashboard"
-className={pathname==="/dashboard" ? "font-semibold text-white" : "hover:text-emerald-200"}
+className={pathname==="/dashboard"?"font-semibold text-white":"hover:text-emerald-200"}
 >
 Dashboard
 </Link>
 
+</div>
+
+)}
+
+</div>
+
+{/* STOCK MANAGEMENT */}
+
+<div>
+
+<button
+onClick={()=>setStockOpen(!stockOpen)}
+className="font-semibold text-emerald-200"
+
+>
+
+Stock Overview </button>
+
+{stockOpen && (
+
+<div className="flex flex-col gap-3 ml-4 mt-2">
+
+<Link href="/stock" className="hover:text-emerald-200">
+Stock Dashboard
+</Link>
+
+</div>
+
+)}
+
+</div>
+
+{/* EMPLOYEE MANAGEMENT */}
+
+<div>
+
+<button
+onClick={()=>setEmployeeOpen(!employeeOpen)}
+className="font-semibold text-emerald-200"
+
+>
+
+Employee Management </button>
+
+{employeeOpen && (
+
+<div className="flex flex-col gap-3 ml-4 mt-2">
+
+<Link href="/employees" className="hover:text-emerald-200">
+Employees
+</Link>
+
+</div>
+
+)}
+
+</div>
+
+{/* USER PANEL */}
+
+<div>
+
+<button
+onClick={()=>setUserOpen(!userOpen)}
+className="font-semibold text-emerald-200"
+
+>
+
+User Panel </button>
+
+{userOpen && (
+
+<div className="flex flex-col gap-3 ml-4 mt-2">
+
 <Link
 href="/settings"
-className={pathname==="/settings" ? "font-semibold text-white" : "hover:text-emerald-200"}
+className={pathname==="/settings"?"font-semibold text-white":"hover:text-emerald-200"}
 >
 Settings
 </Link>
@@ -111,6 +201,12 @@ className="text-left hover:text-emerald-200"
 >
 
 Logout </button>
+
+</div>
+
+)}
+
+</div>
 
 </nav>
 
@@ -130,9 +226,7 @@ Logout </button>
 
 }
 
-export default function DashboardLayout({
-children
-}:{ children: React.ReactNode }){
+export default function DashboardLayout({children}:{children:React.ReactNode}){
 
 return(
 
@@ -140,14 +234,10 @@ return(
 
 <UserDataProvider>
 
-{/* PRESENCE MUST WRAP THE DASHBOARD */}
-
 <PresenceProvider>
 
 <DashboardShell>
-
 {children}
-
 </DashboardShell>
 
 </PresenceProvider>

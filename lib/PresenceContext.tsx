@@ -17,7 +17,7 @@ const userIdRef = useRef<string | null>(null)
 
 useEffect(()=>{
 
-async function startPresence(){
+async function start(){
 
 const { data } = await supabase.auth.getUser()
 const user = data.user
@@ -58,7 +58,7 @@ channelRef.current = channel
 
 }
 
-startPresence()
+start()
 
 return ()=>{
 
