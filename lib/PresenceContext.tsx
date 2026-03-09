@@ -4,65 +4,22 @@ import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-interface PresenceType{
-presence:any
-}
-
-const PresenceContext = createContext<PresenceType>({
-presence:{}
-})
+const PresenceContext = createContext<any>(null)
 
 export function PresenceProvider({children}:{children:React.ReactNode}){
 
-const [presence,setPresence] = useState<any>({})
-
 const pathname = usePathname()
+
+const [presence,setPresence] = useState<any>({})
 
 const channelRef = useRef<any>(null)
 const userIdRef = useRef<string | null>(null)
 
-const [status,setStatus] = useState("active")
-
-/* ---------------- IDLE DETECTION ---------------- */
-
 useEffect(()=>{
 
-let idleTimer:any
-
-function setActive(){
-
-setStatus("active")
-
-clearTimeout(idleTimer)
-
-idleTimer = setTimeout(()=>{
-setStatus("idle")
-},60000)
-
-}
-
-window.addEventListener("mousemove",setActive)
-window.addEventListener("keydown",setActive)
-
-setActive()
-
-return ()=>{
-
-window.removeEventListener("mousemove",setActive)
-window.removeEventListener("keydown",setActive)
-
-}
-
-},[])
-
-/* ---------------- PRESENCE CHANNEL ---------------- */
-
-useEffect(()=>{
-
-async function initPresence(){
+async function startPresence(){
 
 const { data } = await supabase.auth.getUser()
-
 const user = data.user
 
 if(!user) return
@@ -70,9 +27,7 @@ if(!user) return
 userIdRef.current = user.id
 
 const channel = supabase.channel("online-users",{
-config:{
-presence:{ key:user.id }
-}
+config:{ presence:{ key:user.id } }
 })
 
 channel
@@ -85,9 +40,9 @@ setPresence(channel.presenceState())
 .on("presence",{event:"leave"},()=>{
 setPresence(channel.presenceState())
 })
-.subscribe(async(resp)=>{
+.subscribe(async(status)=>{
 
-if(resp==="SUBSCRIBED"){
+if(status==="SUBSCRIBED"){
 
 await channel.track({
 id:user.id,
@@ -103,7 +58,7 @@ channelRef.current = channel
 
 }
 
-initPresence()
+startPresence()
 
 return ()=>{
 
@@ -115,19 +70,17 @@ supabase.removeChannel(channelRef.current)
 
 },[])
 
-/* ---------------- UPDATE STATUS + PAGE ---------------- */
-
 useEffect(()=>{
 
 if(!channelRef.current || !userIdRef.current) return
 
 channelRef.current.track({
 id:userIdRef.current,
-status,
+status:"active",
 page:pathname
 })
 
-},[status,pathname])
+},[pathname])
 
 return(
 

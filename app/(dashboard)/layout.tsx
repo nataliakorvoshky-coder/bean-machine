@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 
 import { UserProvider, useUser } from "@/lib/UserContext"
@@ -12,17 +12,11 @@ import { PresenceProvider } from "@/lib/PresenceContext"
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
 const pathname = usePathname()
-
 const { username, setUsername } = useUser()
 
-const [status,setStatus] = useState("online")
-
 async function logout(){
-
 await supabase.auth.signOut()
-
 window.location.href="/"
-
 }
 
 useEffect(()=>{
@@ -30,7 +24,6 @@ useEffect(()=>{
 async function loadUser(){
 
 const { data } = await supabase.auth.getUser()
-
 const user = data.user
 
 if(!user){
@@ -54,15 +47,6 @@ loadUser()
 
 },[])
 
-function getStatusColor(){
-
-if(status==="online") return "bg-green-400"
-if(status==="idle") return "bg-yellow-400"
-
-return "bg-gray-400"
-
-}
-
 return(
 
 <main className="flex min-h-screen">
@@ -83,11 +67,11 @@ Bean Machine
 
 </div>
 
-{/* USER PANEL */}
+{/* USER */}
 
 <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
-<div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
+<div className="w-3 h-3 rounded-full bg-green-400"/>
 
 <span className="font-semibold">
 {username || "User"}
@@ -132,7 +116,7 @@ Logout </button>
 
 </div>
 
-{/* CONTENT */}
+{/* PAGE CONTENT */}
 
 <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center pt-20">
 
@@ -155,6 +139,8 @@ return(
 <UserProvider>
 
 <UserDataProvider>
+
+{/* PRESENCE MUST WRAP THE DASHBOARD */}
 
 <PresenceProvider>
 

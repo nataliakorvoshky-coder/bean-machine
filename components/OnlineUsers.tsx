@@ -6,7 +6,6 @@ import { useUserData } from "@/lib/UserDataContext"
 export default function OnlineUsers(){
 
 const { users } = useUserData()
-
 const { presence } = usePresence()
 
 function pageLabel(path:string){
@@ -27,9 +26,7 @@ const state = presence[String(u.id)]
 
 if(!state || !state.length) return false
 
-const userState = state[0]?.status
-
-return userState==="active" || userState==="idle"
+return true
 
 })
 
@@ -43,28 +40,12 @@ Online Users
 
 <div className="space-y-3">
 
-{onlineUsers.length===0 && (
-
-<p className="text-sm text-gray-500">
-No users online
-</p>
-
-)}
-
 {onlineUsers.map((u:any)=>{
 
 const state = presence[String(u.id)]
 
 const userState = state[0]?.status
 const page = state[0]?.page
-
-let color="bg-green-400"
-let text="Active"
-
-if(userState==="idle"){
-color="bg-yellow-400"
-text="Idle"
-}
 
 return(
 
@@ -87,10 +68,10 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 <div className="flex items-center gap-2">
 
-<div className={`w-3 h-3 rounded-full ${color} animate-pulse`} />
+<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
 
 <span className="text-sm text-gray-500">
-{text}
+{userState}
 </span>
 
 </div>
