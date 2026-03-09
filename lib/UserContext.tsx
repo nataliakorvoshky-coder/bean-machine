@@ -15,7 +15,12 @@ const UserContext = createContext<UserContextType>({
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
 
-  const [username, setUsername] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("username")
+    }
+    return null
+  })
 
   useEffect(() => {
 
@@ -32,7 +37,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (profile?.username) {
+
         setUsername(profile.username)
+
+        localStorage.setItem("username", profile.username)
+
       }
 
     }

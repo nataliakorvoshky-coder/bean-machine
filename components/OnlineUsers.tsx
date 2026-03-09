@@ -19,13 +19,19 @@ export default function OnlineUsers() {
   const presence = usePresence()
   const { users } = useUserData()
 
-  /* flatten presence safely */
+  /* flatten presence connections */
 
   const connections = Object.values(presence).flat()
 
-  const activeUsers = users.filter((u: any) =>
-    connections.some((p: any) => p?.id === u.id)
-  )
+  /* create map of active users */
+
+  const activeMap: Record<string, any> = {}
+
+  connections.forEach((p: any) => {
+    if (!activeMap[p.id]) {
+      activeMap[p.id] = p
+    }
+  })
 
   return (
 
@@ -37,38 +43,40 @@ export default function OnlineUsers() {
 
       <div className="space-y-3">
 
-        {activeUsers.map((u: any) => {
+        {users
+          .filter((u: any) => activeMap[u.id])
+          .map((u: any) => {
 
-          const state = connections.find((p: any) => p?.id === u.id)
+            const state = activeMap[u.id]
 
-          return (
+            return (
 
-            <div
-              key={u.id}
-              className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-            >
+              <div
+                key={u.id}
+                className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+              >
 
-              <span className="font-medium">
-                {u.username ?? "User"}
-              </span>
-
-              <div className="flex items-center gap-2">
-
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-
-                <span className="text-sm text-gray-500">
-                  {pageLabel(state?.page)}
+                <span className="font-medium">
+                  {u.username}
                 </span>
+
+                <div className="flex items-center gap-2">
+
+                  <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+
+                  <span className="text-sm text-gray-500">
+                    {pageLabel(state.page)}
+                  </span>
+
+                </div>
 
               </div>
 
-            </div>
+            )
 
-          )
+          })}
 
-        })}
-
-        {activeUsers.length === 0 && (
+        {Object.keys(activeMap).length === 0 && (
           <p className="text-sm text-gray-500">
             No users online
           </p>
