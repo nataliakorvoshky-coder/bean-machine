@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
-import { startPresence } from "@/lib/presence"
 
 export default function OnlineUsers() {
 
@@ -12,11 +12,55 @@ export default function OnlineUsers() {
 
   useEffect(() => {
 
-    startPresence((state) => {
-      setPresence(state)
-    })
+    let channel: any
+
+    async function init() {
+
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
+      if (!user) return
+
+      channel = supabase.channel("online-users", {
+        config: { presence: { key: user.id } }
+      })
+
+      channel
+        .on("presence", { event: "sync" }, () => {
+          setPresence({ ...channel.presenceState() })
+        })
+        .on("presence", { event: "join" }, () => {
+          setPresence({ ...channel.presenceState() })
+        })
+        .on("presence", { event: "leave" }, () => {
+          setPresence({ ...channel.presenceState() })
+        })
+        .subscribe(async (status: string) => {
+
+          if (status === "SUBSCRIBED") {
+
+            await channel.track({
+              id: user.id
+            })
+
+            /* CRITICAL FIX — load current state immediately */
+
+            setPresence({ ...channel.presenceState() })
+
+          }
+
+        })
+
+    }
+
+    init()
+
+    return () => {
+      if (channel) supabase.removeChannel(channel)
+    }
 
   }, [])
+
+  /* Flatten presence payload */
 
   const connections = Object.values(presence).flat()
 
@@ -34,8 +78,7 @@ export default function OnlineUsers() {
 
           const online = connections.find((p: any) => p?.id === u.id)
 
-          const color = online ? "bg-green-400" : "bg-gray-400"
-          const text = online ? "Active" : "Offline"
+          if (!online) return null  // hide offline users
 
           return (
 
@@ -50,10 +93,10 @@ export default function OnlineUsers() {
 
               <div className="flex items-center gap-2">
 
-                <div className={`w-3 h-3 rounded-full ${color}`} />
+                <div className="w-3 h-3 rounded-full bg-green-400" />
 
                 <span className="text-sm text-gray-500">
-                  {text}
+                  Active
                 </span>
 
               </div>
