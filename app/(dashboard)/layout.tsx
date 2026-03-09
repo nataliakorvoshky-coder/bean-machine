@@ -4,8 +4,10 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+
 import { UserProvider, useUser } from "@/lib/UserContext"
 import { UserDataProvider } from "@/lib/UserDataContext"
+import { PresenceProvider } from "@/lib/PresenceContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
@@ -235,19 +237,23 @@ export default function DashboardLayout({
 
   return(
 
-    <UserProvider>
+    <PresenceProvider>
 
-      <UserDataProvider>
+      <UserProvider>
 
-        <DashboardShell>
+        <UserDataProvider>
 
-          {children}
+          <DashboardShell>
 
-        </DashboardShell>
+            {children}
 
-      </UserDataProvider>
+          </DashboardShell>
 
-    </UserProvider>
+        </UserDataProvider>
+
+      </UserProvider>
+
+    </PresenceProvider>
 
   )
 
