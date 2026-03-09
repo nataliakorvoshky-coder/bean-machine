@@ -20,7 +20,7 @@ return "Other"
 
 }
 
-const onlineUsers = users.filter((u:any)=>presence[u.id])
+const onlineUsers = users.filter((u:any)=>presence[String(u.id)])
 
 return(
 
@@ -34,7 +34,7 @@ Online Users
 
 {onlineUsers.map((u:any)=>{
 
-const state = presence[u.id]
+const state = presence[String(u.id)]
 const page = state?.[0]?.page
 
 return(
