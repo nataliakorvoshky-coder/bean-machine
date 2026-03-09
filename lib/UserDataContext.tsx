@@ -23,7 +23,9 @@ try {
 
   const res = await fetch("/api/admin/list-users")
 
-  if (!res.ok) throw new Error("Failed to load users")
+  if (!res.ok) {
+    throw new Error("Failed to load users")
+  }
 
   const data = await res.json()
 
@@ -31,7 +33,7 @@ try {
 
 } catch (err) {
 
-  console.error("User load failed", err)
+  console.error("User load failed:", err)
 
   setUsers([])
 
