@@ -2,51 +2,66 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 
-const UserDataContext = createContext<any>({
+interface UserDataType {
+  users: any[]
+  refreshUsers: () => Promise<void>
+}
+
+const UserDataContext = createContext<UserDataType>({
   users: [],
   refreshUsers: async () => {}
 })
 
 export function UserDataProvider({ children }: { children: React.ReactNode }) {
 
-  const [users,setUsers] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
 
-  async function refreshUsers(){
+  async function refreshUsers() {
 
-    try{
+    try {
 
       const res = await fetch("/api/admin/list-users")
+
+      if (!res.ok) return
 
       const data = await res.json()
 
       setUsers(data.users || [])
 
-    }catch(err){
+      /* cache users so panels render instantly */
 
-      console.error("User load error")
+      localStorage.setItem("cachedUsers", JSON.stringify(data.users || []))
 
-      setUsers([])
+    } catch (err) {
+
+      console.error("Failed loading users", err)
 
     }
 
   }
 
-  useEffect(()=>{
+  useEffect(() => {
+
+    const cached = localStorage.getItem("cachedUsers")
+
+    if (cached) {
+      setUsers(JSON.parse(cached))
+    }
 
     refreshUsers()
 
-  },[])
+  }, [])
 
-  return(
+  return (
 
-  <UserDataContext.Provider value={{users,refreshUsers}}>
-    {children}
-  </UserDataContext.Provider>
+    <UserDataContext.Provider value={{ users, refreshUsers }}>
+      {children}
+    </UserDataContext.Provider>
 
   )
 
 }
 
-export function useUserData(){
+export function useUserData() {
   return useContext(UserDataContext)
 }

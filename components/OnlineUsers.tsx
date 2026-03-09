@@ -19,18 +19,20 @@ export default function OnlineUsers() {
   const presence = usePresence()
   const { users } = useUserData()
 
-  /* flatten presence connections */
+  if (!presence || Object.keys(presence).length === 0) {
+    return null
+  }
 
   const connections = Object.values(presence).flat()
 
-  /* create map of active users */
-
-  const activeMap: Record<string, any> = {}
+  const activeUsers: Record<string, any> = {}
 
   connections.forEach((p: any) => {
-    if (!activeMap[p.id]) {
-      activeMap[p.id] = p
+
+    if (!activeUsers[p.id]) {
+      activeUsers[p.id] = p
     }
+
   })
 
   return (
@@ -44,10 +46,10 @@ export default function OnlineUsers() {
       <div className="space-y-3">
 
         {users
-          .filter((u: any) => activeMap[u.id])
+          .filter((u: any) => activeUsers[u.id])
           .map((u: any) => {
 
-            const state = activeMap[u.id]
+            const state = activeUsers[u.id]
 
             return (
 
@@ -76,10 +78,12 @@ export default function OnlineUsers() {
 
           })}
 
-        {Object.keys(activeMap).length === 0 && (
+        {Object.keys(activeUsers).length === 0 && (
+
           <p className="text-sm text-gray-500">
             No users online
           </p>
+
         )}
 
       </div>
