@@ -1,83 +1,52 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 
-interface UserDataType {
-users: any[]
-refreshUsers: () => Promise<void>
-}
-
-const UserDataContext = createContext<UserDataType>({
-users: [],
-refreshUsers: async () => {}
+const UserDataContext = createContext<any>({
+  users: [],
+  refreshUsers: async () => {}
 })
 
 export function UserDataProvider({ children }: { children: React.ReactNode }) {
 
-const [users,setUsers] = useState<any[]>([])
+  const [users,setUsers] = useState<any[]>([])
 
-async function refreshUsers(){
+  async function refreshUsers(){
 
-try{
+    try{
 
-const res = await fetch("/api/admin/list-users")
+      const res = await fetch("/api/admin/list-users")
 
-const data = await res.json()
+      const data = await res.json()
 
-setUsers(data.users || [])
+      setUsers(data.users || [])
 
-}catch(err){
+    }catch(err){
 
-console.error("Failed to load users")
+      console.error("User load error")
 
-}
+      setUsers([])
 
-}
+    }
 
-useEffect(()=>{
+  }
 
-refreshUsers()
+  useEffect(()=>{
 
-/* REALTIME SUBSCRIPTION */
+    refreshUsers()
 
-const channel = supabase
-.channel("users-live")
-.on(
-"postgres_changes",
-{
-event:"*",
-schema:"public",
-table:"profiles"
-},
-() => {
+  },[])
 
-refreshUsers()
+  return(
 
-}
-)
-.subscribe()
+  <UserDataContext.Provider value={{users,refreshUsers}}>
+    {children}
+  </UserDataContext.Provider>
 
-return ()=>{
-
-supabase.removeChannel(channel)
-
-}
-
-},[])
-
-return(
-
-<UserDataContext.Provider value={{ users, refreshUsers }}>
-
-{children}
-
-</UserDataContext.Provider>
-
-)
+  )
 
 }
 
 export function useUserData(){
-return useContext(UserDataContext)
+  return useContext(UserDataContext)
 }

@@ -1,82 +1,101 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-export default function OnlineUsers() {
+export default function OnlineUsers(){
 
   const { presence } = usePresence()
   const { users } = useUserData()
 
-  const onlineUsers = users.filter((u: any) => presence[String(u.id)])
+  const [online,setOnline] = useState<any[]>([])
 
-  function pageLabel(page?: string) {
+  useEffect(()=>{
 
-    if (!page) return ""
+    if(!users || !presence) return
 
-    if (page.includes("dashboard")) return "Dashboard"
+    const active = users.filter((u:any)=>presence[String(u.id)])
 
-    if (page.includes("admin")) return "Admin Panel"
+    setOnline(active)
 
-    if (page.includes("settings")) return "Settings"
+  },[users,presence])
+
+
+  function pageLabel(page?:string){
+
+    if(!page) return ""
+
+    if(page.includes("dashboard")) return "Dashboard"
+
+    if(page.includes("admin")) return "Admin Panel"
+
+    if(page.includes("settings")) return "Settings"
 
     return "Other"
 
   }
 
-  return (
 
-    <div className="bg-white p-8 rounded-xl shadow w-[420px]">
+  return(
 
-      <h2 className="font-semibold mb-6 text-emerald-700">
-        Online Users
-      </h2>
+  <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
-      <div className="space-y-3">
+    <h2 className="font-semibold mb-6 text-emerald-700">
+      Online Users
+    </h2>
 
-        {onlineUsers.map((u: any) => {
+    <div className="space-y-3">
 
-          const state: any = presence[String(u.id)]
-          const page = state?.[0]?.page
+      {online.length === 0 && (
+        <p className="text-gray-400 text-sm">
+          No users online
+        </p>
+      )}
 
-          return (
+      {online.map((u:any)=>{
 
-            <div
-              key={u.id}
-              className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-            >
+        const state:any = presence[String(u.id)]
+        const page = state?.[0]?.page
 
-              <div>
+        return(
 
-                <div className="font-medium">
-                  {u.username ?? "User"}
-                </div>
+        <div
+          key={u.id}
+          className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+        >
 
-                <div className="text-xs text-gray-500">
-                  {pageLabel(page)}
-                </div>
+          <div>
 
-              </div>
-
-              <div className="flex items-center gap-2">
-
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-
-                <span className="text-sm text-gray-500">
-                  Active
-                </span>
-
-              </div>
-
+            <div className="font-medium">
+              {u.username ?? "User"}
             </div>
 
-          )
+            <div className="text-xs text-gray-500">
+              {pageLabel(page)}
+            </div>
 
-        })}
+          </div>
 
-      </div>
+          <div className="flex items-center gap-2">
+
+            <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
+
+            <span className="text-sm text-gray-500">
+              Active
+            </span>
+
+          </div>
+
+        </div>
+
+        )
+
+      })}
 
     </div>
+
+  </div>
 
   )
 

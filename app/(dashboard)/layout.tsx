@@ -4,8 +4,10 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+
 import { PresenceProvider } from "@/lib/PresenceContext"
 import { UserProvider, useUser } from "@/lib/UserContext"
+import { UserDataProvider } from "@/lib/UserDataContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
@@ -106,18 +108,22 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
               <Link
                 href="/admin"
-                className={pathname === "/admin"
-                  ? "font-semibold text-white"
-                  : "hover:text-emerald-200"}
+                className={
+                  pathname === "/admin"
+                    ? "font-semibold text-white"
+                    : "hover:text-emerald-200"
+                }
               >
                 Admin Dashboard
               </Link>
 
               <Link
                 href="/dashboard"
-                className={pathname === "/dashboard"
-                  ? "font-semibold text-white"
-                  : "hover:text-emerald-200"}
+                className={
+                  pathname === "/dashboard"
+                    ? "font-semibold text-white"
+                    : "hover:text-emerald-200"
+                }
               >
                 Dashboard
               </Link>
@@ -139,13 +145,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
             <div className="ml-3 flex flex-col gap-2">
 
-              <Link href="#">
-                Inventory
-              </Link>
+              <Link href="#">Inventory</Link>
 
-              <Link href="#">
-                Orders
-              </Link>
+              <Link href="#">Orders</Link>
 
             </div>
 
@@ -164,13 +166,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
             <div className="ml-3 flex flex-col gap-2">
 
-              <Link href="#">
-                Employees
-              </Link>
+              <Link href="#">Employees</Link>
 
-              <Link href="#">
-                Scheduling
-              </Link>
+              <Link href="#">Scheduling</Link>
 
             </div>
 
@@ -191,9 +189,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
               <Link
                 href="/settings"
-                className={pathname === "/settings"
-                  ? "font-semibold text-white"
-                  : "hover:text-emerald-200"}
+                className={
+                  pathname === "/settings"
+                    ? "font-semibold text-white"
+                    : "hover:text-emerald-200"
+                }
               >
                 Settings
               </Link>
@@ -241,11 +241,15 @@ export default function DashboardLayout({
 
       <UserProvider>
 
-        <DashboardShell>
+        <UserDataProvider>
 
-          {children}
+          <DashboardShell>
 
-        </DashboardShell>
+            {children}
+
+          </DashboardShell>
+
+        </UserDataProvider>
 
       </UserProvider>
 
