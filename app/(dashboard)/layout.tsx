@@ -82,7 +82,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
         <span className="font-semibold">
-          {username || "User"}
+          {username ?? "..."}
         </span>
 
       </div>
@@ -232,7 +232,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({
   children
 }:{
-  children:React.ReactNode
+  children: React.ReactNode
 }){
 
   return(

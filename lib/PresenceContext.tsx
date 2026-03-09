@@ -3,17 +3,19 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
-const PresenceContext = createContext<any>(null)
+type PresenceState = Record<string, any[]>
+
+const PresenceContext = createContext<PresenceState>({})
 
 let channel: any = null
 
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
-  const [presence, setPresence] = useState<any>({})
+  const [presence, setPresence] = useState<PresenceState>({})
 
   useEffect(() => {
 
-    async function init() {
+    async function startPresence() {
 
       if (channel) return
 
@@ -22,26 +24,29 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
       if (!user) return
 
       channel = supabase.channel("online-users", {
-        config: { presence: { key: user.id } }
+        config: {
+          presence: { key: user.id }
+        }
       })
 
-      const update = () => {
-        setPresence({ ...channel.presenceState() })
+      const updatePresence = () => {
+        const state = channel.presenceState()
+        setPresence({ ...state })
       }
 
       channel
-        .on("presence", { event: "sync" }, update)
-        .on("presence", { event: "join" }, update)
-        .on("presence", { event: "leave" }, update)
+        .on("presence", { event: "sync" }, updatePresence)
+        .on("presence", { event: "join" }, updatePresence)
+        .on("presence", { event: "leave" }, updatePresence)
         .subscribe(async (status: string) => {
 
           if (status === "SUBSCRIBED") {
 
             await channel.track({
-              user_id: user.id
+              id: user.id
             })
 
-            update()
+            updatePresence()
 
           }
 
@@ -49,7 +54,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     }
 
-    init()
+    startPresence()
 
   }, [])
 
@@ -58,7 +63,6 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
       {children}
     </PresenceContext.Provider>
   )
-
 }
 
 export function usePresence() {
