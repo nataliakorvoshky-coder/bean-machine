@@ -2,11 +2,10 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
-import { useMemo } from "react"
 
 function pageLabel(page?: string){
 
-  if(!page) return ""
+  if(!page) return "Online"
 
   if(page.includes("dashboard")) return "Dashboard"
   if(page.includes("admin")) return "Admin Panel"
@@ -21,13 +20,9 @@ export default function DashboardPage(){
 const presence = usePresence()
 const { users } = useUserData()
 
-/* flatten presence instantly */
+/* flatten presence */
 
-const connections = useMemo(()=>{
-
-return Object.values(presence).flat()
-
-},[presence])
+const activeConnections = Object.values(presence).flat()
 
 return(
 
@@ -49,39 +44,35 @@ Online Users
 
 <div className="space-y-3">
 
-{users.map((u:any)=>{
+{activeConnections.map((conn:any)=>{
 
-const active = connections.find(
-(p:any)=>p.id === u.id
-)
+const user = users.find((u:any)=>u.id === conn.id)
+
+if(!user) return null
 
 return(
 
 <div
-key={u.id}
+key={conn.id}
 className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
 >
 
-{/* LEFT SIDE */}
+{/* LEFT */}
 
 <div className="flex items-center gap-3">
 
-<div
-className={`w-3 h-3 rounded-full ${
-active ? "bg-green-400 animate-pulse" : "bg-gray-400"
-}`}
-/>
+<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
 <span className="font-medium">
-{u.username}
+{user.username}
 </span>
 
 </div>
 
-{/* RIGHT SIDE */}
+{/* RIGHT */}
 
 <span className="text-sm text-gray-500">
-{active ? pageLabel(active.page) : "Offline"}
+{pageLabel(conn.page)}
 </span>
 
 </div>
@@ -94,7 +85,7 @@ active ? "bg-green-400 animate-pulse" : "bg-gray-400"
 
 </div>
 
-{/* ACTIVITY FEED */}
+{/* ACTIVITY */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
