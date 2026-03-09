@@ -20,8 +20,9 @@ export default function OnlineUsers({ users }:{ users:any[] }){
 const presence = usePresence()
 
 const [cachedPresence,setCachedPresence] = useState<any>({})
+const [ready,setReady] = useState(false)
 
-/* load cached presence instantly */
+/* load cached presence before first paint */
 
 useEffect(()=>{
 
@@ -35,9 +36,13 @@ setCachedPresence(JSON.parse(stored))
 
 }catch{}
 
+requestAnimationFrame(()=>{
+setReady(true)
+})
+
 },[])
 
-/* update cache whenever presence updates */
+/* update cache */
 
 useEffect(()=>{
 
@@ -56,18 +61,14 @@ JSON.stringify(presence)
 
 },[presence])
 
-/* use realtime presence or cached version */
+if(!ready) return null
 
 const state =
 Object.keys(presence).length>0
 ? presence
 : cachedPresence
 
-/* flatten presence */
-
 const connections = Object.values(state).flat()
-
-/* remove duplicates */
 
 const uniqueConnections = Array.from(
 new Map(connections.map((c:any)=>[c.id,c])).values()
