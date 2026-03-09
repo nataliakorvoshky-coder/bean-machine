@@ -1,19 +1,19 @@
 import { supabase } from "@/lib/supabase"
 
 let channel: any = null
-let listeners: Array<(state: any) => void> = []
-let presenceState: Record<string, any> = {}
+let listeners: any[] = []
+let state: Record<string, any> = {}
 
 function notify() {
-  listeners.forEach((cb) => cb({ ...presenceState }))
+  listeners.forEach((cb) => cb({ ...state }))
 }
 
-export function subscribePresence(cb: (state: any) => void) {
+export function subscribePresence(cb: any) {
   listeners.push(cb)
-  cb(presenceState)
+  cb(state)
 }
 
-export async function initPresence(page: string) {
+export async function startPresence(page: string) {
 
   if (channel) return
 
@@ -28,15 +28,15 @@ export async function initPresence(page: string) {
 
   channel
     .on("presence", { event: "sync" }, () => {
-      presenceState = channel.presenceState()
+      state = channel.presenceState()
       notify()
     })
     .on("presence", { event: "join" }, () => {
-      presenceState = channel.presenceState()
+      state = channel.presenceState()
       notify()
     })
     .on("presence", { event: "leave" }, () => {
-      presenceState = channel.presenceState()
+      state = channel.presenceState()
       notify()
     })
     .subscribe(async (status: string) => {
@@ -47,7 +47,7 @@ export async function initPresence(page: string) {
           id: user.id,
           page,
           status: "active",
-          ts: Date.now()
+          timestamp: Date.now()
         })
 
       }
@@ -69,7 +69,7 @@ export async function updatePresence(page: string) {
     id: user.id,
     page,
     status: "active",
-    ts: Date.now()
+    timestamp: Date.now()
   })
 
 }

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { initPresence, updatePresence, subscribePresence } from "@/lib/presence"
+import { startPresence, updatePresence, subscribePresence } from "@/lib/presence"
 
 const PresenceContext = createContext<any>({ presence: {} })
 
@@ -13,7 +13,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
 
-    initPresence(pathname)
+    startPresence(pathname)
 
     subscribePresence(setPresence)
 
@@ -26,9 +26,11 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
   }, [pathname])
 
   return (
+
     <PresenceContext.Provider value={{ presence }}>
       {children}
     </PresenceContext.Provider>
+
   )
 
 }
