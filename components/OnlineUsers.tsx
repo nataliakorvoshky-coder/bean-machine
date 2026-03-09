@@ -14,81 +14,88 @@ function pageLabel(page?: string) {
   return ""
 }
 
-export default function OnlineUsers() {
+function getStatus(lastActive:number){
+
+  const now = Date.now()
+  const diff = now - lastActive
+
+  if(diff < 30000) return "active"
+  if(diff < 120000) return "idle"
+
+  return "offline"
+}
+
+export default function OnlineUsers(){
 
   const presence = usePresence()
   const { users } = useUserData()
 
-  if (!presence || Object.keys(presence).length === 0) {
-    return null
-  }
-
   const connections = Object.values(presence).flat()
 
-  const activeUsers: Record<string, any> = {}
+  const userPresence:Record<string,any> = {}
 
-  connections.forEach((p: any) => {
+  connections.forEach((p:any)=>{
 
-    if (!activeUsers[p.id]) {
-      activeUsers[p.id] = p
+    if(!userPresence[p.id] || p.lastActive > userPresence[p.id].lastActive){
+      userPresence[p.id] = p
     }
 
   })
 
-  return (
+  return(
 
-    <div className="bg-white p-8 rounded-xl shadow w-[420px]">
+  <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
-      <h2 className="font-semibold mb-6 text-emerald-700">
-        Online Users
-      </h2>
+  <h2 className="font-semibold mb-6 text-emerald-700">
+  Online Users
+  </h2>
 
-      <div className="space-y-3">
+  <div className="space-y-3">
 
-        {users
-          .filter((u: any) => activeUsers[u.id])
-          .map((u: any) => {
+  {users.map((u:any)=>{
 
-            const state = activeUsers[u.id]
+    const state = userPresence[u.id]
 
-            return (
+    if(!state) return null
 
-              <div
-                key={u.id}
-                className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-              >
+    const status = getStatus(state.lastActive)
 
-                <span className="font-medium">
-                  {u.username}
-                </span>
+    if(status === "offline") return null
 
-                <div className="flex items-center gap-2">
+    let color = "bg-green-400"
 
-                  <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+    if(status==="idle") color = "bg-yellow-400"
 
-                  <span className="text-sm text-gray-500">
-                    {pageLabel(state.page)}
-                  </span>
+    return(
 
-                </div>
+    <div
+    key={u.id}
+    className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+    >
 
-              </div>
+    <span className="font-medium">
+    {u.username}
+    </span>
 
-            )
+    <div className="flex items-center gap-2">
 
-          })}
+    <div className={`w-3 h-3 rounded-full ${color}`} />
 
-        {Object.keys(activeUsers).length === 0 && (
-
-          <p className="text-sm text-gray-500">
-            No users online
-          </p>
-
-        )}
-
-      </div>
+    <span className="text-sm text-gray-500">
+    {pageLabel(state.page)}
+    </span>
 
     </div>
+
+    </div>
+
+    )
+
+  })}
+
+  </div>
+
+  </div>
 
   )
 

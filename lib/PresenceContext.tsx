@@ -10,11 +10,7 @@ const PresenceContext = createContext<PresenceState>({})
 
 let channel: any = null
 
-export function PresenceProvider({
-  children
-}: {
-  children: React.ReactNode
-}) {
+export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
   const [presence, setPresence] = useState<PresenceState>({})
@@ -30,20 +26,18 @@ export function PresenceProvider({
       if (!channel) {
 
         channel = supabase.channel("online-users", {
-          config: {
-            presence: { key: user.id }
-          }
+          config: { presence: { key: user.id } }
         })
 
-        const update = () => {
+        const updatePresence = () => {
           const state = channel.presenceState()
           setPresence({ ...state })
         }
 
         channel
-          .on("presence", { event: "sync" }, update)
-          .on("presence", { event: "join" }, update)
-          .on("presence", { event: "leave" }, update)
+          .on("presence", { event: "sync" }, updatePresence)
+          .on("presence", { event: "join" }, updatePresence)
+          .on("presence", { event: "leave" }, updatePresence)
           .subscribe(async (status: string) => {
 
             if (status === "SUBSCRIBED") {
@@ -51,10 +45,8 @@ export function PresenceProvider({
               await channel.track({
                 id: user.id,
                 page: pathname,
-                lastSeen: Date.now()
+                lastActive: Date.now()
               })
-
-              update()
 
             }
 
@@ -68,11 +60,11 @@ export function PresenceProvider({
 
   }, [])
 
-  /* update location instantly when navigating */
+  /* update activity every 15 seconds */
 
   useEffect(() => {
 
-    async function updateLocation() {
+    const interval = setInterval(async () => {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -82,40 +74,20 @@ export function PresenceProvider({
       await channel.track({
         id: user.id,
         page: pathname,
-        lastSeen: Date.now()
+        lastActive: Date.now()
       })
 
-    }
+    }, 15000)
 
-    updateLocation()
+    return () => clearInterval(interval)
 
   }, [pathname])
-
-  /* detect tab close → instant offline */
-
-  useEffect(() => {
-
-    const handleUnload = () => {
-      if (channel) {
-        supabase.removeChannel(channel)
-        channel = null
-      }
-    }
-
-    window.addEventListener("beforeunload", handleUnload)
-
-    return () => {
-      window.removeEventListener("beforeunload", handleUnload)
-    }
-
-  }, [])
 
   return (
     <PresenceContext.Provider value={presence}>
       {children}
     </PresenceContext.Provider>
   )
-
 }
 
 export function usePresence() {
