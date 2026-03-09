@@ -17,14 +17,8 @@ return "Active"
 
 export default function OnlineUsers(){
 
-const presence = usePresence()
+const connections = usePresence()
 const { users } = useUserData()
-
-const connections = Object.values(presence).flat()
-
-const unique = Array.from(
-new Map(connections.map((c:any)=>[c.id,c])).values()
-)
 
 return(
 
@@ -36,9 +30,10 @@ Online Users
 
 <div className="space-y-3">
 
-{unique.map((conn:any)=>{
+{connections.map((conn:any)=>{
 
 const user = users.find((u:any)=>u.id===conn.id)
+
 if(!user) return null
 
 return(
@@ -67,6 +62,14 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 )
 
 })}
+
+{connections.length===0 &&(
+
+<div className="text-gray-400 text-sm">
+No users online
+</div>
+
+)}
 
 </div>
 
