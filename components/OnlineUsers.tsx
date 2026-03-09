@@ -2,95 +2,60 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 
-function pageLabel(page?: string) {
-
-  if (!page) return ""
-
-  if (page.includes("dashboard")) return "Dashboard"
-  if (page.includes("admin")) return "Admin"
-  if (page.includes("settings")) return "Settings"
-
-  return ""
-
-}
-
-export default function OnlineUsers() {
+export default function OnlineUsers(){
 
   const presence = usePresence()
   const { users } = useUserData()
 
-  const [currentUser,setCurrentUser] = useState<string | null>(null)
-
-  useEffect(()=>{
-
-    async function getUser(){
-
-      const { data } = await supabase.auth.getUser()
-      setCurrentUser(data?.user?.id ?? null)
-
-    }
-
-    getUser()
-
-  },[])
-
   const connections = Object.values(presence).flat()
-
-  const active:Record<string,any> = {}
-
-  connections.forEach((p:any)=>{
-
-    active[p.id] = p
-
-  })
 
   return(
 
   <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
-  <h2 className="font-semibold mb-6 text-emerald-700">
-  Online Users
-  </h2>
+    <h2 className="font-semibold mb-6 text-emerald-700">
+      Online Users
+    </h2>
 
-  <div className="space-y-3">
+    <div className="space-y-3">
 
-  {users
-  .filter((u:any)=>active[u.id] || u.id===currentUser)
-  .map((u:any)=>{
+      {users.map((u:any)=>{
 
-    const state = active[u.id]
+        const active = connections.find(
+          (p:any)=>p.id===u.id
+        )
 
-    return(
+        if(!active) return null
 
-    <div
-    key={u.id}
-    className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-    >
+        return(
 
-    <span className="font-medium">
-    {u.username}
-    </span>
+        <div
+        key={u.id}
+        className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+        >
 
-    <div className="flex items-center gap-2">
+          <span className="font-medium">
+            {u.username}
+          </span>
 
-    <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+          <div className="flex items-center gap-2">
 
-    <span className="text-sm text-gray-500">
-    {state ? pageLabel(state.page) : "Dashboard"}
-    </span>
+            <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
+
+            <span className="text-sm text-gray-500">
+              Online
+            </span>
+
+          </div>
+
+        </div>
+
+        )
+
+      })}
 
     </div>
-
-    </div>
-
-    )
-
-  })}
-
-  </div>
 
   </div>
 

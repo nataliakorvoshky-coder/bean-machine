@@ -1,25 +1,36 @@
 import "./globals.css"
+
 import { PresenceProvider } from "@/lib/PresenceContext"
+import { UserProvider } from "@/lib/UserContext"
+import { UserDataProvider } from "@/lib/UserDataContext"
 
 export default function RootLayout({
-  children,
+  children
 }:{
   children: React.ReactNode
 }){
 
-  return (
+  return(
 
   <html lang="en">
 
-  <body suppressHydrationWarning={true}>
+    <body>
 
-  <PresenceProvider>
+      <PresenceProvider>
 
-  {children}
+        <UserProvider>
 
-  </PresenceProvider>
+          <UserDataProvider>
 
-  </body>
+            {children}
+
+          </UserDataProvider>
+
+        </UserProvider>
+
+      </PresenceProvider>
+
+    </body>
 
   </html>
 
