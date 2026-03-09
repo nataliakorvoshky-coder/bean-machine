@@ -15,12 +15,22 @@ export function subscribePresence(cb: any) {
 
 export async function startPresence(page: string) {
 
-  if (channel) return
-
   const { data } = await supabase.auth.getUser()
   const user = data?.user
 
   if (!user) return
+
+  /* optimistic local presence */
+
+  state[user.id] = [{
+    id: user.id,
+    page,
+    status: "active"
+  }]
+
+  notify()
+
+  if (channel) return
 
   channel = supabase.channel("online-users", {
     config: { presence: { key: user.id } }
@@ -47,7 +57,7 @@ export async function startPresence(page: string) {
           id: user.id,
           page,
           status: "active",
-          timestamp: Date.now()
+          ts: Date.now()
         })
 
       }
@@ -58,18 +68,16 @@ export async function startPresence(page: string) {
 
 export async function updatePresence(page: string) {
 
-  if (!channel) return
-
   const { data } = await supabase.auth.getUser()
   const user = data?.user
 
-  if (!user) return
+  if (!user || !channel) return
 
   await channel.track({
     id: user.id,
     page,
     status: "active",
-    timestamp: Date.now()
+    ts: Date.now()
   })
 
 }
