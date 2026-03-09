@@ -3,79 +3,81 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-export default function OnlineUsers(){
+export default function OnlineUsers() {
 
-const { presence } = usePresence()
-const { users } = useUserData()
+  const { presence } = usePresence()
+  const { users } = useUserData()
 
-function pageLabel(page?:string){
+  const onlineUsers = users.filter((u: any) => presence[String(u.id)])
 
-if(!page) return ""
+  function pageLabel(page?: string) {
 
-if(page.includes("dashboard")) return "Dashboard"
-if(page.includes("admin")) return "Admin Panel"
-if(page.includes("settings")) return "Settings"
+    if (!page) return ""
 
-return "Other"
+    if (page.includes("dashboard")) return "Dashboard"
 
-}
+    if (page.includes("admin")) return "Admin Panel"
 
-const onlineUsers = users.filter((u:any)=>presence[String(u.id)])
+    if (page.includes("settings")) return "Settings"
 
-return(
+    return "Other"
 
-<div className="bg-white p-8 rounded-xl shadow w-[420px]">
+  }
 
-<h2 className="font-semibold mb-6 text-emerald-700">
-Online Users
-</h2>
+  return (
 
-<div className="space-y-3">
+    <div className="bg-white p-8 rounded-xl shadow w-[420px]">
 
-{onlineUsers.map((u:any)=>{
+      <h2 className="font-semibold mb-6 text-emerald-700">
+        Online Users
+      </h2>
 
-const state = presence[String(u.id)]
-const page = state?.[0]?.page
+      <div className="space-y-3">
 
-return(
+        {onlineUsers.map((u: any) => {
 
-<div
-key={u.id}
-className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
->
+          const state: any = presence[String(u.id)]
+          const page = state?.[0]?.page
 
-<div>
+          return (
 
-<div className="font-medium">
-{u.username ?? "User"}
-</div>
+            <div
+              key={u.id}
+              className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+            >
 
-<div className="text-xs text-gray-500">
-{pageLabel(page)}
-</div>
+              <div>
 
-</div>
+                <div className="font-medium">
+                  {u.username ?? "User"}
+                </div>
 
-<div className="flex items-center gap-2">
+                <div className="text-xs text-gray-500">
+                  {pageLabel(page)}
+                </div>
 
-<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
+              </div>
 
-<span className="text-sm text-gray-500">
-Active
-</span>
+              <div className="flex items-center gap-2">
 
-</div>
+                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
 
-</div>
+                <span className="text-sm text-gray-500">
+                  Active
+                </span>
 
-)
+              </div>
 
-})}
+            </div>
 
-</div>
+          )
 
-</div>
+        })}
 
-)
+      </div>
+
+    </div>
+
+  )
 
 }

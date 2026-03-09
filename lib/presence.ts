@@ -1,68 +1,75 @@
 import { supabase } from "@/lib/supabase"
 
-type PresenceState = Record<string, any>
-
 let channel: any = null
-let presenceState: PresenceState = {}
-
-const listeners: Array<(state: PresenceState) => void> = []
-
-export function subscribePresence(cb: (state: PresenceState) => void) {
-listeners.push(cb)
-cb(presenceState)
-}
+let listeners: Array<(state: any) => void> = []
+let presenceState: Record<string, any> = {}
 
 function notify() {
-listeners.forEach((cb) => cb({ ...presenceState }))
+  listeners.forEach((cb) => cb({ ...presenceState }))
+}
+
+export function subscribePresence(cb: (state: any) => void) {
+  listeners.push(cb)
+  cb(presenceState)
 }
 
 export async function initPresence(page: string) {
-if (channel) return
 
-const { data } = await supabase.auth.getUser()
-const user = data?.user
+  if (channel) return
 
-if (!user) return
+  const { data } = await supabase.auth.getUser()
+  const user = data?.user
 
-channel = supabase.channel("online-users", {
-config: { presence: { key: user.id } },
-})
+  if (!user) return
 
-channel
-.on("presence", { event: "sync" }, () => {
-presenceState = channel.presenceState()
-notify()
-})
-.on("presence", { event: "join" }, () => {
-presenceState = channel.presenceState()
-notify()
-})
-.on("presence", { event: "leave" }, () => {
-presenceState = channel.presenceState()
-notify()
-})
-.subscribe(async (status: string) => {
-if (status === "SUBSCRIBED") {
-await channel.track({
-id: user.id,
-page,
-status: "active",
-})
+  channel = supabase.channel("online-users", {
+    config: { presence: { key: user.id } }
+  })
+
+  channel
+    .on("presence", { event: "sync" }, () => {
+      presenceState = channel.presenceState()
+      notify()
+    })
+    .on("presence", { event: "join" }, () => {
+      presenceState = channel.presenceState()
+      notify()
+    })
+    .on("presence", { event: "leave" }, () => {
+      presenceState = channel.presenceState()
+      notify()
+    })
+    .subscribe(async (status: string) => {
+
+      if (status === "SUBSCRIBED") {
+
+        await channel.track({
+          id: user.id,
+          page,
+          status: "active",
+          ts: Date.now()
+        })
+
+      }
+
+    })
+
 }
-})
-}
 
-export async function updatePage(page: string) {
-if (!channel) return
+export async function updatePresence(page: string) {
 
-const { data } = await supabase.auth.getUser()
-const user = data?.user
+  if (!channel) return
 
-if (!user) return
+  const { data } = await supabase.auth.getUser()
+  const user = data?.user
 
-await channel.track({
-id: user.id,
-page,
-status: "active",
-})
+  if (!user) return
+
+  await channel.track({
+    id: user.id,
+    page,
+    status: "active",
+    ts: Date.now()
+  })
+
 }
