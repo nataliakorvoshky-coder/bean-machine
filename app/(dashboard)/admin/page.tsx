@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { useUserData } from "@/lib/UserDataContext"
 
 export default function AdminPage(){
 
-const [users,setUsers] = useState<any[]>([])
+const { users, refreshUsers } = useUserData()
+
 const [presence,setPresence] = useState<any>({})
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
@@ -13,14 +15,7 @@ const [message,setMessage] = useState("")
 const [status,setStatus] = useState("active")
 const [isAdmin,setIsAdmin] = useState(false)
 
-async function loadUsers(){
-
-const res = await fetch("/api/admin/list-users")
-const data = await res.json()
-
-setUsers(data.users || [])
-
-}
+/* CREATE USER */
 
 async function createUser(){
 
@@ -50,11 +45,14 @@ setMessage(result.error)
 setMessage("User created successfully")
 setEmail("")
 setPassword("")
-loadUsers()
+
+await refreshUsers()
 
 }
 
 }
+
+/* DELETE USER */
 
 async function deleteUser(id:string){
 
@@ -68,9 +66,11 @@ headers:{ "Content-Type":"application/json" },
 body: JSON.stringify({ id })
 })
 
-loadUsers()
+await refreshUsers()
 
 }
+
+/* ADMIN CHECK */
 
 useEffect(()=>{
 
@@ -99,13 +99,13 @@ return
 
 setIsAdmin(true)
 
-loadUsers()
-
 }
 
 init()
 
 },[])
+
+/* REALTIME PRESENCE */
 
 useEffect(()=>{
 
@@ -166,7 +166,7 @@ Admin Dashboard
 
 <div className="flex gap-12">
 
-{/* CREATE USER */}
+{/* CREATE USER PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -211,7 +211,7 @@ Create User </button>
 
 </div>
 
-{/* CURRENT USERS */}
+{/* CURRENT USERS PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 

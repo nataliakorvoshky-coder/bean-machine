@@ -2,24 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { useUserData } from "@/lib/UserDataContext"
 
 export default function DashboardPage(){
 
-const [users,setUsers] = useState<any[]>([])
+const { users } = useUserData()
+
 const [presence,setPresence] = useState<any>({})
 
-async function loadUsers(){
-
-const res = await fetch("/api/admin/list-users")
-const data = await res.json()
-
-setUsers(data.users || [])
-
-}
-
-useEffect(()=>{
-loadUsers()
-},[])
+/* REALTIME PRESENCE */
 
 useEffect(()=>{
 
@@ -78,7 +69,7 @@ Dashboard
 
 <div className="flex gap-12">
 
-{/* ONLINE USERS */}
+{/* ONLINE USERS PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
