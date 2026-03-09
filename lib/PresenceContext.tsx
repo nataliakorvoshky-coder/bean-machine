@@ -8,43 +8,26 @@ type PresenceState = Record<string, any[]>
 
 const PresenceContext = createContext<PresenceState>({})
 
+let channel:any = null
+
 export function PresenceProvider({
 children
-}:{
-children:React.ReactNode
-}){
+}:{children:React.ReactNode}){
 
 const pathname = usePathname()
 const [presence,setPresence] = useState<PresenceState>({})
 
-/* load cached presence after mount */
-
 useEffect(()=>{
-
-try{
-
-const cached = localStorage.getItem("presence-cache")
-
-if(cached){
-setPresence(JSON.parse(cached))
-}
-
-}catch{}
-
-},[])
-
-/* start realtime */
-
-useEffect(()=>{
-
-let channel:any
 
 async function start(){
 
 const { data } = await supabase.auth.getUser()
 const user = data?.user
-
 if(!user) return
+
+/* prevent duplicate connections */
+
+if(channel) return
 
 channel = supabase.channel("online-users",{
 config:{presence:{key:user.id}}
@@ -55,13 +38,6 @@ const update = ()=>{
 const state = channel.presenceState()
 
 setPresence({...state})
-
-try{
-localStorage.setItem(
-"presence-cache",
-JSON.stringify(state)
-)
-}catch{}
 
 }
 
@@ -88,10 +64,6 @@ update()
 
 start()
 
-return ()=>{
-if(channel) supabase.removeChannel(channel)
-}
-
 },[])
 
 /* update page location */
@@ -103,13 +75,7 @@ async function updateLocation(){
 const { data } = await supabase.auth.getUser()
 const user = data?.user
 
-if(!user) return
-
-const channel = supabase.getChannels().find(
-c=>c.topic==="online-users"
-)
-
-if(!channel) return
+if(!user || !channel) return
 
 await channel.track({
 id:user.id,

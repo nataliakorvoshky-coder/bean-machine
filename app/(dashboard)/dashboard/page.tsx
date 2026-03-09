@@ -3,15 +3,15 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-function pageLabel(page?: string){
+function pageLabel(page?:string){
 
-  if(!page) return "Online"
+if(!page) return "Online"
 
-  if(page.includes("dashboard")) return "Dashboard"
-  if(page.includes("admin")) return "Admin Panel"
-  if(page.includes("settings")) return "Settings"
+if(page.includes("dashboard")) return "Dashboard"
+if(page.includes("admin")) return "Admin Panel"
+if(page.includes("settings")) return "Settings"
 
-  return "Online"
+return "Online"
 
 }
 
@@ -22,7 +22,13 @@ const { users } = useUserData()
 
 /* flatten presence */
 
-const activeConnections = Object.values(presence).flat()
+const connections = Object.values(presence).flat()
+
+/* remove duplicate connections */
+
+const uniqueConnections = Array.from(
+new Map(connections.map((c:any)=>[c.id,c])).values()
+)
 
 return(
 
@@ -44,10 +50,9 @@ Online Users
 
 <div className="space-y-3">
 
-{activeConnections.map((conn:any)=>{
+{uniqueConnections.map((conn:any)=>{
 
-const user = users.find((u:any)=>u.id === conn.id)
-
+const user = users.find((u:any)=>u.id===conn.id)
 if(!user) return null
 
 return(
@@ -85,7 +90,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 
 </div>
 
-{/* ACTIVITY */}
+{/* ACTIVITY PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
