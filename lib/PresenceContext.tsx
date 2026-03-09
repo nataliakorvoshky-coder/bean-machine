@@ -8,89 +8,91 @@ type PresenceState = Record<string, any[]>
 
 const PresenceContext = createContext<PresenceState>({})
 
-let channel:any = null
+let channel: any = null
 
 export function PresenceProvider({ children }: { children: ReactNode }) {
 
   const pathname = usePathname()
-  const [presence,setPresence] = useState<PresenceState>({})
+  const [presence, setPresence] = useState<PresenceState>({})
 
   /* create channel once */
 
-  useEffect(()=>{
+  useEffect(() => {
 
-    async function init(){
+    async function startPresence() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
-      if(!user) return
+      if (!user) return
 
-      if(channel) return
+      if (!channel) {
 
-      channel = supabase.channel("online-users",{
-        config:{ presence:{ key:user.id } }
-      })
+        channel = supabase.channel("online-users", {
+          config: { presence: { key: user.id } }
+        })
 
-      const updatePresence = () => {
-        const state = channel.presenceState()
-        setPresence({...state})
+        channel.subscribe(async (status: string) => {
+
+          if (status === "SUBSCRIBED") {
+
+            await channel.track({
+              id: user.id,
+              page: pathname
+            })
+
+          }
+
+        })
+
       }
-
-      channel
-      .on("presence",{event:"sync"},updatePresence)
-      .on("presence",{event:"join"},updatePresence)
-      .on("presence",{event:"leave"},updatePresence)
-      .subscribe(async(status:string)=>{
-
-        if(status==="SUBSCRIBED"){
-
-          await channel.track({
-            id:user.id,
-            page:pathname
-          })
-
-          /* force update immediately */
-
-          updatePresence()
-
-        }
-
-      })
 
     }
 
-    init()
+    startPresence()
 
-  },[])
+  }, [])
 
-  /* update page location instantly */
+  /* update page when navigating */
 
-  useEffect(()=>{
+  useEffect(() => {
 
-    async function updatePage(){
+    async function updatePage() {
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
 
-      if(!user || !channel) return
+      if (!user || !channel) return
 
       await channel.track({
-        id:user.id,
-        page:pathname
+        id: user.id,
+        page: pathname
       })
-
-      /* refresh state instantly */
-
-      const state = channel.presenceState()
-      setPresence({...state})
 
     }
 
     updatePage()
 
-  },[pathname])
+  }, [pathname])
 
-  return(
+  /* force UI refresh every second */
+
+  useEffect(() => {
+
+    const interval = setInterval(() => {
+
+      if (!channel) return
+
+      const state = channel.presenceState()
+
+      setPresence({ ...state })
+
+    }, 1000)
+
+    return () => clearInterval(interval)
+
+  }, [])
+
+  return (
 
     <PresenceContext.Provider value={presence}>
       {children}
@@ -100,6 +102,6 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
 }
 
-export function usePresence(){
+export function usePresence() {
   return useContext(PresenceContext)
 }
