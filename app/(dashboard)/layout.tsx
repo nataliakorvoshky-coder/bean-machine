@@ -1,32 +1,23 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { UserProvider, useUser } from "@/lib/UserContext"
+import { UserDataProvider } from "@/lib/UserDataContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
 const pathname = usePathname()
 const { username } = useUser()
 
-const [adminOpen,setAdminOpen] = useState(true)
-const [stockOpen,setStockOpen] = useState(false)
-const [employeeOpen,setEmployeeOpen] = useState(false)
-const [toolsOpen,setToolsOpen] = useState(true)
-
-
-
 async function logout(){
 
- await supabase.auth.signOut()
- window.location.href="/"
+await supabase.auth.signOut()
+window.location.href="/"
 
 }
-
-
 
 return(
 
@@ -38,164 +29,77 @@ return(
 
 {/* LOGO */}
 
-<div className="flex items-center gap-3 mb-2">
+<div className="flex items-center gap-3 mb-4">
 
 <Image
 src="/logo.png"
 alt="Bean Machine"
-width={48}
-height={48}
+width={42}
+height={42}
 />
 
-<h1 className="text-3xl font-bold leading-tight">
+<h1 className="text-3xl font-bold">
 Bean Machine
 </h1>
 
 </div>
 
+{/* USER */}
 
-
-{/* USER BADGE */}
-
-<div className="bg-emerald-700 rounded-lg px-4 py-3 flex items-center gap-3 shadow">
+<div className="bg-emerald-700 rounded-lg px-4 py-3 flex items-center gap-3">
 
 <div className="w-3 h-3 rounded-full bg-green-400" />
 
 <span className="font-semibold">
-{username}
+{username || "User"}
 </span>
 
 </div>
 
-
-
 {/* NAVIGATION */}
 
-<nav className="flex flex-col gap-2 text-sm">
+<nav className="flex flex-col gap-4 text-sm mt-6">
 
-{/* ADMIN PANEL */}
-
-<button
-onClick={()=>setAdminOpen(!adminOpen)}
-className="text-emerald-300 uppercase text-xs tracking-wider mt-6 text-left"
->
+<p className="text-emerald-300 uppercase text-xs tracking-wider">
 Admin Panel
-</button>
-
-<div className={`flex flex-col gap-2 pl-4 transition-all duration-300 ${adminOpen ? "max-h-40" : "max-h-0 overflow-hidden"}`}>
+</p>
 
 <Link
 href="/admin"
-className={`block ${
- pathname === "/admin"
-  ? "text-white font-semibold"
-  : "hover:text-emerald-200"
-}`}
+className={pathname==="/admin" ? "font-semibold text-white" : "hover:text-emerald-200"}
 >
 Admin Dashboard
 </Link>
 
 <Link
 href="/dashboard"
-className={`block ${
- pathname === "/dashboard"
-  ? "text-white font-semibold"
-  : "hover:text-emerald-200"
-}`}
+className={pathname==="/dashboard" ? "font-semibold text-white" : "hover:text-emerald-200"}
 >
 Dashboard
 </Link>
 
-</div>
-
-
-
-{/* STOCK MANAGEMENT */}
-
-<button
-onClick={()=>setStockOpen(!stockOpen)}
-className="text-emerald-300 uppercase text-xs tracking-wider mt-6 text-left"
->
-Stock Management
-</button>
-
-<div className={`flex flex-col gap-2 pl-4 transition-all duration-300 ${stockOpen ? "max-h-40" : "max-h-0 overflow-hidden"}`}>
-
-<Link href="#" className="hover:text-emerald-200">
-Inventory
-</Link>
-
-<Link href="#" className="hover:text-emerald-200">
-Suppliers
-</Link>
-
-</div>
-
-
-
-{/* EMPLOYEE MANAGEMENT */}
-
-<button
-onClick={()=>setEmployeeOpen(!employeeOpen)}
-className="text-emerald-300 uppercase text-xs tracking-wider mt-6 text-left"
->
-Employee Management
-</button>
-
-<div className={`flex flex-col gap-2 pl-4 transition-all duration-300 ${employeeOpen ? "max-h-40" : "max-h-0 overflow-hidden"}`}>
-
-<Link href="#" className="hover:text-emerald-200">
-Employees
-</Link>
-
-<Link href="#" className="hover:text-emerald-200">
-Roles
-</Link>
-
-</div>
-
-
-
-{/* USER TOOLS */}
-
-<button
-onClick={()=>setToolsOpen(!toolsOpen)}
-className="text-emerald-300 uppercase text-xs tracking-wider mt-6 text-left"
->
+<p className="text-emerald-300 uppercase text-xs tracking-wider mt-6">
 User Tools
-</button>
-
-<div className={`flex flex-col gap-2 pl-4 transition-all duration-300 ${toolsOpen ? "max-h-40" : "max-h-0 overflow-hidden"}`}>
+</p>
 
 <Link
 href="/settings"
-className={`block ${
- pathname === "/settings"
-  ? "text-white font-semibold"
-  : "hover:text-emerald-200"
-}`}
+className={pathname==="/settings" ? "font-semibold text-white" : "hover:text-emerald-200"}
 >
 Settings
 </Link>
 
-</div>
-
-
-
-{/* LOGOUT */}
-
 <button
 onClick={logout}
-className="mt-8 text-left hover:text-emerald-200"
+className="text-left hover:text-emerald-200 mt-6"
+
 >
-Logout
-</button>
+
+Logout </button>
 
 </nav>
 
 </div>
-
-
 
 {/* PAGE CONTENT */}
 
@@ -211,18 +115,20 @@ Logout
 
 }
 
-
-
 export default function DashboardLayout({
- children
+children
 }:{
- children: React.ReactNode
+children: React.ReactNode
 }){
 
- return(
-  <UserProvider>
-   <DashboardShell>{children}</DashboardShell>
-  </UserProvider>
- )
+return(
+
+<UserProvider>
+<UserDataProvider>
+<DashboardShell>{children}</DashboardShell>
+</UserDataProvider>
+</UserProvider>
+
+)
 
 }

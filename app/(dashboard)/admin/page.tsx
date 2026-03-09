@@ -12,7 +12,6 @@ const [presence,setPresence] = useState<any>({})
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
-const [status,setStatus] = useState("active")
 const [isAdmin,setIsAdmin] = useState(false)
 
 /* CREATE USER */
@@ -84,15 +83,15 @@ window.location.href="/"
 return
 }
 
-const adminRes = await fetch("/api/admin/check-admin",{
+const res = await fetch("/api/admin/check-admin",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body: JSON.stringify({ userId:user.id })
 })
 
-const adminData = await adminRes.json()
+const result = await res.json()
 
-if(!adminData.admin){
+if(!result.admin){
 window.location.href="/"
 return
 }
@@ -119,9 +118,7 @@ const user = data.user
 if(!user) return
 
 channel = supabase.channel("online-users",{
-config:{
-presence:{ key:user.id }
-}
+config:{ presence:{ key:user.id }}
 })
 
 channel
@@ -129,13 +126,13 @@ channel
 const state = channel.presenceState()
 setPresence(state)
 })
-.subscribe(async(statusResp:any)=>{
+.subscribe(async(status:any)=>{
 
-if(statusResp==="SUBSCRIBED"){
+if(status==="SUBSCRIBED"){
 
 await channel.track({
 user:user.id,
-status
+status:"active"
 })
 
 }
@@ -152,7 +149,7 @@ supabase.removeChannel(channel)
 }
 }
 
-},[status])
+},[])
 
 if(!isAdmin) return null
 
@@ -166,7 +163,7 @@ Admin Dashboard
 
 <div className="flex gap-12">
 
-{/* CREATE USER PANEL */}
+{/* CREATE USER */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -211,7 +208,7 @@ Create User </button>
 
 </div>
 
-{/* CURRENT USERS PANEL */}
+{/* CURRENT USERS */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -224,7 +221,7 @@ Current Users ({users.length})
 {users.length === 0 ? (
 
 <div className="text-gray-400 text-sm">
-Loading users...
+No users yet
 </div>
 
 ) : users.map((u:any)=>{
