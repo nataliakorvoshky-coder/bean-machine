@@ -8,16 +8,14 @@ type PresenceState = Record<string, any[]>
 
 const PresenceContext = createContext<PresenceState>({})
 
-let channel: any = null
+let channel:any = null
 
-export function PresenceProvider({
-  children
-}:{
-  children: ReactNode
-}){
+export function PresenceProvider({ children }: { children: ReactNode }) {
 
   const pathname = usePathname()
   const [presence,setPresence] = useState<PresenceState>({})
+
+  /* create channel once */
 
   useEffect(()=>{
 
@@ -25,44 +23,47 @@ export function PresenceProvider({
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
-
       if(!user) return
 
-      if(!channel){
+      if(channel) return
 
-        channel = supabase.channel("online-users",{
-          config:{ presence:{ key:user.id } }
-        })
+      channel = supabase.channel("online-users",{
+        config:{ presence:{ key:user.id } }
+      })
 
-        const update = () => {
-          const state = channel.presenceState()
-          setPresence({...state})
+      const updatePresence = () => {
+        const state = channel.presenceState()
+        setPresence({...state})
+      }
+
+      channel
+      .on("presence",{event:"sync"},updatePresence)
+      .on("presence",{event:"join"},updatePresence)
+      .on("presence",{event:"leave"},updatePresence)
+      .subscribe(async(status:string)=>{
+
+        if(status==="SUBSCRIBED"){
+
+          await channel.track({
+            id:user.id,
+            page:pathname
+          })
+
+          /* force update immediately */
+
+          updatePresence()
+
         }
 
-        channel
-        .on("presence",{event:"sync"},update)
-        .on("presence",{event:"join"},update)
-        .on("presence",{event:"leave"},update)
-        .subscribe(async(status:string)=>{
-
-          if(status==="SUBSCRIBED"){
-
-            await channel.track({
-              id:user.id,
-              page:pathname
-            })
-
-          }
-
-        })
-
-      }
+      })
 
     }
 
     init()
 
   },[])
+
+  /* update page location instantly */
 
   useEffect(()=>{
 
@@ -77,6 +78,11 @@ export function PresenceProvider({
         id:user.id,
         page:pathname
       })
+
+      /* refresh state instantly */
+
+      const state = channel.presenceState()
+      setPresence({...state})
 
     }
 
