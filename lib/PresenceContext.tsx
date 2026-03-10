@@ -20,18 +20,27 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
   const [connections,setConnections] = useState<Connection[]>(() => {
 
     if(typeof window !== "undefined"){
-
       const cached = sessionStorage.getItem("presence")
-
-      if(cached){
-        return JSON.parse(cached)
-      }
-
+      if(cached) return JSON.parse(cached)
     }
 
     return []
 
   })
+
+  function isSame(a:Connection[],b:Connection[]){
+
+    if(a.length !== b.length) return false
+
+    const map = new Map(a.map(x => [x.id,x.page]))
+
+    for(const item of b){
+      if(map.get(item.id) !== item.page) return false
+    }
+
+    return true
+
+  }
 
   useEffect(()=>{
 
@@ -62,22 +71,18 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
           new Map(flat.map(c=>[c.id,c])).values()
         )
 
-        /* MERGE instead of replace */
-
         setConnections(prev => {
 
-          const merged = new Map(prev.map(c => [c.id, c]))
-
-          unique.forEach(c => merged.set(c.id, c))
-
-          const result = Array.from(merged.values())
+          if(isSame(prev,unique)){
+            return prev
+          }
 
           sessionStorage.setItem(
             "presence",
-            JSON.stringify(result)
+            JSON.stringify(unique)
           )
 
-          return result
+          return unique
 
         })
 
