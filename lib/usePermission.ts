@@ -24,6 +24,7 @@ export function usePermission(page: string){
         .from("user_roles")
         .select(`
           roles(
+            name,
             permissions(
               page,
               can_view
@@ -33,13 +34,19 @@ export function usePermission(page: string){
         .eq("user_id",user.id)
         .single()
 
-      /* roles returns as array */
+      const role = data?.roles?.[0]?.name
+
+      /* ADMIN ALWAYS ALLOWED */
+
+      if(role === "admin"){
+        return
+      }
 
       const permissions =
         data?.roles?.[0]?.permissions || []
 
       const allowed = permissions.find(
-        (p:any)=>p.page===page
+        (p:any)=>p.page === page
       )
 
       if(!allowed?.can_view){
