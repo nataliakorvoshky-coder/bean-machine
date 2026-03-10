@@ -32,9 +32,7 @@ const channel = supabase
 .subscribe()
 
 return ()=>{
-
 supabase.removeChannel(channel)
-
 }
 
 },[])
@@ -78,9 +76,19 @@ setCurrentRole(map[userId] || "")
 
 }
 
+/* PERMISSION CHECK */
+
 function canAccess(page:string){
 
-if(!currentRole) return false
+// if role not loaded yet allow temporarily
+if(!currentRole) return true
+
+// admin always allowed
+const adminRole = roles.find((r:any)=>r.name==="Admin")
+
+if(adminRole && currentRole === adminRole.id){
+return true
+}
 
 const perm = permissions.find(
 (p:any)=>p.role_id===currentRole && p.page===page
