@@ -47,7 +47,7 @@ const res = await fetch("/api/admin/list-users")
 
 const data = await res.json()
 
-setUsers(data.users || [])
+setUsers(data?.users ?? [])
 
 sessionStorage.setItem(
 "users",
