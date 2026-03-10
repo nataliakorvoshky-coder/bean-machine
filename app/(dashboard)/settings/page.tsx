@@ -38,19 +38,19 @@ alert("Password updated")
 
 return(
 
-<div className="w-full max-w-[600px]">
+<div className="w-[1000px]">
 
 <h1 className="text-3xl font-bold text-emerald-700 mb-10">
 Settings
 </h1>
 
-<div className="bg-white p-6 rounded-xl shadow space-y-8">
+<div className="bg-white p-8 rounded-xl shadow w-[600px] space-y-8">
 
 {/* USERNAME */}
 
 <div>
 
-<p className="font-semibold mb-2">
+<p className="text-emerald-700 font-semibold mb-2">
 Change Username
 </p>
 
@@ -58,9 +58,10 @@ Change Username
 value={username}
 onChange={(e)=>setUsername(e.target.value)}
 placeholder="Enter new username"
-className="w-full border border-gray-300 rounded-lg px-3 py-2
+className="w-full border border-emerald-200 bg-emerald-50
+rounded-lg px-3 py-2
 focus:outline-none focus:ring-2 focus:ring-emerald-500
-focus:border-emerald-500 transition"
+focus:bg-white transition"
 />
 
 <button
@@ -76,7 +77,7 @@ Update Username
 
 <div>
 
-<p className="font-semibold mb-2">
+<p className="text-emerald-700 font-semibold mb-2">
 Change Password
 </p>
 
@@ -85,9 +86,10 @@ type="password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
 placeholder="Enter new password"
-className="w-full border border-gray-300 rounded-lg px-3 py-2
+className="w-full border border-emerald-200 bg-emerald-50
+rounded-lg px-3 py-2
 focus:outline-none focus:ring-2 focus:ring-emerald-500
-focus:border-emerald-500 transition"
+focus:bg-white transition"
 />
 
 <button
