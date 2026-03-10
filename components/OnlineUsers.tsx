@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
+import { usePathname } from "next/navigation"
 
 export default function OnlineUsers(){
+
+const pathname = usePathname()
 
 const { users, roles, userRoles, load } = useAdminData()
 
@@ -22,57 +25,60 @@ return "Page"
 
 }
 
-async function loadUsers(){
-
-const { data } = await supabase
-.from("online_users")
-.select("*")
-
-if(!data) return
-
-const active = data.filter((u:any)=>{
-
-const diff = Date.now() - new Date(u.last_seen).getTime()
-
-return diff < 30000
-
-})
-
-setOnlineUsers(active)
-
-}
-
 useEffect(()=>{
 
-let heartbeatInterval:any
-let pollInterval:any
+let channel:any
 
-loadUsers()
-
-async function heartbeat(){
+async function start(){
 
 const { data } = await supabase.auth.getUser()
 
 const user = data?.user
 if(!user) return
 
-await supabase
-.from("online_users")
-.upsert({
+channel = supabase.channel("online-users",{
+config:{
+presence:{ key:user.id }
+}
+})
+
+channel.on("presence",{ event:"sync" },()=>{
+
+const state = channel.presenceState()
+
+const list:any[] = []
+
+Object.values(state).forEach((entries:any)=>{
+
+entries.forEach((entry:any)=> list.push(entry))
+
+})
+
+setOnlineUsers(list)
+
+})
+
+channel.subscribe(async (status: "SUBSCRIBED" | "TIMED_OUT" | "CLOSED" | "CHANNEL_ERROR")=>{
+
+if(status !== "SUBSCRIBED") return
+
+await channel.track({
 user_id:user.id,
-page:window.location.pathname,
-last_seen:new Date().toISOString()
+page:pathname
+})
+
+})
+
+/* update location */
+
+await channel.track({
+user_id:user.id,
+page:pathname
 })
 
 }
 
-heartbeat()
-
-heartbeatInterval = setInterval(heartbeat,10000)
-
-pollInterval = setInterval(loadUsers,5000)
-
-/* realtime role updates */
+/* live role updates */
 
 const roleChannel = supabase
 .channel("role-live")
@@ -84,22 +90,24 @@ schema:"public",
 table:"user_roles"
 },
 async ()=>{
-await load()      // refresh AdminDataContext
-await loadUsers() // refresh online list
+await load()
 }
 )
 .subscribe()
 
+start()
+
 return ()=>{
 
-clearInterval(heartbeatInterval)
-clearInterval(pollInterval)
+if(channel){
+supabase.removeChannel(channel)
+}
 
 supabase.removeChannel(roleChannel)
 
 }
 
-},[])
+},[pathname])
 
 return(
 
@@ -121,11 +129,11 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
-const profile = users.find((x:any)=>String(x.id)===String(u.user_id))
+const profile = users.find(x=>String(x.id)===String(u.user_id))
 
 const roleId = userRoles[u.user_id]
 
-const role = roles.find((r:any)=>String(r.id)===String(roleId))
+const role = roles.find(r=>String(r.id)===String(roleId))
 
 return(
 
