@@ -6,22 +6,22 @@ import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { AdminDataProvider,useAdminData } from "@/lib/AdminDataContext"
 
-function LayoutShell({children}:{children:React.ReactNode}){
+function Sidebar(){
 
 const pathname = usePathname()
 const { canAccess } = useAdminData()
 
 const [username,setUsername] = useState("")
-
+const [adminOpen,setAdminOpen] = useState(true)
 const [stockOpen,setStockOpen] = useState(false)
 const [employeeOpen,setEmployeeOpen] = useState(false)
+const [toolsOpen,setToolsOpen] = useState(true)
 
 useEffect(()=>{
 
-async function load(){
+async function loadUser(){
 
 const { data } = await supabase.auth.getUser()
-
 const user = data?.user
 
 if(!user) return
@@ -30,31 +30,31 @@ const { data:profile } = await supabase
 .from("profiles")
 .select("username")
 .eq("id",user.id)
-.maybeSingle()
+.single()
 
-setUsername(profile?.username || "")
+if(profile?.username){
+setUsername(profile.username)
+sessionStorage.setItem("username",profile.username)
+}
 
 }
 
-load()
+loadUser()
 
 },[])
 
 async function logout(){
 
 await supabase.auth.signOut()
-
 window.location.href="/"
 
 }
 
 return(
 
-<main className="flex min-h-screen">
-
-{/* SIDEBAR */}
-
 <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
+
+{/* LOGO */}
 
 <div className="flex items-center gap-3 mb-10">
 
@@ -65,6 +65,8 @@ Bean Machine
 </h1>
 
 </div>
+
+{/* USER */}
 
 <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
@@ -78,43 +80,63 @@ Bean Machine
 
 <nav className="flex flex-col gap-3 text-sm">
 
-{/* ADMIN */}
+{/* ADMIN PANEL */}
 
-{canAccess("admin") && (
-
-<>
-
-<p className="text-emerald-200 font-semibold">
+<button
+onClick={()=>setAdminOpen(!adminOpen)}
+className="text-left font-semibold text-emerald-200 mt-2"
+>
 Admin Panel
-</p>
+</button>
 
-<Link href="/admin">
+{adminOpen &&(
+
+<div className="flex flex-col gap-2 ml-2 border-l border-emerald-400 pl-3">
+
+{canAccess("admin") &&(
+
+<Link
+href="/admin"
+className={pathname === "/admin"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
 Admin Dashboard
 </Link>
 
-<Link href="/admin/roles">
-Roles & Permissions
-</Link>
-
-</>
-
 )}
 
-{/* DASHBOARD */}
+{canAccess("dashboard") &&(
 
-{canAccess("dashboard") && (
-
-<Link href="/dashboard">
+<Link
+href="/dashboard"
+className={pathname === "/dashboard"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
 Dashboard
 </Link>
 
 )}
 
+{canAccess("admin") &&(
+
+<Link
+href="/admin/roles"
+className={pathname === "/admin/roles"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
+Roles & Permissions
+</Link>
+
+)}
+
+</div>
+
+)}
+
 {/* STOCK */}
-
-{canAccess("inventory") && (
-
-<>
 
 <button
 onClick={()=>setStockOpen(!stockOpen)}
@@ -125,29 +147,26 @@ Stock Management
 
 {stockOpen &&(
 
-<div className="ml-3 flex flex-col gap-2">
+<div className="ml-3 flex flex-col gap-2 border-l border-emerald-400 pl-3">
 
-<Link href="/inventory">
+{canAccess("inventory") &&(
+
+<Link
+href="/inventory"
+className={pathname === "/inventory"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
 Inventory
 </Link>
 
-<Link href="/orders">
-Orders
-</Link>
+)}
 
 </div>
 
 )}
 
-</>
-
-)}
-
 {/* EMPLOYEES */}
-
-{canAccess("employees") && (
-
-<>
 
 <button
 onClick={()=>setEmployeeOpen(!employeeOpen)}
@@ -158,19 +177,54 @@ Employee Management
 
 {employeeOpen &&(
 
-<Link href="/employees">
+<div className="ml-3 flex flex-col gap-2 border-l border-emerald-400 pl-3">
+
+{canAccess("employees") &&(
+
+<Link
+href="/employees"
+className={pathname === "/employees"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
 Employees
 </Link>
 
 )}
 
-</>
+</div>
 
 )}
 
-<Link href="/settings">
+{/* USER TOOLS */}
+
+<button
+onClick={()=>setToolsOpen(!toolsOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+User Tools
+</button>
+
+{toolsOpen &&(
+
+<div className="ml-3 flex flex-col gap-2 border-l border-emerald-400 pl-3">
+
+{canAccess("settings") &&(
+
+<Link
+href="/settings"
+className={pathname === "/settings"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
 Settings
 </Link>
+
+)}
+
+</div>
+
+)}
 
 <button
 onClick={logout}
@@ -183,14 +237,6 @@ Logout
 
 </div>
 
-<div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
-
-{children}
-
-</div>
-
-</main>
-
 )
 
 }
@@ -201,11 +247,17 @@ return(
 
 <AdminDataProvider>
 
-<LayoutShell>
+<main className="flex min-h-screen">
+
+<Sidebar/>
+
+<div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
 {children}
 
-</LayoutShell>
+</div>
+
+</main>
 
 </AdminDataProvider>
 

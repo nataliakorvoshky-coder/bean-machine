@@ -3,20 +3,9 @@
 import { useAdminData } from "@/lib/AdminDataContext"
 import { supabase } from "@/lib/supabase"
 
-type Role = {
-id: string
-name: string
-}
-
-type Permission = {
-role_id: string
-page: string
-can_view: boolean
-}
-
 export default function RolesPage(){
 
-const { roles, permissions, load } = useAdminData()
+const { roles,permissions,load } = useAdminData()
 
 const pages = ["admin","dashboard","employees","inventory","settings"]
 
@@ -42,16 +31,22 @@ return(
 Roles & Permissions
 </h1>
 
-<table className="w-full text-center bg-white shadow rounded-xl">
+<table className="w-full bg-white shadow rounded-xl">
 
 <thead>
 
-<tr className="border-b">
+<tr className="border-b border-emerald-400 text-emerald-700">
 
-<th className="p-3 text-left">Role</th>
+<th className="p-4 text-left">
+Role
+</th>
 
-{pages.map((p:string)=>(
-<th key={p}>{p}</th>
+{pages.map(page=>(
+
+<th key={page} className="p-4 capitalize">
+{page}
+</th>
+
 ))}
 
 </tr>
@@ -60,31 +55,38 @@ Roles & Permissions
 
 <tbody>
 
-{roles.map((role:Role)=>(
+{roles.map((role:any)=>(
 
-<tr key={role.id} className="border-b">
+<tr
+key={role.id}
+className="border-b border-emerald-200"
+>
 
-<td className="p-3 text-left font-semibold text-emerald-700">
+<td className="p-4 font-semibold text-emerald-700">
 {role.name}
 </td>
 
-{pages.map((page:string)=>{
+{pages.map(page=>{
 
 const perm = permissions.find(
-(p:Permission)=>p.role_id===role.id && p.page===page
+(p:any)=>p.role_id===role.id && p.page===page
 )
 
 const enabled = perm?.can_view || false
 
 return(
 
-<td key={page}>
+<td key={page} className="text-center">
 
 <input
 type="checkbox"
 checked={enabled}
 onChange={()=>toggle(role.id,page,enabled)}
-className="w-5 h-5 accent-emerald-600 cursor-pointer"
+className={`w-6 h-6 cursor-pointer transition
+${enabled
+? "accent-emerald-600 shadow-[0_0_8px_emerald]"
+: "accent-red-500"}
+`}
 />
 
 </td>
