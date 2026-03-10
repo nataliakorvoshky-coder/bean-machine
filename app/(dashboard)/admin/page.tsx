@@ -11,6 +11,11 @@ const ready = usePermission("admin")
 const [users,setUsers] = useState<any[]>([])
 const [roles,setRoles] = useState<any[]>([])
 
+const [email,setEmail] = useState("")
+const [password,setPassword] = useState("")
+
+const [loading,setLoading] = useState(true)
+
 useEffect(()=>{
 
 if(!ready) return
@@ -21,17 +26,43 @@ load()
 
 async function load(){
 
+setLoading(true)
+
 const { data:usersData } = await supabase
 .from("profiles")
-.select("*")
+.select("id,username,disabled")
 .order("username")
 
 const { data:rolesData } = await supabase
 .from("roles")
 .select("*")
+.order("name")
 
 setUsers(usersData || [])
 setRoles(rolesData || [])
+
+setLoading(false)
+
+}
+
+async function createUser(){
+
+if(!email || !password) return
+
+const { data,error } = await supabase.auth.signUp({
+email,
+password
+})
+
+if(error){
+alert(error.message)
+return
+}
+
+alert("User created")
+
+setEmail("")
+setPassword("")
 
 }
 
@@ -42,7 +73,11 @@ await supabase
 .update({disabled:!user.disabled})
 .eq("id",user.id)
 
-load()
+setUsers(users.map(u =>
+u.id === user.id
+? {...u,disabled:!u.disabled}
+: u
+))
 
 }
 
@@ -57,25 +92,67 @@ role_id:roleId
 
 }
 
-/* prevent render until permission check finishes */
-
-if(!ready){
-return null
-}
+if(!ready) return null
 
 return(
 
-<div className="w-[1100px]">
+<div className="w-[1100px] space-y-10">
 
-<h1 className="text-3xl font-bold text-emerald-700 mb-10">
+<h1 className="text-3xl font-bold text-emerald-700">
 Admin Dashboard
 </h1>
 
+{/* CREATE USER */}
+
 <div className="bg-white p-8 rounded-xl shadow">
 
-<h2 className="font-semibold text-emerald-700 mb-6">
+<h2 className="text-lg font-semibold text-emerald-700 mb-6">
+Create User
+</h2>
+
+<div className="flex gap-4">
+
+<input
+placeholder="Email"
+value={email}
+onChange={(e)=>setEmail(e.target.value)}
+className="border border-emerald-300 rounded px-3 py-2 w-[250px]"
+/>
+
+<input
+type="password"
+placeholder="Password"
+value={password}
+onChange={(e)=>setPassword(e.target.value)}
+className="border border-emerald-300 rounded px-3 py-2 w-[250px]"
+/>
+
+<button
+onClick={createUser}
+className="bg-emerald-600 text-white px-5 py-2 rounded"
+>
+Create
+</button>
+
+</div>
+
+</div>
+
+{/* CURRENT USERS */}
+
+<div className="bg-white p-8 rounded-xl shadow">
+
+<h2 className="text-lg font-semibold text-emerald-700 mb-6">
 Current Users
 </h2>
+
+{loading ? (
+
+<p className="text-gray-500">
+Loading users...
+</p>
+
+):( 
 
 <div className="space-y-3">
 
@@ -86,22 +163,30 @@ key={user.id}
 className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
 >
 
-<span>{user.username}</span>
+<span className="font-medium">
+{user.username}
+</span>
 
-<div className="flex gap-3">
+<div className="flex gap-3 items-center">
 
 <select
-defaultValue=""
 onChange={(e)=>changeRole(user.id,e.target.value)}
-className="border border-emerald-300 rounded px-2"
+className="border border-emerald-300 rounded px-2 py-1"
 >
 
 <option value="">Role</option>
 
 {roles.map(role=>(
-<option key={role.id} value={role.id}>
+
+<option
+key={role.id}
+value={role.id}
+>
+
 {role.name}
+
 </option>
+
 ))}
 
 </select>
@@ -126,6 +211,8 @@ user.disabled
 ))}
 
 </div>
+
+)}
 
 </div>
 
