@@ -12,23 +12,9 @@ const pathname = usePathname()
 
 const { users, roles, userRoles } = useAdminData()
 
-/* instant render cache */
+const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
-const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
-
-if(typeof window !== "undefined"){
-
-const cache = sessionStorage.getItem("onlineUsers")
-
-if(cache) return JSON.parse(cache)
-
-}
-
-return []
-
-})
-
-/* convert path to readable page */
+/* convert page */
 
 function pageName(path:string){
 
@@ -45,7 +31,7 @@ return path
 
 }
 
-/* idle detection */
+/* status */
 
 function getStatus(lastActive:number){
 
@@ -69,7 +55,7 @@ const user = data?.user
 
 if(!user) return
 
-const userId = user.id
+const userId = String(user.id)
 
 channel = supabase.channel("online-users",{
 config:{
@@ -89,7 +75,7 @@ lastActive:Date.now()
 
 })
 
-/* track activity */
+/* activity */
 
 function updateActivity(){
 
@@ -123,24 +109,17 @@ list.push(entry)
 
 })
 
-/* dedupe users */
+/* dedupe */
 
 const unique:any = {}
 
 list.forEach(u=>{
-unique[u.user_id] = u
+unique[String(u.user_id)] = u
 })
 
 const usersOnline = Object.values(unique)
 
-/* cache */
-
 setOnlineUsers(usersOnline)
-
-sessionStorage.setItem(
-"onlineUsers",
-JSON.stringify(usersOnline)
-)
 
 })
 
@@ -178,13 +157,15 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
-/* username resolution */
+/* FIXED USERNAME MATCH */
 
-const profile = users.find((x:any)=>String(x.id) === String(u.user_id))
+const profile = users.find(
+(x:any)=>String(x.id) === String(u.user_id)
+)
 
-const username = profile?.username ?? "Unknown"
+const username = profile?.username || "Unknown"
 
-/* role resolution */
+/* role */
 
 const roleId = userRoles[u.user_id]
 
