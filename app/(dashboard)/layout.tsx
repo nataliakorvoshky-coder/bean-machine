@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
 export default function DashboardLayout({
-children
+  children
 }:{children:React.ReactNode}){
 
 const pathname = usePathname()
@@ -21,7 +21,6 @@ return ""
 
 })
 
-const [adminOpen,setAdminOpen] = useState(true)
 const [stockOpen,setStockOpen] = useState(false)
 const [employeeOpen,setEmployeeOpen] = useState(false)
 const [toolsOpen,setToolsOpen] = useState(true)
@@ -101,22 +100,19 @@ Bean Machine
 
 {/* ADMIN PANEL */}
 
-<button
-onClick={()=>setAdminOpen(!adminOpen)}
-className="text-left font-semibold text-emerald-200"
->
+<div className="mt-6">
+
+<p className="text-emerald-200 font-semibold mb-2">
 Admin Panel
-</button>
+</p>
 
-{adminOpen &&(
-
-<div className="ml-3 flex flex-col gap-2">
+<div className="flex flex-col gap-2 ml-2">
 
 <Link
 href="/admin"
 className={pathname === "/admin"
 ? "font-semibold text-white"
-: "hover:text-emerald-200"}
+: "text-emerald-100 hover:text-white"}
 >
 Admin Dashboard
 </Link>
@@ -125,14 +121,23 @@ Admin Dashboard
 href="/dashboard"
 className={pathname === "/dashboard"
 ? "font-semibold text-white"
-: "hover:text-emerald-200"}
+: "text-emerald-100 hover:text-white"}
 >
 Dashboard
 </Link>
 
+<Link
+href="/admin/roles"
+className={pathname === "/admin/roles"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
+Roles & Permissions
+</Link>
+
 </div>
 
-)}
+</div>
 
 {/* STOCK MANAGEMENT */}
 
