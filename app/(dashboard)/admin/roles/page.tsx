@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePermission } from "@/lib/usePermission"
 
@@ -10,9 +10,11 @@ usePermission("admin")
 
 const [roles,setRoles] = useState<any[]>([])
 
+/* LOAD ROLES + PERMISSIONS */
+
 useEffect(()=>{
 
-async function load(){
+async function loadRoles(){
 
 const { data } = await supabase
 .from("roles")
@@ -25,27 +27,41 @@ page,
 can_view
 )
 `)
+.order("name")
 
 setRoles(data || [])
 
 }
 
-load()
+loadRoles()
 
 },[])
 
-async function toggle(permissionId:string,value:boolean){
+/* TOGGLE PERMISSION */
+
+async function togglePermission(permissionId:string,current:boolean){
 
 await supabase
 .from("permissions")
 .update({
-can_view:!value
+can_view:!current
 })
 .eq("id",permissionId)
+
+/* refresh */
 
 setRoles(r=>[...r])
 
 }
+
+/* ALL POSSIBLE PAGES */
+
+const pages = [
+"admin",
+"dashboard",
+"employees",
+"settings"
+]
 
 return(
 
@@ -64,37 +80,52 @@ key={role.id}
 className="bg-white p-6 rounded-xl shadow"
 >
 
-<h2 className="font-semibold text-lg text-emerald-700 mb-4">
+<h2 className="text-lg font-semibold text-emerald-700 mb-4">
 {role.name}
 </h2>
 
 <div className="space-y-2">
 
-{role.permissions.map((p:any)=>(
+{pages.map(page=>{
+
+const permission = role.permissions.find(
+(p:any)=>p.page===page
+)
+
+return(
 
 <div
-key={p.id}
+key={page}
 className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
 >
 
-<span>{p.page}</span>
+<span className="capitalize">
+{page}
+</span>
 
 <button
-onClick={()=>toggle(p.id,p.can_view)}
+onClick={()=>togglePermission(
+permission.id,
+permission.can_view
+)}
 className={`px-3 py-1 rounded text-white ${
-p.can_view
+permission?.can_view
 ? "bg-emerald-600"
 : "bg-gray-400"
 }`}
 >
 
-{p.can_view ? "Enabled" : "Disabled"}
+{permission?.can_view
+? "Enabled"
+: "Disabled"}
 
 </button>
 
 </div>
 
-))}
+)
+
+})}
 
 </div>
 
