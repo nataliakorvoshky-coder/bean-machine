@@ -70,7 +70,6 @@ export default function ActivityFeed(){
           onChange={e=>setUserFilter(e.target.value)}
           className="border border-emerald-400 p-2 rounded text-sm"
         >
-
           <option value="">All Users</option>
 
           {users.map((u:any)=>(
@@ -78,7 +77,6 @@ export default function ActivityFeed(){
               {u.username}
             </option>
           ))}
-
         </select>
 
         <select
@@ -86,12 +84,10 @@ export default function ActivityFeed(){
           onChange={e=>setTypeFilter(e.target.value)}
           className="border border-emerald-400 p-2 rounded text-sm"
         >
-
           <option value="">All Types</option>
           <option value="admin">Admin</option>
           <option value="stock">Stock</option>
           <option value="employee">Employee</option>
-
         </select>
 
       </div>
@@ -122,11 +118,9 @@ export default function ActivityFeed(){
         ))}
 
         {filtered.length===0 &&(
-
           <div className="text-gray-400 text-sm">
             No activity yet
           </div>
-
         )}
 
       </div>

@@ -14,7 +14,22 @@ const PresenceContext = createContext<Connection[]>([])
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-  const [connections,setConnections] = useState<Connection[]>([])
+
+  const [connections,setConnections] = useState<Connection[]>(() => {
+
+    if(typeof window !== "undefined"){
+
+      const cached = sessionStorage.getItem("presence")
+
+      if(cached){
+        return JSON.parse(cached)
+      }
+
+    }
+
+    return []
+
+  })
 
   useEffect(()=>{
 
@@ -41,7 +56,16 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
             page:p.page
           }))
 
-        setConnections(flat)
+        const unique = Array.from(
+          new Map(flat.map(c=>[c.id,c])).values()
+        )
+
+        setConnections(unique)
+
+        sessionStorage.setItem(
+          "presence",
+          JSON.stringify(unique)
+        )
 
       }
 
@@ -76,7 +100,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(()=>{
 
-    async function updateLocation(){
+    async function updatePage(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -95,7 +119,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     }
 
-    updateLocation()
+    updatePage()
 
   },[pathname])
 
