@@ -12,8 +12,6 @@ const pathname = usePathname()
 
 const { users,roles,userRoles } = useAdminData()
 
-/* hydrate from cache to prevent flicker */
-
 const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
 
 if(typeof window !== "undefined"){
@@ -30,14 +28,14 @@ return []
 
 /* username resolver */
 
-function getUsername(id:string){
+function resolveUsername(id:string){
 
 const profile = users.find(u=>u.id===id)
 
 if(profile?.username){
 
 sessionStorage.setItem(
-"user_"+id,
+"username_"+id,
 profile.username
 )
 
@@ -45,9 +43,13 @@ return profile.username
 
 }
 
-const cached = sessionStorage.getItem("user_"+id)
+/* fallback cache */
 
-return cached || "User"
+const cached = sessionStorage.getItem("username_"+id)
+
+if(cached) return cached
+
+return "User"
 
 }
 
@@ -65,6 +67,7 @@ if(path.includes("settings")) return "Settings"
 if(path.includes("admin")) return "Admin"
 
 return path
+
 }
 
 useEffect(()=>{
@@ -85,8 +88,6 @@ presence:{ key:user.id }
 }
 })
 
-/* subscribe */
-
 channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
@@ -97,8 +98,6 @@ page:pathname
 })
 
 })
-
-/* sync presence */
 
 channel.on("presence",{event:"sync"},()=>{
 
@@ -119,8 +118,6 @@ map[entry.user_id] = entry
 })
 
 const list = Object.values(map)
-
-/* prevent unnecessary rerenders */
 
 setOnlineUsers(prev=>{
 
@@ -145,7 +142,9 @@ startPresence()
 
 return ()=>{
 
-if(channel) supabase.removeChannel(channel)
+if(channel){
+supabase.removeChannel(channel)
+}
 
 }
 
@@ -186,7 +185,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{getUsername(u.user_id)}
+{resolveUsername(u.user_id)}
 </span>
 
 </div>
