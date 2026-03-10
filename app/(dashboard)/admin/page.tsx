@@ -10,6 +10,7 @@ const { loading:permLoading, allowed } = usePermission("admin")
 
 const [users,setUsers] = useState<any[]>([])
 const [roles,setRoles] = useState<any[]>([])
+const [userRoles,setUserRoles] = useState<any>({})
 
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
@@ -23,6 +24,7 @@ if(!allowed) return
 load()
 
 },[allowed])
+
 
 async function load(){
 
@@ -38,12 +40,26 @@ const { data:rolesData } = await supabase
 .select("*")
 .order("name")
 
+const { data:userRoleData } = await supabase
+.from("user_roles")
+.select("*")
+
+/* build role lookup */
+
+const roleMap:any = {}
+
+userRoleData?.forEach((r:any)=>{
+roleMap[r.user_id] = r.role_id
+})
+
 setUsers(usersData || [])
 setRoles(rolesData || [])
+setUserRoles(roleMap)
 
 setLoading(false)
 
 }
+
 
 async function createUser(){
 
@@ -52,7 +68,7 @@ alert("Enter email and password")
 return
 }
 
-const { error } = await supabase.auth.signUp({
+const { data,error } = await supabase.auth.signUp({
 email,
 password
 })
@@ -62,14 +78,41 @@ alert(error.message)
 return
 }
 
+/* assign employee role automatically */
+
+const employeeRole = roles.find(r => r.name === "employee")
+
+if(employeeRole && data?.user){
+
+await supabase
+.from("user_roles")
+.insert({
+user_id:data.user.id,
+role_id:employeeRole.id
+})
+
+}
+
 alert("User created")
 
 setEmail("")
 setPassword("")
 
+load()
+
 }
 
+
 async function toggleUser(user:any){
+
+const { data:userData } = await supabase.auth.getUser()
+
+/* prevent disabling yourself */
+
+if(userData?.user?.id === user.id){
+alert("You cannot disable your own account")
+return
+}
 
 await supabase
 .from("profiles")
@@ -84,6 +127,7 @@ u.id === user.id
 
 }
 
+
 async function changeRole(userId:string,roleId:string){
 
 await supabase
@@ -93,10 +137,17 @@ user_id:userId,
 role_id:roleId
 })
 
+setUserRoles({
+...userRoles,
+[userId]:roleId
+})
+
 }
+
 
 if(permLoading) return null
 if(!allowed) return null
+
 
 return(
 
@@ -177,6 +228,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="flex gap-3 items-center">
 
 <select
+value={userRoles[user.id] || ""}
 onChange={(e)=>changeRole(user.id,e.target.value)}
 className="border border-emerald-300 rounded px-2 py-1"
 >
