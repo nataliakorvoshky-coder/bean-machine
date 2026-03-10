@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase"
 
 export default function RolesPage(){
 
-const { roles,permissions,load } = useAdminData()
+const { roles, permissions, load } = useAdminData()
 
 const pages = ["admin","dashboard","employees","inventory","settings"]
 
@@ -14,12 +14,22 @@ async function toggle(roleId:string,page:string,current:boolean){
 await supabase
 .from("permissions")
 .upsert({
-role_id:roleId,
+role_id: roleId,
 page,
-can_view:!current
+can_view: !current
 })
 
 load()
+
+}
+
+function isEnabled(roleId:string,page:string){
+
+const perm = permissions.find(
+(p:any)=>p.role_id===roleId && p.page===page
+)
+
+return perm?.can_view || false
 
 }
 
@@ -31,77 +41,67 @@ return(
 Roles & Permissions
 </h1>
 
-<table className="w-full bg-white shadow rounded-xl">
+<div className="grid grid-cols-2 gap-8">
 
-<thead>
+{roles.map((role:any)=>{
 
-<tr className="border-b border-emerald-400 text-emerald-700">
-
-<th className="p-4 text-left">
-Role
-</th>
-
-{pages.map(page=>(
-
-<th key={page} className="p-4 capitalize">
-{page}
-</th>
-
-))}
-
-</tr>
-
-</thead>
-
-<tbody>
-
-{roles.map((role:any)=>(
-
-<tr
-key={role.id}
-className="border-b border-emerald-200"
->
-
-<td className="p-4 font-semibold text-emerald-700">
-{role.name}
-</td>
-
-{pages.map(page=>{
-
-const perm = permissions.find(
-(p:any)=>p.role_id===role.id && p.page===page
-)
-
-const enabled = perm?.can_view || false
+const roleName =
+role.name.charAt(0).toUpperCase() + role.name.slice(1)
 
 return(
 
-<td key={page} className="text-center">
+<div
+key={role.id}
+className="bg-white p-8 rounded-xl shadow"
+>
+
+<h2 className="text-xl font-semibold text-emerald-700 mb-6">
+{roleName}
+</h2>
+
+<div className="flex flex-col gap-3">
+
+{pages.map(page=>{
+
+const enabled = isEnabled(role.id,page)
+
+return(
+
+<div
+key={page}
+className={`flex justify-between items-center border rounded-lg p-3 transition
+${enabled
+? "border-emerald-400 bg-emerald-50"
+: "border-gray-300"}
+`}
+>
+
+<span className="capitalize font-medium text-emerald-700">
+{page}
+</span>
 
 <input
 type="checkbox"
 checked={enabled}
 onChange={()=>toggle(role.id,page,enabled)}
-className={`w-6 h-6 cursor-pointer transition
-${enabled
-? "accent-emerald-600 shadow-[0_0_8px_emerald]"
-: "accent-red-500"}
-`}
+className="w-6 h-6 cursor-pointer accent-red-500 checked:accent-emerald-600"
 />
 
-</td>
+</div>
 
 )
 
 })}
 
-</tr>
+</div>
 
-))}
+</div>
 
-</tbody>
+)
 
-</table>
+})}
+
+</div>
 
 </div>
 

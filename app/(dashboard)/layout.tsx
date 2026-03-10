@@ -91,9 +91,7 @@ Admin Panel
 
 {adminOpen &&(
 
-<div className="flex flex-col gap-2 ml-2 border-l border-emerald-400 pl-3">
-
-{canAccess("admin") &&(
+<div className="flex flex-col gap-2 ml-3">
 
 <Link
 href="/admin"
@@ -104,10 +102,6 @@ className={pathname === "/admin"
 Admin Dashboard
 </Link>
 
-)}
-
-{canAccess("dashboard") &&(
-
 <Link
 href="/dashboard"
 className={pathname === "/dashboard"
@@ -117,10 +111,6 @@ className={pathname === "/dashboard"
 Dashboard
 </Link>
 
-)}
-
-{canAccess("admin") &&(
-
 <Link
 href="/admin/roles"
 className={pathname === "/admin/roles"
@@ -129,8 +119,6 @@ className={pathname === "/admin/roles"
 >
 Roles & Permissions
 </Link>
-
-)}
 
 </div>
 
