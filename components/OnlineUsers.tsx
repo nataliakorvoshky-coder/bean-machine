@@ -12,7 +12,7 @@ const pathname = usePathname()
 
 const { users,roles,userRoles } = useAdminData()
 
-/* cached state prevents flicker */
+/* hydrate from cache to prevent flicker */
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
 
@@ -27,6 +27,45 @@ if(cache) return JSON.parse(cache)
 return []
 
 })
+
+/* username resolver */
+
+function getUsername(id:string){
+
+const profile = users.find(u=>u.id===id)
+
+if(profile?.username){
+
+sessionStorage.setItem(
+"user_"+id,
+profile.username
+)
+
+return profile.username
+
+}
+
+const cached = sessionStorage.getItem("user_"+id)
+
+return cached || "User"
+
+}
+
+/* readable page names */
+
+function pageName(path:string){
+
+if(!path) return ""
+
+if(path.includes("dashboard")) return "Dashboard"
+if(path.includes("inventory")) return "Inventory"
+if(path.includes("orders")) return "Orders"
+if(path.includes("employees")) return "Employees"
+if(path.includes("settings")) return "Settings"
+if(path.includes("admin")) return "Admin"
+
+return path
+}
 
 useEffect(()=>{
 
@@ -46,9 +85,9 @@ presence:{ key:user.id }
 }
 })
 
-/* track current user */
+/* subscribe */
 
-channel.subscribe(async (status:string)=>{
+channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
 
@@ -67,7 +106,7 @@ const state = channel.presenceState()
 
 const map:any = {}
 
-/* deduplicate tabs */
+/* dedupe tabs */
 
 Object.values(state).forEach((entries:any)=>{
 
@@ -81,12 +120,22 @@ map[entry.user_id] = entry
 
 const list = Object.values(map)
 
-setOnlineUsers(list)
+/* prevent unnecessary rerenders */
+
+setOnlineUsers(prev=>{
+
+if(JSON.stringify(prev) === JSON.stringify(list)){
+return prev
+}
 
 sessionStorage.setItem(
 "onlineUsers",
 JSON.stringify(list)
 )
+
+return list
+
+})
 
 })
 
@@ -101,28 +150,6 @@ if(channel) supabase.removeChannel(channel)
 }
 
 },[pathname])
-
-/* convert route to readable page */
-
-function pageName(path:string){
-
-if(!path) return ""
-
-if(path.includes("dashboard")) return "Dashboard"
-
-if(path.includes("inventory")) return "Inventory"
-
-if(path.includes("orders")) return "Orders"
-
-if(path.includes("employees")) return "Employees"
-
-if(path.includes("settings")) return "Settings"
-
-if(path.includes("admin")) return "Admin"
-
-return path
-
-}
 
 return(
 
@@ -144,11 +171,8 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
-const profile = users.find(x=>x.id === u.user_id)
-
 const roleId = userRoles[u.user_id]
-
-const role = roles.find(r=>r.id === roleId)
+const role = roles.find(r=>r.id===roleId)
 
 return(
 
@@ -162,7 +186,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{profile?.username || "Unknown"}
+{getUsername(u.user_id)}
 </span>
 
 </div>
