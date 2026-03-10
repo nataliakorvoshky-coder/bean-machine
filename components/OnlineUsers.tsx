@@ -10,7 +10,7 @@ export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { roles, userRoles } = useAdminData()
+const { roles,userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 const [usernames,setUsernames] = useState<Record<string,string>>({})
@@ -30,9 +30,7 @@ return path
 
 }
 
-/* fetch username for user ids */
-
-async function resolveUsernames(ids:string[]){
+async function loadUsernames(ids:string[]){
 
 const missing = ids.filter(id => !usernames[id])
 
@@ -76,6 +74,8 @@ presence:{ key:user.id }
 }
 })
 
+/* subscribe */
+
 channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
@@ -87,25 +87,37 @@ page:pathname
 
 })
 
+/* read presence */
+
 channel.on("presence",{event:"sync"},()=>{
 
 const state = channel.presenceState()
 
-const map:any = {}
+const users:any[] = []
 
 Object.values(state).forEach((entries:any)=>{
 
 entries.forEach((entry:any)=>{
-map[entry.user_id] = entry
-})
+
+users.push(entry)
 
 })
 
-const list = Object.values(map)
+})
+
+/* dedupe users */
+
+const unique:any = {}
+
+users.forEach(u=>{
+unique[u.user_id] = u
+})
+
+const list = Object.values(unique)
 
 setOnlineUsers(list)
 
-resolveUsernames(list.map((u:any)=>u.user_id))
+loadUsernames(list.map((u:any)=>u.user_id))
 
 })
 
