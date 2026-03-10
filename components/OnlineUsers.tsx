@@ -6,7 +6,7 @@ import { useAdminData } from "@/lib/AdminDataContext"
 
 export default function OnlineUsers(){
 
-const { users, roles, userRoles, load } = useAdminData()
+const { users, roles, userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
@@ -44,15 +44,16 @@ setOnlineUsers(active)
 
 useEffect(()=>{
 
-let interval:any
-let poll:any
+let heartbeatInterval:any
+let pollInterval:any
+
+loadUsers()
 
 async function heartbeat(){
 
 const { data } = await supabase.auth.getUser()
 
 const user = data?.user
-
 if(!user) return
 
 await supabase
@@ -67,16 +68,14 @@ last_seen:new Date().toISOString()
 
 heartbeat()
 
-interval = setInterval(heartbeat,10000)
+heartbeatInterval = setInterval(heartbeat,10000)
 
-loadUsers()
-
-poll = setInterval(loadUsers,5000)
+pollInterval = setInterval(loadUsers,5000)
 
 /* realtime role updates */
 
-const channel = supabase
-.channel("role-updates")
+const roleChannel = supabase
+.channel("role-live")
 .on(
 "postgres_changes",
 {
@@ -84,16 +83,16 @@ event:"*",
 schema:"public",
 table:"user_roles"
 },
-()=>load()
+()=>loadUsers()
 )
 .subscribe()
 
 return ()=>{
 
-clearInterval(interval)
-clearInterval(poll)
+clearInterval(heartbeatInterval)
+clearInterval(pollInterval)
 
-supabase.removeChannel(channel)
+supabase.removeChannel(roleChannel)
 
 }
 

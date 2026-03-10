@@ -10,50 +10,38 @@ const { users, roles, permissions, userRoles, load } = useAdminData()
 
 const pages = ["admin","dashboard","employees","inventory","settings"]
 
-const [roleUpdates,setRoleUpdates] = useState<Record<string,string>>({})
-
 const [permUpdates,setPermUpdates] = useState<Record<string,boolean>>({})
-
-/* assign role selection */
-
-function setUserRole(userId:string,roleId:string){
-
-setRoleUpdates(prev=>({
-...prev,
-[userId]:roleId
-}))
-
-}
-
-/* toggle permission */
+const [roleUpdates,setRoleUpdates] = useState<Record<string,string>>({})
 
 function togglePerm(roleId:string,page:string){
 
 const key = `${roleId}_${page}`
 
-setPermUpdates((prev:Record<string,boolean>)=>({
+setPermUpdates(prev=>({
+
 ...prev,
-[key]:!prev[key]
+
+[key]:!(prev[key] ?? permissions.find(
+(p:any)=>p.role_id===roleId && p.page===page
+)?.can_view ?? false)
+
 }))
 
 }
 
-/* submit changes */
+function setUserRole(userId:string,roleId:string){
 
-async function submitChanges(){
+setRoleUpdates(prev=>({
 
-/* update user roles */
+...prev,
 
-for(const userId in roleUpdates){
+[userId]:roleId
 
-await supabase
-.from("user_roles")
-.upsert({
-user_id:userId,
-role_id:roleUpdates[userId]
-})
+}))
 
 }
+
+async function submitChanges(){
 
 /* update permissions */
 
@@ -71,8 +59,21 @@ can_view:permUpdates[key]
 
 }
 
-setRoleUpdates({})
+/* update roles */
+
+for(const userId in roleUpdates){
+
+await supabase
+.from("user_roles")
+.upsert({
+user_id:userId,
+role_id:roleUpdates[userId]
+})
+
+}
+
 setPermUpdates({})
+setRoleUpdates({})
 
 await load()
 
@@ -80,13 +81,14 @@ await load()
 
 return(
 
-<div className="w-[1200px]">
+<div className="w-[1100px]">
 
 <h1 className="text-3xl font-bold text-emerald-700 mb-10">
 Roles & Permissions
 </h1>
 
-{/* ROLE PERMISSION GRID */}
+
+{/* PERMISSION GRID */}
 
 <div className="bg-white rounded-xl shadow p-8 mb-10">
 
@@ -94,9 +96,11 @@ Roles & Permissions
 
 <thead>
 
-<tr className="border-b border-emerald-300 text-emerald-700">
+<tr className="border-b border-emerald-400 text-emerald-700">
 
-<th className="text-left py-2">Role</th>
+<th className="text-left py-3">
+Role
+</th>
 
 {pages.map(page=>(
 
@@ -116,7 +120,10 @@ Roles & Permissions
 
 return(
 
-<tr key={role.id} className="border-b">
+<tr
+key={role.id}
+className="border-b border-emerald-300"
+>
 
 <td className="py-3 font-medium text-emerald-700 capitalize">
 {role.name}
@@ -128,19 +135,20 @@ const perm = permissions.find(
 (p:any)=>p.role_id===role.id && p.page===page
 )
 
-const checked = perm?.can_view || false
-
 const key = `${role.id}_${page}`
 
 return(
 
-<td key={page} className="text-center">
+<td
+key={page}
+className="text-center py-3"
+>
 
 <input
 type="checkbox"
-checked={permUpdates[key] ?? checked}
+checked={permUpdates[key] ?? perm?.can_view ?? false}
 onChange={()=>togglePerm(role.id,page)}
-className="w-5 h-5 accent-emerald-600 cursor-pointer"
+className="w-5 h-5 accent-emerald-500 border border-emerald-300 rounded cursor-pointer"
 />
 
 </td>
@@ -161,9 +169,10 @@ className="w-5 h-5 accent-emerald-600 cursor-pointer"
 
 </div>
 
-{/* ASSIGN ROLES TO USERS */}
 
-<div className="bg-white rounded-xl shadow p-8 mb-10">
+{/* ASSIGN ROLES */}
+
+<div className="bg-white rounded-xl shadow p-8 mb-10 max-w-[700px]">
 
 <h2 className="text-lg font-semibold text-emerald-700 mb-6">
 Assign Roles to Users
@@ -190,7 +199,9 @@ onChange={(e)=>setUserRole(user.id,e.target.value)}
 className="border border-emerald-300 rounded px-3 py-1"
 >
 
-<option value="">No Role</option>
+<option value="">
+No Role
+</option>
 
 {roles.map((role:any)=>(
 
@@ -212,13 +223,14 @@ className="border border-emerald-300 rounded px-3 py-1"
 
 </div>
 
-{/* SUBMIT BUTTON */}
 
 <button
 onClick={submitChanges}
 className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700"
 >
+
 Apply Changes
+
 </button>
 
 </div>

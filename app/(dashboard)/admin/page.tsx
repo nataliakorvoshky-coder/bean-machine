@@ -113,12 +113,6 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <span>{user.username}</span>
 
-<div className="flex gap-3 items-center">
-
-<span className="text-sm text-emerald-700">
-{role?.name || "No Role"}
-</span>
-
 <button
 onClick={()=>toggleUser(user)}
 className={`px-3 py-1 rounded text-white ${
@@ -131,8 +125,6 @@ user.disabled
 {user.disabled ? "Enable" : "Disable"}
 
 </button>
-
-</div>
 
 </div>
 
