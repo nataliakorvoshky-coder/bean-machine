@@ -3,7 +3,7 @@
 import { createContext,useContext,useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
 
-type AdminContextType = {
+type AdminContextType={
 users:any[]
 roles:any[]
 permissions:any[]
@@ -13,126 +13,107 @@ load:()=>Promise<void>
 canAccess:(page:string)=>boolean
 }
 
-const AdminContext = createContext<AdminContextType | null>(null)
+const AdminContext=createContext<AdminContextType|null>(null)
 
 export function AdminDataProvider({children}:{children:React.ReactNode}){
 
-/* hydrate instantly from cache */
+const [users,setUsers]=useState<any[]>([])
+const [roles,setRoles]=useState<any[]>([])
+const [permissions,setPermissions]=useState<any[]>([])
+const [userRoles,setUserRoles]=useState<Record<string,string>>({})
+const [currentRole,setCurrentRole]=useState<string>("")
 
-const [users,setUsers] = useState<any[]>(()=>{
+async function load(){
 
-if(typeof window !== "undefined"){
-const cache = sessionStorage.getItem("users")
-if(cache) return JSON.parse(cache)
-}
+const { data:userData }=await supabase.auth.getUser()
 
-return []
+const userId=userData?.user?.id
 
+const [usersRes,rolesRes,permRes,userRoleRes]=await Promise.all([
+
+supabase.from("profiles").select("id,username,disabled"),
+
+supabase.from("roles").select("*"),
+
+supabase.from("permissions").select("*"),
+
+supabase.from("user_roles").select("*")
+
+])
+
+const map:Record<string,string>={}
+
+userRoleRes.data?.forEach((r:any)=>{
+map[r.user_id]=r.role_id
 })
 
-const [roles,setRoles] = useState<any[]>(()=>{
+setUsers(usersRes.data||[])
+setRoles(rolesRes.data||[])
+setPermissions(permRes.data||[])
+setUserRoles(map)
 
-if(typeof window !== "undefined"){
-const cache = sessionStorage.getItem("roles")
-if(cache) return JSON.parse(cache)
+if(userId){
+setCurrentRole(map[userId]||"")
 }
 
-return []
-
-})
-
-const [permissions,setPermissions] = useState<any[]>([])
-const [userRoles,setUserRoles] = useState<Record<string,string>>({})
-const [currentRole,setCurrentRole] = useState<string>("")
+}
 
 useEffect(()=>{
 
 load()
 
-const channel = supabase
-.channel("admin-updates")
-.on(
-"postgres_changes",
+/* realtime updates */
+
+const channel=supabase
+.channel("admin-live")
+.on("postgres_changes",
 {event:"*",schema:"public",table:"permissions"},
 ()=>load()
 )
-.on(
-"postgres_changes",
+.on("postgres_changes",
 {event:"*",schema:"public",table:"user_roles"},
+()=>load()
+)
+.on("postgres_changes",
+{event:"*",schema:"public",table:"roles"},
 ()=>load()
 )
 .subscribe()
 
-return ()=>{
+return()=>{
 supabase.removeChannel(channel)
 }
 
 },[])
 
-async function load(){
-
-const { data:userData } = await supabase.auth.getUser()
-const userId = userData?.user?.id
-
-const [
-usersRes,
-rolesRes,
-permRes,
-userRoleRes
-] = await Promise.all([
-
-supabase.from("profiles").select("id,username,disabled"),
-supabase.from("roles").select("*"),
-supabase.from("permissions").select("*"),
-supabase.from("user_roles").select("*")
-
-])
-
-const usersData = usersRes.data || []
-const rolesData = rolesRes.data || []
-const permData = permRes.data || []
-const userRoleData = userRoleRes.data || []
-
-const map:Record<string,string> = {}
-
-userRoleData.forEach((r:any)=>{
-map[r.user_id] = r.role_id
-})
-
-setUsers(usersData)
-setRoles(rolesData)
-setPermissions(permData)
-setUserRoles(map)
-
-/* cache data for instant reload */
-
-sessionStorage.setItem("users",JSON.stringify(usersData))
-sessionStorage.setItem("roles",JSON.stringify(rolesData))
-
-if(userId){
-setCurrentRole(map[userId] ?? "")
-}
-
-}
-
 function canAccess(page:string){
-
-/* prevents admin lockout during load */
 
 if(!currentRole) return true
 
-const perm = permissions.find(
-(p:any)=>p.role_id===currentRole && p.page===page
+const role=roles.find(r=>r.id===currentRole)
+
+if(!role) return false
+
+/* inheritance */
+
+const allowedRoles=roles
+.filter(r=>r.level<=role.level)
+.map(r=>r.id)
+
+const perm=permissions.find(p=>
+
+allowedRoles.includes(p.role_id) &&
+p.page===page &&
+p.can_view
 )
 
-return perm?.can_view || false
+return !!perm
 
 }
 
 return(
 
-<AdminContext.Provider
-value={{
+<AdminContext.Provider value={{
 users,
 roles,
 permissions,
@@ -140,8 +121,7 @@ userRoles,
 currentRole,
 load,
 canAccess
-}}
->
+}}>
 
 {children}
 
@@ -153,22 +133,10 @@ canAccess
 
 export function useAdminData(){
 
-const ctx = useContext(AdminContext)
-
-/* during build or SSR the provider may not exist */
+const ctx=useContext(AdminContext)
 
 if(!ctx){
-
-return {
-users:[],
-roles:[],
-permissions:[],
-userRoles:{},
-currentRole:"",
-canAccess:()=>true,
-load: async ()=>{}
-}
-
+throw new Error("useAdminData must be used inside AdminDataProvider")
 }
 
 return ctx

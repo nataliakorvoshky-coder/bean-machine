@@ -1,14 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
 
 export default function OnlineUsers(){
 
-const pathname = usePathname()
-const { users, roles, userRoles } = useAdminData()
+const { users, roles, userRoles, load } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
@@ -24,39 +22,7 @@ return "Page"
 
 }
 
-useEffect(()=>{
-
-let interval:any
-
-async function heartbeat(){
-
-const { data } = await supabase.auth.getUser()
-
-const user = data?.user
-
-if(!user) return
-
-/* UPSERT prevents 409 conflict */
-
-await supabase
-.from("online_users")
-.upsert({
-user_id:user.id,
-page:pathname,
-last_seen:new Date().toISOString()
-})
-
-}
-
-/* send heartbeat */
-
-heartbeat()
-
-interval = setInterval(heartbeat,10000)
-
-/* load online users */
-
-async function load(){
+async function loadUsers(){
 
 const { data } = await supabase
 .from("online_users")
@@ -64,7 +30,7 @@ const { data } = await supabase
 
 if(!data) return
 
-const active = data.filter(u=>{
+const active = data.filter((u:any)=>{
 
 const diff = Date.now() - new Date(u.last_seen).getTime()
 
@@ -76,18 +42,62 @@ setOnlineUsers(active)
 
 }
 
-load()
+useEffect(()=>{
 
-const poll = setInterval(load,5000)
+let interval:any
+let poll:any
+
+async function heartbeat(){
+
+const { data } = await supabase.auth.getUser()
+
+const user = data?.user
+
+if(!user) return
+
+await supabase
+.from("online_users")
+.upsert({
+user_id:user.id,
+page:window.location.pathname,
+last_seen:new Date().toISOString()
+})
+
+}
+
+heartbeat()
+
+interval = setInterval(heartbeat,10000)
+
+loadUsers()
+
+poll = setInterval(loadUsers,5000)
+
+/* realtime role updates */
+
+const channel = supabase
+.channel("role-updates")
+.on(
+"postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"user_roles"
+},
+()=>load()
+)
+.subscribe()
 
 return ()=>{
 
 clearInterval(interval)
 clearInterval(poll)
 
+supabase.removeChannel(channel)
+
 }
 
-},[pathname])
+},[])
 
 return(
 
@@ -109,11 +119,11 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
-const profile = users.find(x=>String(x.id)===String(u.user_id))
+const profile = users.find((x:any)=>String(x.id)===String(u.user_id))
 
 const roleId = userRoles[u.user_id]
 
-const role = roles.find(r=>String(r.id)===String(roleId))
+const role = roles.find((r:any)=>String(r.id)===String(roleId))
 
 return(
 

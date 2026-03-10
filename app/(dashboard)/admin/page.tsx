@@ -1,48 +1,79 @@
 "use client"
 
-import {useState} from "react"
-import {supabase} from "@/lib/supabase"
-import {useAdminData} from "@/lib/AdminDataContext"
+import { useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { useAdminData } from "@/lib/AdminDataContext"
 
-export default function AdminPage(){
+export default function RolesPage(){
 
-const {users,load} = useAdminData()
+const { users, roles, permissions, userRoles, load } = useAdminData()
 
-const [email,setEmail] = useState("")
-const [password,setPassword] = useState("")
+const pages = ["admin","dashboard","employees","inventory","settings"]
 
-async function createUser(){
+const [permUpdates,setPermUpdates] = useState<Record<string,boolean>>({})
+const [roleUpdates,setRoleUpdates] = useState<Record<string,string>>({})
 
-if(!email || !password){
-alert("Enter email and password")
-return
-}
+function togglePerm(roleId:string,page:string){
 
-const {error} = await supabase.auth.signUp({
-email,
-password
-})
+const key = `${roleId}_${page}`
 
-if(error){
-alert(error.message)
-return
-}
+setPermUpdates((prev)=>({
 
-setEmail("")
-setPassword("")
+...prev,
 
-load()
+[key]:!prev[key]
+
+}))
 
 }
 
-async function toggleUser(user:any){
+function setUserRole(userId:string,roleId:string){
+
+setRoleUpdates((prev)=>({
+
+...prev,
+
+[userId]:roleId
+
+}))
+
+}
+
+async function submitChanges(){
+
+/* permissions */
+
+for(const key in permUpdates){
+
+const [roleId,page] = key.split("_")
 
 await supabase
-.from("profiles")
-.update({disabled:!user.disabled})
-.eq("id",user.id)
+.from("permissions")
+.upsert({
+role_id:roleId,
+page,
+can_view:permUpdates[key]
+})
 
-load()
+}
+
+/* roles */
+
+for(const userId in roleUpdates){
+
+await supabase
+.from("user_roles")
+.upsert({
+user_id:userId,
+role_id:roleUpdates[userId]
+})
+
+}
+
+setPermUpdates({})
+setRoleUpdates({})
+
+await load()
 
 }
 
@@ -51,90 +82,162 @@ return(
 <div className="w-[1100px]">
 
 <h1 className="text-3xl font-bold text-emerald-700 mb-10">
-Admin Dashboard
+Roles & Permissions
 </h1>
 
-<div className="grid grid-cols-2 gap-8">
+{/* PERMISSION GRID */}
 
-{/* CREATE USER */}
+<div className="bg-white rounded-xl shadow p-8 mb-10">
 
-<div className="bg-white p-8 rounded-xl shadow">
+<table className="w-full">
 
-<h2 className="text-lg font-semibold text-emerald-700 mb-6">
-Create User
-</h2>
+<thead>
 
-<div className="flex flex-col gap-4">
+<tr className="border-b border-emerald-400 text-emerald-700">
 
-<input
-placeholder="Email"
-value={email}
-onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2"
-/>
+<th className="text-left py-3">
+Role
+</th>
 
-<input
-type="password"
-placeholder="Password"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2"
-/>
+{pages.map(page=>(
 
-<button
-onClick={createUser}
-className="bg-emerald-600 text-white px-5 py-2 rounded w-fit"
+<th
+key={page}
+className="text-center capitalize"
 >
-Create
-</button>
+
+{page}
+
+</th>
+
+))}
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{roles.map((role:any)=>{
+
+return(
+
+<tr
+key={role.id}
+className="border-b border-emerald-200"
+>
+
+<td className="py-3 font-medium text-emerald-700 capitalize">
+{role.name}
+</td>
+
+{pages.map(page=>{
+
+const perm = permissions.find(
+(p:any)=>p.role_id===role.id && p.page===page
+)
+
+const checked = perm?.can_view || false
+
+const key = `${role.id}_${page}`
+
+return(
+
+<td
+key={page}
+className="text-center py-3"
+>
+
+<input
+type="checkbox"
+checked={permUpdates[key] ?? checked}
+onChange={()=>togglePerm(role.id,page)}
+className="w-5 h-5 accent-emerald-500 bg-emerald-100 cursor-pointer"
+/>
+
+</td>
+
+)
+
+})}
+
+</tr>
+
+)
+
+})}
+
+</tbody>
+
+</table>
 
 </div>
 
-</div>
 
-{/* CURRENT USERS */}
+{/* ASSIGN ROLES */}
 
-<div className="bg-white p-8 rounded-xl shadow">
+<div className="bg-white rounded-xl shadow p-8 mb-10 max-w-[700px]">
 
 <h2 className="text-lg font-semibold text-emerald-700 mb-6">
-Current Users
+Assign Roles to Users
 </h2>
 
 <div className="space-y-3">
 
-{users.length > 0 && users.map((user:any)=>(
+{users.map((user:any)=>{
+
+return(
 
 <div
 key={user.id}
-className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
+className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg max-w-[600px]"
 >
 
-<span className="font-medium">
+<span className="text-emerald-700 font-medium">
 {user.username}
 </span>
 
-<button
-onClick={()=>toggleUser(user)}
-className={`px-4 py-1 rounded text-white ${
-user.disabled
-? "bg-gray-500"
-: "bg-emerald-600"
-}`}
+<select
+value={roleUpdates[user.id] ?? userRoles[user.id] ?? ""}
+onChange={(e)=>setUserRole(user.id,e.target.value)}
+className="border border-emerald-300 rounded px-3 py-1"
 >
 
-{user.disabled ? "Enable" : "Disable"}
+<option value="">
+No Role
+</option>
 
-</button>
+{roles.map((role:any)=>(
 
-</div>
+<option
+key={role.id}
+value={role.id}
+>
+{role.name}
+</option>
 
 ))}
 
+</select>
+
 </div>
+
+)
+
+})}
 
 </div>
 
 </div>
+
+<button
+onClick={submitChanges}
+className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700"
+>
+
+Apply Changes
+
+</button>
 
 </div>
 
