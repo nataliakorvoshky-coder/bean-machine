@@ -28,7 +28,7 @@ return path
 
 }
 
-/* idle status */
+/* idle detection */
 
 function getStatus(lastActive:number){
 
@@ -54,17 +54,26 @@ if(!user) return
 
 const userId = user.id
 
-/* create channel */
+/* IMPORTANT: enable presence */
 
 channel = supabase.channel("online-users",{
-config:{ presence:{ key:userId } }
+config:{
+presence:{
+key:userId
+},
+broadcast:{
+self:true
+}
+}
 })
 
-/* subscribe */
+/* join channel */
 
-channel.subscribe(async status=>{
+await channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
+
+/* track presence */
 
 await channel.track({
 user_id:userId,
@@ -74,7 +83,7 @@ lastActive:Date.now()
 
 })
 
-/* activity tracking */
+/* update activity */
 
 const updateActivity = ()=>{
 
@@ -90,7 +99,7 @@ window.addEventListener("mousemove",updateActivity)
 window.addEventListener("keydown",updateActivity)
 window.addEventListener("click",updateActivity)
 
-/* presence sync */
+/* listen for presence changes */
 
 channel.on("presence",{event:"sync"},()=>{
 
@@ -106,7 +115,7 @@ list.push(entry)
 
 })
 
-/* remove duplicates */
+/* dedupe */
 
 const unique:any = {}
 
