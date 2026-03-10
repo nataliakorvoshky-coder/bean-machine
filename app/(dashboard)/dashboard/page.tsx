@@ -2,8 +2,13 @@
 
 import OnlineUsers from "@/components/OnlineUsers"
 import ActivityFeed from "@/components/ActivityFeed"
+import { useAdminData } from "@/lib/AdminDataContext"
 
 export default function DashboardPage(){
+
+const { canAccess } = useAdminData()
+
+if(!canAccess("dashboard")) return null
 
 return(
 
