@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 
-export default function OnlineUsers() {
+export default function OnlineUsers(){
 
 const pathname = usePathname()
 
@@ -36,7 +36,7 @@ return "bg-yellow-400"
 
 useEffect(()=>{
 
-let channel:RealtimeChannel
+let channel:RealtimeChannel | null = null
 
 async function start(){
 
@@ -49,21 +49,24 @@ if(!user) return
 const userId = user.id
 
 channel = supabase.channel("online-users",{
-config:{ presence:{ key:userId } }
+config:{
+presence:{ key:userId },
+broadcast:{ self:true }
+}
 })
 
-/* listen for presence updates */
+/* presence updates */
 
-channel.on("presence",{ event:"sync" },()=>{
+channel.on("presence",{event:"sync"},()=>{
+
+if(!channel) return
 
 const state = channel.presenceState()
 
 const list:any[] = []
 
 Object.values(state).forEach((entries:any)=>{
-
 entries.forEach((entry:any)=> list.push(entry))
-
 })
 
 /* dedupe */
@@ -80,21 +83,25 @@ setOnlineUsers(Object.values(unique))
 
 /* join channel */
 
-await channel.subscribe()
+await channel.subscribe(async status=>{
 
-/* track immediately AFTER subscribe */
+if(status !== "SUBSCRIBED") return
 
-await channel.track({
+/* track user immediately */
+
+await channel?.track({
 user_id:userId,
 page:pathname,
 lastActive:Date.now()
 })
 
-/* update activity */
+})
+
+/* activity tracking */
 
 const updateActivity = ()=>{
 
-channel.track({
+channel?.track({
 user_id:userId,
 page:pathname,
 lastActive:Date.now()
@@ -139,11 +146,15 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
-const profile = users.find(x=>String(x.id) === String(u.user_id))
+const profile = users.find(
+x => String(x.id) === String(u.user_id)
+)
 
 const roleId = userRoles[u.user_id]
 
-const role = roles.find(r=>String(r.id) === String(roleId))
+const role = roles.find(
+r => String(r.id) === String(roleId)
+)
 
 return(
 
