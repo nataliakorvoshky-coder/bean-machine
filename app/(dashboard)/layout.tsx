@@ -1,27 +1,33 @@
 "use client"
 
-import { ReactNode, useEffect, useState } from "react"
+import { useEffect,useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-import { PresenceProvider } from "@/lib/PresenceContext"
-import { UserProvider } from "@/lib/UserContext"
-import { UserDataProvider } from "@/lib/UserDataContext"
-
-function DashboardShell({ children }: { children: ReactNode }) {
+export default function DashboardLayout({
+children
+}:{children:React.ReactNode}){
 
 const pathname = usePathname()
 
-const [username,setUsername] = useState<string>("User")
+const [username,setUsername] = useState(()=>{
+
+if(typeof window !== "undefined"){
+return sessionStorage.getItem("username") || ""
+}
+
+return ""
+
+})
 
 useEffect(()=>{
 
 async function loadUser(){
 
 const { data } = await supabase.auth.getUser()
-
 const user = data?.user
+
 if(!user) return
 
 const { data:profile } = await supabase
@@ -31,7 +37,14 @@ const { data:profile } = await supabase
 .maybeSingle()
 
 if(profile?.username){
+
 setUsername(profile.username)
+
+sessionStorage.setItem(
+"username",
+profile.username
+)
+
 }
 
 }
@@ -74,21 +87,18 @@ Bean Machine
 <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
 <span className="font-semibold">
-{username}
+{username || "User"}
 </span>
 
 </div>
 
+{/* NAVIGATION */}
+
 <nav className="flex flex-col gap-3 text-sm">
 
-<Link
-href="/dashboard"
-className={pathname==="/dashboard"
-? "font-semibold text-white"
-: "hover:text-emerald-200"}
->
-Dashboard
-</Link>
+<p className="text-emerald-200 font-semibold">
+Admin Panel
+</p>
 
 <Link
 href="/admin"
@@ -99,23 +109,36 @@ className={pathname==="/admin"
 Admin Dashboard
 </Link>
 
+<p className="text-emerald-200 font-semibold mt-6">
+Dashboard
+</p>
+
 <Link
-href="/employees"
-className="hover:text-emerald-200"
+href="/dashboard"
+className={pathname==="/dashboard"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
 >
+Dashboard
+</Link>
+
+<p className="text-emerald-200 font-semibold mt-6">
+Employee Management
+</p>
+
+<Link href="/employees">
 Employees
 </Link>
 
-<Link
-href="/stock"
-className="hover:text-emerald-200"
->
-Stock
-</Link>
+<p className="text-emerald-200 font-semibold mt-6">
+User Tools
+</p>
 
 <Link
 href="/settings"
-className="hover:text-emerald-200"
+className={pathname==="/settings"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
 >
 Settings
 </Link>
@@ -140,34 +163,6 @@ Logout
 </div>
 
 </main>
-
-)
-
-}
-
-export default function DashboardLayout({
-children
-}:{children:ReactNode}){
-
-return(
-
-<PresenceProvider>
-
-<UserProvider>
-
-<UserDataProvider>
-
-<DashboardShell>
-
-{children}
-
-</DashboardShell>
-
-</UserDataProvider>
-
-</UserProvider>
-
-</PresenceProvider>
 
 )
 

@@ -1,50 +1,57 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 
-export function usePermission(page: string) {
+export function usePermission(page:string){
 
-  const router = useRouter()
+const router = useRouter()
+const [ready,setReady] = useState(false)
 
-  useEffect(() => {
+useEffect(()=>{
 
-    async function check() {
+async function check(){
 
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
+const { data } = await supabase.auth.getUser()
+const user = data?.user
 
-      if (!user) {
-        router.push("/")
-        return
-      }
+if(!user){
+router.replace("/")
+return
+}
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle()
+const { data:roleData } = await supabase
+.from("user_roles")
+.select("role")
+.eq("user_id",user.id)
+.maybeSingle()
 
-      if (!roleData) {
-        router.push("/dashboard")
-        return
-      }
+if(!roleData){
+router.replace("/dashboard")
+return
+}
 
-      const role = roleData.role
+const role = roleData.role
 
-      // Admin has access to everything
-      if (role === "admin") return
+if(role==="admin"){
+setReady(true)
+return
+}
 
-      // Simple page permission
-      if (role !== page) {
-        router.push("/dashboard")
-      }
+if(role!==page){
+router.replace("/dashboard")
+return
+}
 
-    }
+setReady(true)
 
-    check()
+}
 
-  }, [])
+check()
+
+},[])
+
+return ready
 
 }

@@ -2,11 +2,8 @@
 
 import OnlineUsers from "@/components/OnlineUsers"
 import ActivityFeed from "@/components/ActivityFeed"
-import { usePermission } from "@/lib/usePermission"
 
 export default function DashboardPage(){
-
-usePermission("dashboard")
 
 return(
 
