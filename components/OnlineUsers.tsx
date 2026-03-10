@@ -16,9 +16,9 @@ const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
 useEffect(()=>{
 
-let channel: RealtimeChannel
+let channel:RealtimeChannel
 
-async function setup(){
+async function init(){
 
 const { data } = await supabase.auth.getUser()
 const user = data?.user
@@ -29,9 +29,29 @@ channel = supabase.channel("online-users",{
 config:{presence:{key:user.id}}
 })
 
-/* track user */
+/* PRESENCE LISTENER */
 
-channel.subscribe(async (status: string) => {
+channel.on("presence",{event:"sync"},()=>{
+
+const state = channel.presenceState()
+
+const online:any[] = []
+
+Object.values(state).forEach((entries:any)=>{
+
+entries.forEach((entry:any)=>{
+online.push(entry)
+})
+
+})
+
+setOnlineUsers(online)
+
+})
+
+/* SUBSCRIBE */
+
+channel.subscribe(async (status:string)=>{
 
 if(status !== "SUBSCRIBED") return
 
@@ -42,29 +62,9 @@ page:pathname
 
 })
 
-/* listen for presence updates */
-
-channel.on("presence",{event:"sync"},()=>{
-
-const state = channel.presenceState()
-
-const online:any[] = []
-
-Object.values(state).forEach((entries:any)=>{
-
-entries.forEach((e:any)=>{
-online.push(e)
-})
-
-})
-
-setOnlineUsers(online)
-
-})
-
 }
 
-setup()
+init()
 
 return ()=>{
 
@@ -113,8 +113,6 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <div className="flex items-center gap-3">
 
-{/* STATUS DOT */}
-
 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
 
 <span className="font-medium">
@@ -125,9 +123,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <div className="text-sm text-emerald-700 flex gap-4">
 
-<span>
-{getRole(u.user_id)}
-</span>
+<span>{getRole(u.user_id)}</span>
 
 <span className="italic text-gray-500">
 {u.page}
@@ -138,6 +134,14 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 </div>
 
 ))}
+
+{onlineUsers.length === 0 && (
+
+<p className="text-gray-400">
+No users online
+</p>
+
+)}
 
 </div>
 
