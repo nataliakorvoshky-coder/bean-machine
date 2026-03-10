@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
@@ -20,6 +20,11 @@ return sessionStorage.getItem("username") || ""
 return ""
 
 })
+
+const [adminOpen,setAdminOpen] = useState(true)
+const [stockOpen,setStockOpen] = useState(false)
+const [employeeOpen,setEmployeeOpen] = useState(false)
+const [toolsOpen,setToolsOpen] = useState(true)
 
 useEffect(()=>{
 
@@ -84,7 +89,7 @@ Bean Machine
 
 <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
-<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+<div className="w-3 h-3 rounded-full bg-green-400"></div>
 
 <span className="font-semibold">
 {username || "User"}
@@ -92,56 +97,131 @@ Bean Machine
 
 </div>
 
-{/* NAVIGATION */}
-
 <nav className="flex flex-col gap-3 text-sm">
 
-<p className="text-emerald-200 font-semibold">
+{/* ADMIN PANEL */}
+
+<button
+onClick={()=>setAdminOpen(!adminOpen)}
+className="text-left font-semibold text-emerald-200"
+>
 Admin Panel
-</p>
+</button>
+
+{adminOpen &&(
+
+<div className="ml-3 flex flex-col gap-2">
 
 <Link
 href="/admin"
-className={pathname==="/admin"
+className={pathname === "/admin"
 ? "font-semibold text-white"
 : "hover:text-emerald-200"}
 >
 Admin Dashboard
 </Link>
 
-<p className="text-emerald-200 font-semibold mt-6">
-Dashboard
-</p>
-
 <Link
 href="/dashboard"
-className={pathname==="/dashboard"
+className={pathname === "/dashboard"
 ? "font-semibold text-white"
 : "hover:text-emerald-200"}
 >
 Dashboard
 </Link>
 
-<p className="text-emerald-200 font-semibold mt-6">
-Employee Management
-</p>
+</div>
 
-<Link href="/employees">
+)}
+
+{/* STOCK MANAGEMENT */}
+
+<button
+onClick={()=>setStockOpen(!stockOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+Stock Management
+</button>
+
+{stockOpen &&(
+
+<div className="ml-3 flex flex-col gap-2">
+
+<Link
+href="/inventory"
+className={pathname === "/inventory"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
+Inventory
+</Link>
+
+<Link
+href="/orders"
+className={pathname === "/orders"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
+Orders
+</Link>
+
+</div>
+
+)}
+
+{/* EMPLOYEE MANAGEMENT */}
+
+<button
+onClick={()=>setEmployeeOpen(!employeeOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+Employee Management
+</button>
+
+{employeeOpen &&(
+
+<div className="ml-3 flex flex-col gap-2">
+
+<Link
+href="/employees"
+className={pathname === "/employees"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
 Employees
 </Link>
 
-<p className="text-emerald-200 font-semibold mt-6">
+</div>
+
+)}
+
+{/* USER TOOLS */}
+
+<button
+onClick={()=>setToolsOpen(!toolsOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
 User Tools
-</p>
+</button>
+
+{toolsOpen &&(
+
+<div className="ml-3 flex flex-col gap-2">
 
 <Link
 href="/settings"
-className={pathname==="/settings"
+className={pathname === "/settings"
 ? "font-semibold text-white"
 : "hover:text-emerald-200"}
 >
 Settings
 </Link>
+
+</div>
+
+)}
+
+{/* LOGOUT */}
 
 <button
 onClick={logout}
@@ -154,7 +234,7 @@ Logout
 
 </div>
 
-{/* PAGE */}
+{/* PAGE CONTENT */}
 
 <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
