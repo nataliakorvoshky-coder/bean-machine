@@ -28,20 +28,6 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   })
 
-  function isSame(a:Connection[],b:Connection[]){
-
-    if(a.length !== b.length) return false
-
-    const map = new Map(a.map(x => [x.id,x.page]))
-
-    for(const item of b){
-      if(map.get(item.id) !== item.page) return false
-    }
-
-    return true
-
-  }
-
   useEffect(()=>{
 
     async function start(){
@@ -71,20 +57,18 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
           new Map(flat.map(c=>[c.id,c])).values()
         )
 
-        setConnections(prev => {
+        /* CRITICAL FIX */
 
-          if(isSame(prev,unique)){
-            return prev
-          }
+        if(unique.length === 0){
+          return
+        }
 
-          sessionStorage.setItem(
-            "presence",
-            JSON.stringify(unique)
-          )
+        setConnections(unique)
 
-          return unique
-
-        })
+        sessionStorage.setItem(
+          "presence",
+          JSON.stringify(unique)
+        )
 
       }
 
@@ -100,8 +84,6 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
               id:user.id,
               page:pathname
             })
-
-            update()
 
           }
 
