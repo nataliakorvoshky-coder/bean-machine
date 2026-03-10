@@ -3,53 +3,61 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
 type User = {
-  id: string
-  username: string
+  id:string
+  username:string
 }
 
-interface UserDataType {
-  users: User[]
-  refreshUsers: () => Promise<void>
+type UserDataType = {
+  users:User[]
 }
 
 const UserDataContext = createContext<UserDataType>({
-  users: [],
-  refreshUsers: async () => {}
+  users:[]
 })
 
-export function UserDataProvider({
-  children
-}: {
-  children: React.ReactNode
-}) {
+export function UserDataProvider({ children }:{children:React.ReactNode}){
 
-  const [users,setUsers] = useState<User[]>([])
+  const [users,setUsers] = useState<User[]>(()=>{
 
-  async function refreshUsers(){
+    if(typeof window !== "undefined"){
 
-    try{
+      const cached = sessionStorage.getItem("users")
 
-      const res = await fetch("/api/admin/list-users")
-
-      const data = await res.json()
-
-      if(data?.users){
-        setUsers(data.users)
+      if(cached){
+        return JSON.parse(cached)
       }
 
-    }catch(err){
-      console.error("User load failed")
     }
 
-  }
+    return []
+
+  })
 
   useEffect(()=>{
-    refreshUsers()
+
+    async function load(){
+
+      const res = await fetch("/api/admin/list-users")
+      const data = await res.json()
+
+      const list = data.users || []
+
+      setUsers(list)
+
+      sessionStorage.setItem(
+        "users",
+        JSON.stringify(list)
+      )
+
+    }
+
+    load()
+
   },[])
 
   return(
 
-    <UserDataContext.Provider value={{users,refreshUsers}}>
+    <UserDataContext.Provider value={{users}}>
       {children}
     </UserDataContext.Provider>
 

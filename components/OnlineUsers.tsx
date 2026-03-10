@@ -4,28 +4,34 @@ import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
 type Connection = {
-  id:string
-  page?:string
+  id: string
+  page?: string
+  status?: string
 }
 
-function pageLabel(page?:string){
+function pageLabel(page?: string) {
 
-  if(!page) return "Active"
+  if (!page) return "Active"
 
-  if(page.includes("dashboard")) return "Dashboard"
-  if(page.includes("admin")) return "Admin"
-  if(page.includes("settings")) return "Settings"
+  if (page.includes("dashboard")) return "Dashboard"
+  if (page.includes("admin")) return "Admin"
+  if (page.includes("settings")) return "Settings"
 
   return "Active"
-
 }
 
-export default function OnlineUsers(){
+export default function OnlineUsers() {
 
   const connections = usePresence() as Connection[]
   const { users } = useUserData()
 
-  return(
+  /* Remove duplicate connections */
+
+  const uniqueConnections = Array.from(
+    new Map(connections.map(c => [c.id, c])).values()
+  )
+
+  return (
 
     <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -35,12 +41,23 @@ export default function OnlineUsers(){
 
       <div className="space-y-3">
 
-        {connections.map(conn=>{
+        {uniqueConnections.map(conn => {
 
-          const user = users.find((u:any)=>u.id===conn.id)
-          if(!user) return null
+          const user = users.find((u: any) => u.id === conn.id)
 
-          return(
+          if (!user) return null
+
+          const statusColor =
+            conn.status === "idle"
+              ? "bg-yellow-400"
+              : "bg-green-400"
+
+          const statusText =
+            conn.status === "idle"
+              ? "Idle"
+              : pageLabel(conn.page)
+
+          return (
 
             <div
               key={conn.id}
@@ -49,7 +66,9 @@ export default function OnlineUsers(){
 
               <div className="flex items-center gap-3">
 
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                <div
+                  className={`w-3 h-3 rounded-full ${statusColor}`}
+                />
 
                 <span className="font-medium">
                   {user.username}
@@ -58,7 +77,7 @@ export default function OnlineUsers(){
               </div>
 
               <span className="text-sm text-gray-500">
-                {pageLabel(conn.page)}
+                {statusText}
               </span>
 
             </div>
@@ -66,6 +85,14 @@ export default function OnlineUsers(){
           )
 
         })}
+
+        {uniqueConnections.length === 0 && (
+
+          <div className="text-sm text-gray-400">
+            No users online
+          </div>
+
+        )}
 
       </div>
 

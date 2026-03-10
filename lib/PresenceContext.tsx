@@ -7,17 +7,18 @@ import { usePathname } from "next/navigation"
 type Connection = {
   id:string
   page?:string
+  status:string
 }
 
 const PresenceContext = createContext<Connection[]>([])
 
 let channel:any = null
 
-export function PresenceProvider({ children }: { children: React.ReactNode }) {
+export function PresenceProvider({ children }:{children:React.ReactNode}){
 
   const pathname = usePathname()
 
-  const [connections,setConnections] = useState<Connection[]>(() => {
+  const [connections,setConnections] = useState<Connection[]>(()=>{
 
     if(typeof window !== "undefined"){
       const cached = sessionStorage.getItem("presence")
@@ -28,12 +29,49 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   })
 
+  const [status,setStatus] = useState("active")
+
+  /* IDLE TRACKING */
+
+  useEffect(()=>{
+
+    let idleTimer:any
+
+    function setActive(){
+
+      setStatus("active")
+
+      clearTimeout(idleTimer)
+
+      idleTimer = setTimeout(()=>{
+        setStatus("idle")
+      },60000)
+
+    }
+
+    window.addEventListener("mousemove",setActive)
+    window.addEventListener("keydown",setActive)
+
+    setActive()
+
+    return ()=>{
+
+      window.removeEventListener("mousemove",setActive)
+      window.removeEventListener("keydown",setActive)
+
+    }
+
+  },[])
+
+  /* START PRESENCE */
+
   useEffect(()=>{
 
     async function start(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
+
       if(!user) return
 
       if(channel) return
@@ -42,22 +80,23 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
         config:{ presence:{ key:user.id } }
       })
 
-      const update = () => {
+      const update = ()=>{
 
         const state = channel.presenceState()
 
-        const flat:Connection[] = Object.values(state || {})
+        const flat = Object.values(state || {})
           .flat()
           .map((p:any)=>({
             id:p.id,
-            page:p.page
+            page:p.page,
+            status:p.status
           }))
 
         const unique = Array.from(
-          new Map(flat.map(c=>[c.id,c])).values()
+          new Map(flat.map((c:any)=>[c.id,c])).values()
         )
 
-        if(unique.length === 0) return
+        if(unique.length===0) return
 
         setConnections(unique)
 
@@ -69,21 +108,22 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
       }
 
       channel
-        .on("presence",{event:"sync"},update)
-        .on("presence",{event:"join"},update)
-        .on("presence",{event:"leave"},update)
-        .subscribe(async(status:string)=>{
+      .on("presence",{event:"sync"},update)
+      .on("presence",{event:"join"},update)
+      .on("presence",{event:"leave"},update)
+      .subscribe(async(resp:string)=>{
 
-          if(status==="SUBSCRIBED"){
+        if(resp==="SUBSCRIBED"){
 
-            await channel.track({
-              id:user.id,
-              page:pathname
-            })
+          await channel.track({
+            id:user.id,
+            page:pathname,
+            status
+          })
 
-          }
+        }
 
-        })
+      })
 
     }
 
@@ -91,9 +131,11 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   },[])
 
+  /* UPDATE LOCATION + STATUS */
+
   useEffect(()=>{
 
-    async function updatePage(){
+    async function update(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -102,14 +144,15 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
       await channel.track({
         id:user.id,
-        page:pathname
+        page:pathname,
+        status
       })
 
     }
 
-    updatePage()
+    update()
 
-  },[pathname])
+  },[pathname,status])
 
   return(
 
