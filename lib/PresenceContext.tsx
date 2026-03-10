@@ -11,20 +11,39 @@ type Connection = {
 
 const PresenceContext = createContext<Connection[]>([])
 
+let channel: any = null
+
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-  const [connections,setConnections] = useState<Connection[]>([])
+
+  const [connections,setConnections] = useState<Connection[]>(() => {
+
+    if(typeof window !== "undefined"){
+
+      const cached = sessionStorage.getItem("presence")
+
+      if(cached){
+        return JSON.parse(cached)
+      }
+
+    }
+
+    return []
+
+  })
+
+  /* START PRESENCE */
 
   useEffect(()=>{
-
-    let channel:any
 
     async function start(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
       if(!user) return
+
+      if(channel) return
 
       channel = supabase.channel("online-users",{
         config:{ presence:{ key:user.id } }
@@ -47,12 +66,10 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
         setConnections(unique)
 
-        if(typeof window !== "undefined"){
-          sessionStorage.setItem(
-            "presence",
-            JSON.stringify(unique)
-          )
-        }
+        sessionStorage.setItem(
+          "presence",
+          JSON.stringify(unique)
+        )
 
       }
 
@@ -79,25 +96,18 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     start()
 
-    return ()=>{
-      if(channel) supabase.removeChannel(channel)
-    }
-
   },[])
+
+  /* UPDATE LOCATION */
 
   useEffect(()=>{
 
-    async function updatePage(){
+    async function updateLocation(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
-      if(!user) return
 
-      const channel = supabase.getChannels().find(
-        c=>c.topic==="online-users"
-      )
-
-      if(!channel) return
+      if(!user || !channel) return
 
       await channel.track({
         id:user.id,
@@ -106,7 +116,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     }
 
-    updatePage()
+    updateLocation()
 
   },[pathname])
 
