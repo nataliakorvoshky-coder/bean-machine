@@ -1,141 +1,271 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect,useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { AdminDataProvider } from "@/lib/AdminDataContext"
 
 export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+children
+}:{children:React.ReactNode}){
 
-  const pathname = usePathname()
+const pathname = usePathname()
 
-  const [username, setUsername] = useState("")
+/* username hydration (prevents flash) */
 
-  useEffect(() => {
-    async function loadUser() {
+const [username,setUsername] = useState(()=>{
 
-      const { data } = await supabase.auth.getUser()
+if(typeof window !== "undefined"){
+return sessionStorage.getItem("username") || ""
+}
 
-      const user = data?.user
+return ""
 
-      if (!user) return
+})
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single()
+/* collapsible menus */
 
-      if (profile?.username) {
-        setUsername(profile.username)
-      }
+const [adminOpen,setAdminOpen] = useState(true)
+const [stockOpen,setStockOpen] = useState(false)
+const [employeeOpen,setEmployeeOpen] = useState(false)
+const [toolsOpen,setToolsOpen] = useState(true)
 
-    }
+/* load user */
 
-    loadUser()
-  }, [])
+useEffect(()=>{
 
-  async function logout() {
-    await supabase.auth.signOut()
-    window.location.href = "/login"
-  }
+async function loadUser(){
 
-  return (
-    <AdminDataProvider>
+const { data } = await supabase.auth.getUser()
 
-      <main className="flex min-h-screen">
+const user = data?.user
 
-        {/* SIDEBAR */}
+if(!user) return
 
-        <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
+const { data:profile } = await supabase
+.from("profiles")
+.select("username")
+.eq("id",user.id)
+.single()
 
-          <div className="flex items-center gap-3 mb-10">
-            <img src="/logo.png" className="w-10 h-10" />
-            <h1 className="text-2xl font-bold">
-              Bean Machine
-            </h1>
-          </div>
+if(profile?.username){
 
-          <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
-            <div className="w-3 h-3 rounded-full bg-green-400"></div>
-            <span>{username}</span>
-          </div>
+setUsername(profile.username)
 
-          <nav className="flex flex-col gap-3 text-sm">
+sessionStorage.setItem(
+"username",
+profile.username
+)
 
-            <p className="text-emerald-200 font-semibold mb-2">
-              Admin Panel
-            </p>
+}
 
-            <Link
-              href="/admin"
-              className={pathname === "/admin" ? "text-white" : "text-white/80"}
-            >
-              Admin Dashboard
-            </Link>
+}
 
-            <Link
-              href="/dashboard"
-              className={pathname === "/dashboard" ? "text-white" : "text-white/80"}
-            >
-              Dashboard
-            </Link>
+loadUser()
 
-            <Link
-              href="/admin/roles"
-              className={pathname === "/admin/roles" ? "text-white" : "text-white/80"}
-            >
-              Roles & Permissions
-            </Link>
+},[])
 
-            <p className="text-emerald-200 font-semibold mt-6">
-              Employee Management
-            </p>
+/* logout */
 
-            <Link
-              href="/employees"
-              className={pathname === "/employees" ? "text-white" : "text-white/80"}
-            >
-              Employees
-            </Link>
+async function logout(){
 
-            <p className="text-emerald-200 font-semibold mt-6">
-              User Tools
-            </p>
+await supabase.auth.signOut()
 
-            <Link
-              href="/settings"
-              className={pathname === "/settings" ? "text-white" : "text-white/80"}
-            >
-              Settings
-            </Link>
+window.location.href="/login"
 
-            <button
-              onClick={logout}
-              className="text-left text-white/80 mt-6"
-            >
-              Logout
-            </button>
+}
 
-          </nav>
+return(
 
-        </div>
+<AdminDataProvider>
 
-        {/* PAGE CONTENT */}
+<main className="flex min-h-screen">
 
-        <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
+{/* SIDEBAR */}
 
-          {children}
+<div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
 
-        </div>
+{/* LOGO */}
 
-      </main>
+<div className="flex items-center gap-3 mb-10">
 
-    </AdminDataProvider>
-  )
+<img src="/logo.png" className="w-10 h-10"/>
+
+<h1 className="text-2xl font-bold">
+Bean Machine
+</h1>
+
+</div>
+
+{/* USER */}
+
+<div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
+
+<div className="w-3 h-3 rounded-full bg-green-400"></div>
+
+<span>{username}</span>
+
+</div>
+
+<nav className="flex flex-col text-sm">
+
+{/* ADMIN PANEL */}
+
+<button
+onClick={()=>setAdminOpen(!adminOpen)}
+className="text-left font-semibold text-emerald-200 mb-2"
+>
+Admin Panel
+</button>
+
+{adminOpen &&(
+
+<div className="flex flex-col gap-3 pl-4 mb-4">
+
+<Link
+href="/admin"
+className={pathname === "/admin"
+? "text-white"
+: "text-white/80"}
+>
+Admin Dashboard
+</Link>
+
+<Link
+href="/dashboard"
+className={pathname === "/dashboard"
+? "text-white"
+: "text-white/80"}
+>
+Dashboard
+</Link>
+
+<Link
+href="/admin/roles"
+className={pathname === "/admin/roles"
+? "text-white"
+: "text-white/80"}
+>
+Roles & Permissions
+</Link>
+
+</div>
+
+)}
+
+{/* STOCK MANAGEMENT */}
+
+<button
+onClick={()=>setStockOpen(!stockOpen)}
+className="text-left font-semibold text-emerald-200 mb-2"
+>
+Stock Management
+</button>
+
+{stockOpen &&(
+
+<div className="flex flex-col gap-3 pl-4 mb-4">
+
+<Link
+href="/inventory"
+className={pathname === "/inventory"
+? "text-white"
+: "text-white/80"}
+>
+Inventory
+</Link>
+
+<Link
+href="/orders"
+className={pathname === "/orders"
+? "text-white"
+: "text-white/80"}
+>
+Orders
+</Link>
+
+</div>
+
+)}
+
+{/* EMPLOYEE MANAGEMENT */}
+
+<button
+onClick={()=>setEmployeeOpen(!employeeOpen)}
+className="text-left font-semibold text-emerald-200 mb-2"
+>
+Employee Management
+</button>
+
+{employeeOpen &&(
+
+<div className="flex flex-col gap-3 pl-4 mb-4">
+
+<Link
+href="/employees"
+className={pathname === "/employees"
+? "text-white"
+: "text-white/80"}
+>
+Employees
+</Link>
+
+</div>
+
+)}
+
+{/* USER TOOLS */}
+
+<button
+onClick={()=>setToolsOpen(!toolsOpen)}
+className="text-left font-semibold text-emerald-200 mb-2"
+>
+User Tools
+</button>
+
+{toolsOpen &&(
+
+<div className="flex flex-col gap-3 pl-4 mb-4">
+
+<Link
+href="/settings"
+className={pathname === "/settings"
+? "text-white"
+: "text-white/80"}
+>
+Settings
+</Link>
+
+</div>
+
+)}
+
+{/* LOGOUT */}
+
+<button
+onClick={logout}
+className="text-left text-white/80 mt-6"
+>
+Logout
+</button>
+
+</nav>
+
+</div>
+
+{/* PAGE CONTENT */}
+
+<div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
+
+{children}
+
+</div>
+
+</main>
+
+</AdminDataProvider>
+
+)
+
 }

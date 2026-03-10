@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect,useState } from "react"
-import { supabase } from "@/lib/supabase"
 import { usePathname } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
-import { RealtimeChannel } from "@supabase/supabase-js"
+import type { RealtimeChannel } from "@supabase/supabase-js"
 
 export default function OnlineUsers(){
 
@@ -12,20 +12,27 @@ const pathname = usePathname()
 
 const { users,roles,userRoles } = useAdminData()
 
-const [mounted,setMounted] = useState(false)
-const [onlineUsers,setOnlineUsers] = useState<any[]>([])
+/* cached state prevents flicker */
 
-/* hydration gate */
+const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
 
-useEffect(()=>{
-setMounted(true)
-},[])
+if(typeof window !== "undefined"){
+
+const cache = sessionStorage.getItem("onlineUsers")
+
+if(cache) return JSON.parse(cache)
+
+}
+
+return []
+
+})
 
 useEffect(()=>{
 
 let channel:RealtimeChannel
 
-async function init(){
+async function startPresence(){
 
 const { data } = await supabase.auth.getUser()
 
@@ -33,34 +40,13 @@ const user = data?.user
 
 if(!user) return
 
-/* seed current user */
-
-setOnlineUsers([{
-user_id:user.id,
-page:pathname
-}])
-
 channel = supabase.channel("online-users",{
-config:{presence:{key:user.id}}
+config:{
+presence:{ key:user.id }
+}
 })
 
-channel.on("presence",{event:"sync"},()=>{
-
-const state = channel.presenceState()
-
-const online:any[]=[]
-
-Object.values(state).forEach((entries:any)=>{
-
-entries.forEach((entry:any)=>{
-online.push(entry)
-})
-
-})
-
-setOnlineUsers(online)
-
-})
+/* track current user */
 
 channel.subscribe(async (status:string)=>{
 
@@ -73,67 +59,98 @@ page:pathname
 
 })
 
+/* sync presence */
+
+channel.on("presence",{event:"sync"},()=>{
+
+const state = channel.presenceState()
+
+const map:any = {}
+
+/* deduplicate tabs */
+
+Object.values(state).forEach((entries:any)=>{
+
+entries.forEach((entry:any)=>{
+
+map[entry.user_id] = entry
+
+})
+
+})
+
+const list = Object.values(map)
+
+setOnlineUsers(list)
+
+sessionStorage.setItem(
+"onlineUsers",
+JSON.stringify(list)
+)
+
+})
+
 }
 
-init()
+startPresence()
 
 return ()=>{
 
-if(channel){
-supabase.removeChannel(channel)
-}
+if(channel) supabase.removeChannel(channel)
 
 }
 
 },[pathname])
 
-if(!mounted) return null
-
-function username(id:string){
-
-const u = users.find((x:any)=>x.id===id)
-
-return u?.username || "Unknown"
-
-}
-
-function role(id:string){
-
-const roleId = userRoles[id]
-
-const r = roles.find((x:any)=>x.id===roleId)
-
-return r?.name || "No Role"
-
-}
+/* convert route to readable page */
 
 function pageName(path:string){
 
-const map:any={
-"/dashboard":"Dashboard",
-"/admin":"Admin",
-"/admin/roles":"Roles",
-"/inventory":"Inventory",
-"/orders":"Orders",
-"/employees":"Employees",
-"/settings":"Settings"
-}
+if(!path) return ""
 
-return map[path] || path
+if(path.includes("dashboard")) return "Dashboard"
+
+if(path.includes("inventory")) return "Inventory"
+
+if(path.includes("orders")) return "Orders"
+
+if(path.includes("employees")) return "Employees"
+
+if(path.includes("settings")) return "Settings"
+
+if(path.includes("admin")) return "Admin"
+
+return path
 
 }
 
 return(
 
-<div className="bg-white p-8 rounded-xl shadow">
+<div className="bg-white p-8 rounded-xl shadow min-h-[120px]">
 
 <h2 className="text-lg font-semibold text-emerald-700 mb-6">
 Online Users
 </h2>
 
+{onlineUsers.length === 0 ?(
+
+<p className="text-gray-500">
+No users online
+</p>
+
+):( 
+
 <div className="space-y-3">
 
-{onlineUsers.map((u:any)=>(
+{onlineUsers.map((u:any)=>{
+
+const profile = users.find(x=>x.id === u.user_id)
+
+const roleId = userRoles[u.user_id]
+
+const role = roles.find(r=>r.id === roleId)
+
+return(
 
 <div
 key={u.user_id}
@@ -142,17 +159,19 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <div className="flex items-center gap-3">
 
-<div className="w-3 h-3 bg-green-500 rounded-full"></div>
+<div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{username(u.user_id)}
+{profile?.username || "Unknown"}
 </span>
 
 </div>
 
-<div className="flex gap-4 text-sm text-emerald-700">
+<div className="flex items-center gap-6 text-sm">
 
-<span>{role(u.user_id)}</span>
+<span className="text-emerald-700">
+{role?.name || "No Role"}
+</span>
 
 <span className="text-gray-500 italic">
 {pageName(u.page)}
@@ -162,9 +181,13 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 </div>
 
-))}
+)
+
+})}
 
 </div>
+
+)}
 
 </div>
 
