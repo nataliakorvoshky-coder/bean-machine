@@ -22,6 +22,9 @@ return ""
 })
 
 const [adminOpen,setAdminOpen] = useState(true)
+const [stockOpen,setStockOpen] = useState(false)
+const [employeeOpen,setEmployeeOpen] = useState(false)
+const [toolsOpen,setToolsOpen] = useState(true)
 
 useEffect(()=>{
 
@@ -66,6 +69,8 @@ return(
 
 <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
 
+{/* LOGO */}
+
 <div className="flex items-center gap-3 mb-10">
 
 <img src="/logo.png" className="w-10 h-10"/>
@@ -75,6 +80,8 @@ Bean Machine
 </h1>
 
 </div>
+
+{/* USER */}
 
 <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
@@ -88,18 +95,15 @@ Bean Machine
 
 <nav className="flex flex-col gap-3 text-sm">
 
+{/* ADMIN PANEL */}
+
 {canAccess("admin") && (
 
 <>
 
-<button
-onClick={()=>setAdminOpen(!adminOpen)}
-className="text-left font-semibold text-emerald-200"
->
+<p className="text-emerald-200 font-semibold">
 Admin Panel
-</button>
-
-{adminOpen &&(
+</p>
 
 <div className="ml-3 flex flex-col gap-2">
 
@@ -107,7 +111,7 @@ Admin Panel
 href="/admin"
 className={pathname==="/admin"
 ? "font-semibold text-white"
-: "hover:text-emerald-200"}
+: "text-emerald-100 hover:text-white"}
 >
 Admin Dashboard
 </Link>
@@ -116,7 +120,7 @@ Admin Dashboard
 href="/dashboard"
 className={pathname==="/dashboard"
 ? "font-semibold text-white"
-: "hover:text-emerald-200"}
+: "text-emerald-100 hover:text-white"}
 >
 Dashboard
 </Link>
@@ -125,9 +129,50 @@ Dashboard
 href="/admin/roles"
 className={pathname==="/admin/roles"
 ? "font-semibold text-white"
-: "hover:text-emerald-200"}
+: "text-emerald-100 hover:text-white"}
 >
 Roles & Permissions
+</Link>
+
+</div>
+
+</>
+
+)}
+
+{/* STOCK MANAGEMENT */}
+
+{canAccess("inventory") && (
+
+<>
+
+<button
+onClick={()=>setStockOpen(!stockOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+Stock Management
+</button>
+
+{stockOpen &&(
+
+<div className="ml-3 flex flex-col gap-2">
+
+<Link
+href="/inventory"
+className={pathname==="/inventory"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
+Inventory
+</Link>
+
+<Link
+href="/orders"
+className={pathname==="/orders"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
+Orders
 </Link>
 
 </div>
@@ -137,6 +182,68 @@ Roles & Permissions
 </>
 
 )}
+
+{/* EMPLOYEE MANAGEMENT */}
+
+{canAccess("employees") && (
+
+<>
+
+<button
+onClick={()=>setEmployeeOpen(!employeeOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+Employee Management
+</button>
+
+{employeeOpen &&(
+
+<div className="ml-3 flex flex-col gap-2">
+
+<Link
+href="/employees"
+className={pathname==="/employees"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
+Employees
+</Link>
+
+</div>
+
+)}
+
+</>
+
+)}
+
+{/* USER TOOLS */}
+
+<button
+onClick={()=>setToolsOpen(!toolsOpen)}
+className="text-left font-semibold text-emerald-200 mt-4"
+>
+User Tools
+</button>
+
+{toolsOpen &&(
+
+<div className="ml-3 flex flex-col gap-2">
+
+<Link
+href="/settings"
+className={pathname==="/settings"
+? "font-semibold text-white"
+: "text-emerald-100 hover:text-white"}
+>
+Settings
+</Link>
+
+</div>
+
+)}
+
+{/* LOGOUT */}
 
 <button
 onClick={logout}
