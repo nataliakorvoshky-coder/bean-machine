@@ -11,12 +11,7 @@ export default function RolesPage(){
   const [roles,setRoles] = useState<any[]>([])
   const [permissions,setPermissions] = useState<any[]>([])
 
-  const pages = [
-    "admin",
-    "dashboard",
-    "employees",
-    "settings"
-  ]
+  const pages = ["admin","dashboard","employees","settings"]
 
   useEffect(()=>{
 
@@ -30,6 +25,9 @@ export default function RolesPage(){
       const { data:permData } = await supabase
         .from("permissions")
         .select("*")
+
+      console.log("ROLES:",rolesData)
+      console.log("PERMISSIONS:",permData)
 
       setRoles(rolesData || [])
       setPermissions(permData || [])
@@ -64,6 +62,12 @@ export default function RolesPage(){
       <h1 className="text-3xl font-bold text-emerald-700 mb-10">
         Roles & Permissions
       </h1>
+
+      {roles.length===0 && (
+        <p className="text-gray-500">
+          No roles found in database.
+        </p>
+      )}
 
       <div className="space-y-6">
 
@@ -109,9 +113,7 @@ export default function RolesPage(){
                           : "bg-gray-400"
                         }`}
                       >
-
                         {enabled ? "Enabled" : "Disabled"}
-
                       </button>
 
                     </div>
