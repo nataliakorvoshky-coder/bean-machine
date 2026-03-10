@@ -4,47 +4,64 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-export function usePermission(page: string) {
+export function usePermission(page:string){
 
-  const router = useRouter()
+const router = useRouter()
 
-  useEffect(() => {
+useEffect(()=>{
 
-    async function checkPermission() {
+async function check(){
 
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
+const { data } = await supabase.auth.getUser()
+const user = data?.user
 
-      if (!user) {
-        router.replace("/")
-        return
-      }
+if(!user){
+router.replace("/")
+return
+}
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle()
+/* get role */
 
-      if (!roleData) {
-        router.replace("/dashboard")
-        return
-      }
+const { data:roleData } = await supabase
+.from("user_roles")
+.select("role")
+.eq("user_id",user.id)
+.maybeSingle()
 
-      const role = roleData.role
+const role = roleData?.role
 
-      // Admin always allowed
-      if (role === "admin") return
+/* ADMIN HAS ACCESS TO EVERYTHING */
 
-      // Basic page permissions
-      if (page !== role) {
-        router.replace("/dashboard")
-      }
+if(role==="admin"){
+return
+}
 
-    }
+/* BASIC PAGE PERMISSIONS */
 
-    checkPermission()
+if(role==="employees" && page!=="employees"){
+router.replace("/dashboard")
+return
+}
 
-  }, [page, router])
+if(role==="dashboard" && page!=="dashboard"){
+router.replace("/dashboard")
+return
+}
+
+if(role==="settings" && page!=="settings"){
+router.replace("/dashboard")
+return
+}
+
+if(role==="stock" && page!=="stock"){
+router.replace("/dashboard")
+return
+}
+
+}
+
+check()
+
+},[])
 
 }
