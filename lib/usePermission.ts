@@ -4,59 +4,69 @@ import { useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
-export function usePermission(page: string){
+export function usePermission(page:string){
 
-  const router = useRouter()
+const router = useRouter()
 
-  useEffect(()=>{
+useEffect(()=>{
 
-    async function check(){
+async function checkPermission(){
 
-      const { data:userData } = await supabase.auth.getUser()
-      const user = userData?.user
+const { data:userData } = await supabase.auth.getUser()
+const user = userData?.user
 
-      if(!user){
-        router.replace("/")
-        return
-      }
+if(!user){
+router.replace("/")
+return
+}
 
-      const { data } = await supabase
-        .from("user_roles")
-        .select(`
-          roles(
-            name,
-            permissions(
-              page,
-              can_view
-            )
-          )
-        `)
-        .eq("user_id",user.id)
-        .single()
+/* GET ROLE */
 
-      const role = data?.roles?.[0]?.name
+const { data:roleData } = await supabase
+.from("user_roles")
+.select(`
+roles(
+id,
+name
+)
+`)
+.eq("user_id",user.id)
+.single()
 
-      /* ADMIN ALWAYS ALLOWED */
+const role = roleData?.roles?.[0]?.name
 
-      if(role === "admin"){
-        return
-      }
+/* ADMIN ALWAYS ALLOWED */
 
-      const permissions =
-        data?.roles?.[0]?.permissions || []
+if(role==="admin"){
+return
+}
 
-      const allowed = permissions.find(
-        (p:any)=>p.page === page
-      )
+const roleId = roleData?.roles?.[0]?.id
 
-      if(!allowed?.can_view){
-        router.replace("/dashboard")
-      }
+if(!roleId){
+router.replace("/dashboard")
+return
+}
 
-    }
+/* CHECK PERMISSIONS */
 
-    check()
+const { data:permissions } = await supabase
+.from("permissions")
+.select("page,can_view")
+.eq("role_id",roleId)
 
-  },[page,router])
+const allowed = permissions?.find(
+(p:any)=>p.page===page
+)
+
+if(!allowed?.can_view){
+router.replace("/dashboard")
+}
+
+}
+
+checkPermission()
+
+},[page,router])
 
 }
