@@ -14,22 +14,7 @@ const PresenceContext = createContext<Connection[]>([])
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-
-  const [connections,setConnections] = useState<Connection[]>(() => {
-
-    if(typeof window !== "undefined"){
-
-      const cached = sessionStorage.getItem("presence")
-
-      if(cached){
-        return JSON.parse(cached)
-      }
-
-    }
-
-    return []
-
-  })
+  const [connections,setConnections] = useState<Connection[]>([])
 
   useEffect(()=>{
 
@@ -49,7 +34,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
         const state = channel.presenceState()
 
-        const flat:Connection[] = Object.values(state)
+        const flat:Connection[] = Object.values(state || {})
           .flat()
           .map((p:any)=>({
             id:p.id,
@@ -62,10 +47,12 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
         setConnections(unique)
 
-        sessionStorage.setItem(
-          "presence",
-          JSON.stringify(unique)
-        )
+        if(typeof window !== "undefined"){
+          sessionStorage.setItem(
+            "presence",
+            JSON.stringify(unique)
+          )
+        }
 
       }
 

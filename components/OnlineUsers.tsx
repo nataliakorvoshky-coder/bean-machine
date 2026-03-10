@@ -25,6 +25,8 @@ export default function OnlineUsers(){
   const connections = usePresence() as Connection[]
   const { users } = useUserData()
 
+  if(!users) return null
+
   return(
 
     <div className="w-[420px] bg-white p-8 rounded-xl shadow">
