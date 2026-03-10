@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabase"
 export default function RolesPage(){
 
 const [roles,setRoles] = useState<any[]>([])
-const [permissions,setPermissions] = useState<any[]>([])
 const [users,setUsers] = useState<any[]>([])
+const [permissions,setPermissions] = useState<any[]>([])
 const [userRoles,setUserRoles] = useState<any>({})
 
 const pages = ["admin","dashboard","employees","settings"]
@@ -23,13 +23,13 @@ const { data:rolesData } = await supabase
 .select("*")
 .order("name")
 
-const { data:permData } = await supabase
-.from("permissions")
-.select("*")
-
 const { data:userData } = await supabase
 .from("profiles")
 .select("id,username")
+
+const { data:permData } = await supabase
+.from("permissions")
+.select("*")
 
 const { data:userRoleData } = await supabase
 .from("user_roles")
@@ -42,27 +42,35 @@ map[r.user_id] = r.role_id
 })
 
 setRoles(rolesData || [])
-setPermissions(permData || [])
 setUsers(userData || [])
+setPermissions(permData || [])
 setUserRoles(map)
 
 }
 
-/* toggle permission */
+/* TOGGLE PERMISSION */
 
 async function toggle(roleId:string,page:string,current:boolean){
 
 await supabase
 .from("permissions")
-.update({can_view:!current})
-.eq("role_id",roleId)
-.eq("page",page)
+.upsert({
+role_id:roleId,
+page,
+can_view:!current
+})
 
-load()
+setPermissions(permissions.map((p:any)=>
+
+p.role_id===roleId && p.page===page
+? {...p,can_view:!current}
+: p
+
+))
 
 }
 
-/* assign role */
+/* CHANGE USER ROLE */
 
 async function changeRole(userId:string,roleId:string){
 
@@ -88,7 +96,8 @@ return(
 Roles & Permissions
 </h1>
 
-{/* USER ROLE ASSIGNMENT */}
+
+{/* ROLE ASSIGNMENT */}
 
 <div className="bg-white p-8 rounded-xl shadow">
 
@@ -131,20 +140,31 @@ className="border border-emerald-300 rounded px-2 py-1"
 
 </div>
 
-{/* PERMISSIONS */}
+
+{/* PERMISSION TABLE */}
 
 {roles.map(role=>(
 
-<div
-key={role.id}
-className="bg-white p-8 rounded-xl shadow"
->
+<div key={role.id} className="bg-white p-8 rounded-xl shadow">
 
 <h2 className="text-lg font-semibold text-emerald-700 mb-6">
-{role.name}
+{role.name} Permissions
 </h2>
 
-<div className="space-y-2">
+<table className="w-full">
+
+<thead>
+
+<tr className="text-left border-b">
+
+<th className="py-2">Page</th>
+<th className="py-2">Access</th>
+
+</tr>
+
+</thead>
+
+<tbody>
 
 {pages.map(page=>{
 
@@ -152,39 +172,36 @@ const perm = permissions.find(
 (p:any)=>p.role_id===role.id && p.page===page
 )
 
-const enabled = perm?.can_view ?? false
+const enabled = perm?.can_view || false
 
 return(
 
-<div
-key={page}
-className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
->
+<tr key={page} className="border-b">
 
-<span className="capitalize">
+<td className="py-3 capitalize">
 {page}
-</span>
+</td>
 
-<button
-onClick={()=>toggle(role.id,page,enabled)}
-className={`px-3 py-1 rounded text-white ${
-enabled
-? "bg-emerald-600"
-: "bg-gray-400"
-}`}
->
+<td>
 
-{enabled ? "Enabled" : "Disabled"}
+<input
+type="checkbox"
+checked={enabled}
+onChange={()=>toggle(role.id,page,enabled)}
+className="w-5 h-5 accent-emerald-600"
+/>
 
-</button>
+</td>
 
-</div>
+</tr>
 
 )
 
 })}
 
-</div>
+</tbody>
+
+</table>
 
 </div>
 

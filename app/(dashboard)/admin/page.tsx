@@ -127,16 +127,28 @@ Current Users
 
 <div className="space-y-3">
 
-{users.map((user:any)=>(
+{users.map((user:any)=>{
+
+const roleId = userRoles?.[user.id]
+
+const roleName = roles.find((r:any)=>r.id===roleId)?.name || "No Role"
+
+return(
 
 <div
 key={user.id}
 className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
 >
 
-<span className="font-medium">
-{user.username}
-</span>
+<div>
+
+<p className="font-medium">{user.username}</p>
+
+<p className="text-xs text-gray-500">
+Role: {roleName}
+</p>
+
+</div>
 
 <button
 onClick={()=>toggleUser(user)}
@@ -153,7 +165,9 @@ user.disabled
 
 </div>
 
-))}
+)
+
+})}
 
 </div>
 
