@@ -129,7 +129,7 @@ export default function AdminPage(){
                 >
 
                   <span className="font-medium">
-                    {u.username || u.email || "User"}
+                    {u.username || "User"}
                   </span>
 
                   <button

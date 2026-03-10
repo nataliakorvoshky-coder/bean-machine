@@ -8,29 +8,18 @@ process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET(){
 
-try{
-
 const { data, error } = await supabase
 .from("profiles")
-.select("id,email,username,disabled")
+.select("id, username, disabled")
+.order("username")
 
 if(error){
-console.error("User fetch error:", error)
+console.error(error)
 return NextResponse.json({ users: [] })
 }
 
 return NextResponse.json({
 users: data ?? []
 })
-
-}catch(err){
-
-console.error(err)
-
-return NextResponse.json({
-users:[]
-})
-
-}
 
 }
