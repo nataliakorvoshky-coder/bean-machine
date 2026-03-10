@@ -10,6 +10,7 @@ type AdminContextType = {
   userRoles: Record<string,string>
   currentRole: string
   load: () => Promise<void>
+  canAccess: (page:string) => boolean
 }
 
 const AdminContext = createContext<AdminContextType | null>(null)
@@ -91,6 +92,18 @@ setCurrentRole(map[userId] ?? "")
 
 }
 
+function canAccess(page:string){
+
+if(!currentRole) return true
+
+const perm = permissions.find(
+(p:any)=>p.role_id === currentRole && p.page === page
+)
+
+return perm?.can_view || false
+
+}
+
 return(
 
 <AdminContext.Provider
@@ -100,7 +113,8 @@ roles,
 permissions,
 userRoles,
 currentRole,
-load
+load,
+canAccess
 }}
 >
 
