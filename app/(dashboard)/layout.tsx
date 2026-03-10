@@ -65,6 +65,14 @@ window.location.href="/"
 
 }
 
+function linkStyle(route:string){
+
+return pathname === route
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"
+
+}
+
 return(
 
 <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
@@ -101,40 +109,32 @@ Bean Machine
 
 <>
 
-<p className="text-emerald-200 font-semibold text-base mt-4">
-Admin Panel
-</p>
-
-<div className="ml-3 flex flex-col gap-2">
-
-<Link
-href="/admin"
-className={pathname==="/admin"
-? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"}
+<button
+onClick={()=>setAdminOpen(!adminOpen)}
+className="text-emerald-200 font-semibold text-base text-left"
 >
+Admin Panel
+</button>
+
+{adminOpen &&(
+
+<div className="ml-4 flex flex-col gap-2">
+
+<Link href="/admin" className={linkStyle("/admin")}>
 Admin Dashboard
 </Link>
 
-<Link
-href="/dashboard"
-className={pathname==="/dashboard"
-? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"}
->
+<Link href="/dashboard" className={linkStyle("/dashboard")}>
 Dashboard
 </Link>
 
-<Link
-href="/admin/roles"
-className={pathname==="/admin/roles"
-? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"}
->
+<Link href="/admin/roles" className={linkStyle("/admin/roles")}>
 Roles & Permissions
 </Link>
 
 </div>
+
+)}
 
 </>
 
@@ -148,30 +148,20 @@ Roles & Permissions
 
 <button
 onClick={()=>setStockOpen(!stockOpen)}
-className="text-emerald-200 font-semibold text-base mt-4"
+className="text-emerald-200 font-semibold text-base mt-4 text-left"
 >
 Stock Management
 </button>
 
 {stockOpen &&(
 
-<div className="ml-3 flex flex-col gap-2">
+<div className="ml-4 flex flex-col gap-2">
 
-<Link
-href="/inventory"
-className={pathname==="/inventory"
-? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"}
->
+<Link href="/inventory" className={linkStyle("/inventory")}>
 Inventory
 </Link>
 
-<Link
-href="/orders"
-className={pathname==="/orders"
-? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"}
->
+<Link href="/orders" className={linkStyle("/orders")}>
 Orders
 </Link>
 
@@ -191,21 +181,16 @@ Orders
 
 <button
 onClick={()=>setEmployeeOpen(!employeeOpen)}
-className="text-emerald-200 font-semibold text-base mt-4"
+className="text-emerald-200 font-semibold text-base mt-4 text-left"
 >
 Employee Management
 </button>
 
 {employeeOpen &&(
 
-<div className="ml-3 flex flex-col gap-2">
+<div className="ml-4 flex flex-col gap-2">
 
-<Link
-href="/employees"
-className={pathname==="/employees"
-? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"}
->
+<Link href="/employees" className={linkStyle("/employees")}>
 Employees
 </Link>
 
@@ -221,21 +206,16 @@ Employees
 
 <button
 onClick={()=>setToolsOpen(!toolsOpen)}
-className="text-emerald-200 font-semibold text-base mt-4"
+className="text-emerald-200 font-semibold text-base mt-4 text-left"
 >
 User Tools
 </button>
 
 {toolsOpen &&(
 
-<div className="ml-3 flex flex-col gap-2">
+<div className="ml-4 flex flex-col gap-2">
 
-<Link
-href="/settings"
-className={pathname==="/settings"
-? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"}
->
+<Link href="/settings" className={linkStyle("/settings")}>
 Settings
 </Link>
 
@@ -247,7 +227,7 @@ Settings
 
 <button
 onClick={logout}
-className="text-left hover:text-emerald-200 mt-6"
+className="text-left hover:text-white mt-6 text-emerald-200"
 >
 Logout
 </button>
