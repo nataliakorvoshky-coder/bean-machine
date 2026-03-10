@@ -101,7 +101,7 @@ Bean Machine
 
 <>
 
-<p className="text-emerald-300 font-semibold uppercase tracking-wide text-xs">
+<p className="text-emerald-200 font-semibold text-base mt-4">
 Admin Panel
 </p>
 
@@ -110,8 +110,8 @@ Admin Panel
 <Link
 href="/admin"
 className={pathname==="/admin"
-? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"}
 >
 Admin Dashboard
 </Link>
@@ -119,8 +119,8 @@ Admin Dashboard
 <Link
 href="/dashboard"
 className={pathname==="/dashboard"
-? "font-semibold text-white"
-: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"}
 >
 Dashboard
 </Link>
@@ -128,8 +128,8 @@ Dashboard
 <Link
 href="/admin/roles"
 className={pathname==="/admin/roles"
-? "font-semibold text-white"
-: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"}
 >
 Roles & Permissions
 </Link>
@@ -148,7 +148,7 @@ Roles & Permissions
 
 <button
 onClick={()=>setStockOpen(!stockOpen)}
-className="text-left font-semibold text-emerald-200 mt-4"
+className="text-emerald-200 font-semibold text-base mt-4"
 >
 Stock Management
 </button>
@@ -160,8 +160,8 @@ Stock Management
 <Link
 href="/inventory"
 className={pathname==="/inventory"
-? "font-semibold text-white"
-: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"}
 >
 Inventory
 </Link>
@@ -169,8 +169,8 @@ Inventory
 <Link
 href="/orders"
 className={pathname==="/orders"
-? "font-semibold text-white"
-: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"}
 >
 Orders
 </Link>
@@ -191,7 +191,7 @@ Orders
 
 <button
 onClick={()=>setEmployeeOpen(!employeeOpen)}
-className="text-left font-semibold text-emerald-200 mt-4"
+className="text-emerald-200 font-semibold text-base mt-4"
 >
 Employee Management
 </button>
@@ -203,8 +203,8 @@ Employee Management
 <Link
 href="/employees"
 className={pathname==="/employees"
-? "font-semibold text-white"
-: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"}
 >
 Employees
 </Link>
@@ -221,7 +221,7 @@ Employees
 
 <button
 onClick={()=>setToolsOpen(!toolsOpen)}
-className="text-left font-semibold text-emerald-200 mt-4"
+className="text-emerald-200 font-semibold text-base mt-4"
 >
 User Tools
 </button>
@@ -233,8 +233,8 @@ User Tools
 <Link
 href="/settings"
 className={pathname==="/settings"
-? "font-semibold text-white"
-: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
+? "text-white font-bold"
+: "text-emerald-300 hover:text-white hover:font-bold"}
 >
 Settings
 </Link>
