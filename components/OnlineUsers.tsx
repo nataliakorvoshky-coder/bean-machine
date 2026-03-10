@@ -2,6 +2,7 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
+import { useEffect, useState } from "react"
 
 type Connection = {
   id:string
@@ -22,12 +23,47 @@ function pageLabel(page?:string){
 
 export default function OnlineUsers(){
 
-  const connections = usePresence() as Connection[]
+  const realtimeConnections = usePresence() as Connection[]
   const { users } = useUserData()
 
-  const uniqueConnections = Array.from(
-    new Map(connections.map(c=>[c.id,c])).values()
-  )
+  /* cached connections */
+
+  const [connections,setConnections] = useState<Connection[]>(()=>{
+
+    if(typeof window !== "undefined"){
+
+      const cached = sessionStorage.getItem("onlineUsers")
+
+      if(cached){
+        return JSON.parse(cached)
+      }
+
+    }
+
+    return []
+
+  })
+
+  /* update when realtime changes */
+
+  useEffect(()=>{
+
+    if(realtimeConnections.length > 0){
+
+      const unique = Array.from(
+        new Map(realtimeConnections.map(c=>[c.id,c])).values()
+      )
+
+      setConnections(unique)
+
+      sessionStorage.setItem(
+        "onlineUsers",
+        JSON.stringify(unique)
+      )
+
+    }
+
+  },[realtimeConnections])
 
   return(
 
@@ -39,7 +75,7 @@ export default function OnlineUsers(){
 
       <div className="space-y-3">
 
-        {uniqueConnections.map(conn=>{
+        {connections.map(conn=>{
 
           const user = users.find((u:any)=>u.id===conn.id)
           if(!user) return null
