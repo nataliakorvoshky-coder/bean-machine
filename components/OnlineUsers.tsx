@@ -6,15 +6,13 @@ import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 
-export default function OnlineUsers(){
+export default function OnlineUsers() {
 
 const pathname = usePathname()
 
 const { users, roles, userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
-
-/* readable page */
 
 function pageName(path:string){
 
@@ -25,26 +23,22 @@ if(path.includes("settings")) return "Settings"
 if(path.includes("admin")) return "Admin"
 
 return path
-
 }
 
-/* idle detection */
-
-function getStatus(lastActive:number){
+function statusColor(lastActive:number){
 
 const diff = Date.now() - lastActive
 
-if(diff < 60000) return "online"
+if(diff < 60000) return "bg-green-500"
 
-return "idle"
-
+return "bg-yellow-400"
 }
 
 useEffect(()=>{
 
 let channel:RealtimeChannel
 
-async function init(){
+async function start(){
 
 const { data } = await supabase.auth.getUser()
 
@@ -54,33 +48,46 @@ if(!user) return
 
 const userId = user.id
 
-/* IMPORTANT: enable presence */
-
 channel = supabase.channel("online-users",{
-config:{
-presence:{
-key:userId
-},
-broadcast:{
-self:true
-}
-}
+config:{ presence:{ key:userId } }
+})
+
+/* listen for presence updates */
+
+channel.on("presence",{ event:"sync" },()=>{
+
+const state = channel.presenceState()
+
+const list:any[] = []
+
+Object.values(state).forEach((entries:any)=>{
+
+entries.forEach((entry:any)=> list.push(entry))
+
+})
+
+/* dedupe */
+
+const unique:any = {}
+
+list.forEach(u=>{
+unique[u.user_id] = u
+})
+
+setOnlineUsers(Object.values(unique))
+
 })
 
 /* join channel */
 
-await channel.subscribe(async status=>{
+await channel.subscribe()
 
-if(status !== "SUBSCRIBED") return
-
-/* track presence */
+/* track immediately AFTER subscribe */
 
 await channel.track({
 user_id:userId,
 page:pathname,
 lastActive:Date.now()
-})
-
 })
 
 /* update activity */
@@ -97,39 +104,10 @@ lastActive:Date.now()
 
 window.addEventListener("mousemove",updateActivity)
 window.addEventListener("keydown",updateActivity)
-window.addEventListener("click",updateActivity)
-
-/* listen for presence changes */
-
-channel.on("presence",{event:"sync"},()=>{
-
-const state = channel.presenceState()
-
-const list:any[] = []
-
-Object.values(state).forEach((entries:any)=>{
-
-entries.forEach((entry:any)=>{
-list.push(entry)
-})
-
-})
-
-/* dedupe */
-
-const unique:any = {}
-
-list.forEach(u=>{
-unique[u.user_id] = u
-})
-
-setOnlineUsers(Object.values(unique))
-
-})
 
 }
 
-init()
+start()
 
 return ()=>{
 
@@ -167,13 +145,6 @@ const roleId = userRoles[u.user_id]
 
 const role = roles.find(r=>String(r.id) === String(roleId))
 
-const status = getStatus(u.lastActive)
-
-const color =
-status === "online"
-? "bg-green-500"
-: "bg-yellow-400"
-
 return(
 
 <div
@@ -183,7 +154,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <div className="flex items-center gap-3">
 
-<div className={`w-3 h-3 rounded-full ${color}`}></div>
+<div className={`w-3 h-3 rounded-full ${statusColor(u.lastActive)}`}></div>
 
 <span className="font-medium text-emerald-700">
 {profile?.username || "User"}
