@@ -2,6 +2,7 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
+import { useState, useEffect } from "react"
 
 type Connection = {
   id:string
@@ -22,10 +23,43 @@ function pageLabel(page?:string){
 
 export default function OnlineUsers(){
 
-  const connections = usePresence() as Connection[]
+  const realtime = usePresence() as Connection[]
   const { users } = useUserData()
 
-  if(!users) return null
+  const [connections,setConnections] = useState<Connection[]>(() => {
+
+    if(typeof window !== "undefined"){
+
+      const cached = sessionStorage.getItem("presence")
+
+      if(cached){
+        return JSON.parse(cached)
+      }
+
+    }
+
+    return []
+
+  })
+
+  useEffect(()=>{
+
+    if(realtime.length > 0){
+
+      const unique = Array.from(
+        new Map(realtime.map(c=>[c.id,c])).values()
+      )
+
+      setConnections(unique)
+
+      sessionStorage.setItem(
+        "presence",
+        JSON.stringify(unique)
+      )
+
+    }
+
+  },[realtime])
 
   return(
 

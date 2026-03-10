@@ -4,14 +4,28 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { useUser } from "@/lib/UserContext"
+
+import { UserProvider, useUser } from "@/lib/UserContext"
+import { UserDataProvider } from "@/lib/UserDataContext"
+import { PresenceProvider } from "@/lib/PresenceContext"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
-  const { username, setUsername } = useUser()
+  const { setUsername } = useUser()
 
-  const [localUsername,setLocalUsername] = useState("...")
+  /* PRELOAD USERNAME FROM CACHE */
+
+  const [localUsername,setLocalUsername] = useState(() => {
+
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem("username")
+      if (cached) return cached
+    }
+
+    return "User"
+
+  })
 
   const [adminOpen,setAdminOpen] = useState(true)
   const [stockOpen,setStockOpen] = useState(false)
@@ -22,6 +36,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
     window.location.href="/"
   }
+
+  /* LOAD USER FROM DATABASE */
 
   useEffect(()=>{
 
@@ -39,12 +55,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         .from("profiles")
         .select("username")
         .eq("id",user.id)
-        .maybeSingle()
+        .single()
 
       if(profile?.username){
 
         setUsername(profile.username)
         setLocalUsername(profile.username)
+
+        sessionStorage.setItem(
+          "username",
+          profile.username
+        )
 
       }
 
@@ -93,7 +114,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <nav className="flex flex-col gap-3 text-sm">
 
-        {/* ADMIN */}
+        {/* ADMIN PANEL */}
 
         <button
           onClick={()=>setAdminOpen(!adminOpen)}
@@ -128,7 +149,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
         )}
 
-        {/* STOCK */}
+        {/* STOCK MANAGEMENT */}
 
         <button
           onClick={()=>setStockOpen(!stockOpen)}
@@ -141,14 +162,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <div className="ml-3 flex flex-col gap-2">
 
-            <Link href="#">Inventory</Link>
-            <Link href="#">Orders</Link>
+            <Link href="#">
+              Inventory
+            </Link>
+
+            <Link href="#">
+              Orders
+            </Link>
 
           </div>
 
         )}
 
-        {/* EMPLOYEE */}
+        {/* EMPLOYEE MANAGEMENT */}
 
         <button
           onClick={()=>setEmployeeOpen(!employeeOpen)}
@@ -161,14 +187,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <div className="ml-3 flex flex-col gap-2">
 
-            <Link href="#">Employees</Link>
-            <Link href="#">Scheduling</Link>
+            <Link href="#">
+              Employees
+            </Link>
+
+            <Link href="#">
+              Scheduling
+            </Link>
 
           </div>
 
         )}
 
-        {/* USER */}
+        {/* USER TOOLS */}
 
         <button
           onClick={()=>setToolsOpen(!toolsOpen)}
@@ -207,7 +238,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
     </div>
 
-    {/* PAGE */}
+    {/* PAGE CONTENT */}
 
     <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
@@ -227,6 +258,26 @@ export default function DashboardLayout({
   children: React.ReactNode
 }){
 
-  return <DashboardShell>{children}</DashboardShell>
+  return(
+
+    <PresenceProvider>
+
+      <UserProvider>
+
+        <UserDataProvider>
+
+          <DashboardShell>
+
+            {children}
+
+          </DashboardShell>
+
+        </UserDataProvider>
+
+      </UserProvider>
+
+    </PresenceProvider>
+
+  )
 
 }
