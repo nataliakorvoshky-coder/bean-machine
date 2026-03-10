@@ -12,19 +12,14 @@ const pathname = usePathname()
 
 const { users,roles,userRoles } = useAdminData()
 
-const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
+const [mounted,setMounted] = useState(false)
+const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
-if(typeof window !== "undefined"){
+/* hydration gate */
 
-const cache = sessionStorage.getItem("onlineUsers")
-
-if(cache) return JSON.parse(cache)
-
-}
-
-return []
-
-})
+useEffect(()=>{
+setMounted(true)
+},[])
 
 useEffect(()=>{
 
@@ -38,18 +33,12 @@ const user = data?.user
 
 if(!user) return
 
-/* seed instantly */
+/* seed current user */
 
-setOnlineUsers(prev=>{
-
-if(prev.length>0) return prev
-
-return [{
+setOnlineUsers([{
 user_id:user.id,
 page:pathname
-}]
-
-})
+}])
 
 channel = supabase.channel("online-users",{
 config:{presence:{key:user.id}}
@@ -70,11 +59,6 @@ online.push(entry)
 })
 
 setOnlineUsers(online)
-
-sessionStorage.setItem(
-"onlineUsers",
-JSON.stringify(online)
-)
 
 })
 
@@ -102,6 +86,8 @@ supabase.removeChannel(channel)
 }
 
 },[pathname])
+
+if(!mounted) return null
 
 function username(id:string){
 

@@ -1,264 +1,186 @@
 "use client"
 
-import React,{useEffect,useState} from "react"
-import Link from "next/link"
-import {usePathname} from "next/navigation"
-import {supabase} from "@/lib/supabase"
-import {AdminDataProvider,useAdminData} from "@/lib/AdminDataContext"
+import { useEffect,useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { usePathname } from "next/navigation"
+import { useAdminData } from "@/lib/AdminDataContext"
+import { RealtimeChannel } from "@supabase/supabase-js"
 
-const Sidebar = React.memo(function Sidebar(){
+export default function OnlineUsers(){
 
 const pathname = usePathname()
-const {canAccess} = useAdminData()
 
-const [username,setUsername] = useState(()=>{
+const { users,roles,userRoles } = useAdminData()
+
+const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
 
 if(typeof window !== "undefined"){
-return sessionStorage.getItem("username") || ""
+
+const cache = sessionStorage.getItem("onlineUsers")
+
+if(cache) return JSON.parse(cache)
+
 }
 
-return ""
+return []
 
 })
 
-const [adminOpen,setAdminOpen] = useState(true)
-const [stockOpen,setStockOpen] = useState(false)
-const [employeeOpen,setEmployeeOpen] = useState(false)
-const [toolsOpen,setToolsOpen] = useState(true)
-
 useEffect(()=>{
 
-async function loadUser(){
+let channel:RealtimeChannel
 
-const {data} = await supabase.auth.getUser()
+async function init(){
+
+const { data } = await supabase.auth.getUser()
+
 const user = data?.user
 
 if(!user) return
 
-const {data:profile} = await supabase
-.from("profiles")
-.select("username")
-.eq("id",user.id)
-.single()
+/* seed instantly */
 
-if(profile?.username){
+setOnlineUsers(prev=>{
 
-setUsername(profile.username)
+if(prev.length>0) return prev
+
+return [{
+user_id:user.id,
+page:pathname
+}]
+
+})
+
+channel = supabase.channel("online-users",{
+config:{presence:{key:user.id}}
+})
+
+channel.on("presence",{event:"sync"},()=>{
+
+const state = channel.presenceState()
+
+const online:any[]=[]
+
+Object.values(state).forEach((entries:any)=>{
+
+entries.forEach((entry:any)=>{
+online.push(entry)
+})
+
+})
+
+setOnlineUsers(online)
 
 sessionStorage.setItem(
-"username",
-profile.username
-)
-
-}
-
-}
-
-loadUser()
-
-},[])
-
-async function logout(){
-
-await supabase.auth.signOut()
-window.location.href="/"
-
-}
-
-function linkStyle(route:string){
-
-return pathname === route
-? "text-white font-bold"
-: "text-white"
-
-}
-
-return(
-
-<div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
-
-{/* LOGO */}
-
-<div className="flex items-center gap-3 mb-10">
-
-<img src="/logo.png" className="w-10 h-10"/>
-
-<h1 className="text-2xl font-bold">
-Bean Machine
-</h1>
-
-</div>
-
-{/* USER */}
-
-<div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
-
-<div className="w-3 h-3 rounded-full bg-green-400"></div>
-
-<span className="font-semibold">
-{username}
-</span>
-
-</div>
-
-<nav className="flex flex-col gap-3 text-sm">
-
-{/* ADMIN PANEL */}
-
-{canAccess("admin") && (
-
-<>
-
-<button
-onClick={()=>setAdminOpen(!adminOpen)}
-className="text-emerald-200 font-semibold text-base text-left"
->
-Admin Panel
-</button>
-
-{adminOpen &&(
-
-<div className="ml-4 flex flex-col gap-2">
-
-<Link href="/admin" className={linkStyle("/admin")}>
-Admin Dashboard
-</Link>
-
-<Link href="/dashboard" className={linkStyle("/dashboard")}>
-Dashboard
-</Link>
-
-<Link href="/admin/roles" className={linkStyle("/admin/roles")}>
-Roles & Permissions
-</Link>
-
-</div>
-
-)}
-
-</>
-
-)}
-
-{/* STOCK MANAGEMENT */}
-
-{canAccess("inventory") && (
-
-<>
-
-<button
-onClick={()=>setStockOpen(!stockOpen)}
-className="text-emerald-200 font-semibold text-base mt-4 text-left"
->
-Stock Management
-</button>
-
-{stockOpen &&(
-
-<div className="ml-4 flex flex-col gap-2">
-
-<Link href="/inventory" className={linkStyle("/inventory")}>
-Inventory
-</Link>
-
-<Link href="/orders" className={linkStyle("/orders")}>
-Orders
-</Link>
-
-</div>
-
-)}
-
-</>
-
-)}
-
-{/* EMPLOYEE MANAGEMENT */}
-
-{canAccess("employees") && (
-
-<>
-
-<button
-onClick={()=>setEmployeeOpen(!employeeOpen)}
-className="text-emerald-200 font-semibold text-base mt-4 text-left"
->
-Employee Management
-</button>
-
-{employeeOpen &&(
-
-<div className="ml-4 flex flex-col gap-2">
-
-<Link href="/employees" className={linkStyle("/employees")}>
-Employees
-</Link>
-
-</div>
-
-)}
-
-</>
-
-)}
-
-{/* USER TOOLS */}
-
-<button
-onClick={()=>setToolsOpen(!toolsOpen)}
-className="text-emerald-200 font-semibold text-base mt-4 text-left"
->
-User Tools
-</button>
-
-{toolsOpen &&(
-
-<div className="ml-4 flex flex-col gap-2">
-
-<Link href="/settings" className={linkStyle("/settings")}>
-Settings
-</Link>
-
-</div>
-
-)}
-
-{/* LOGOUT */}
-
-<button
-onClick={logout}
-className="text-left text-white mt-6"
->
-Logout
-</button>
-
-</nav>
-
-</div>
-
+"onlineUsers",
+JSON.stringify(online)
 )
 
 })
 
-export default function DashboardLayout({children}:{children:React.ReactNode}){
+channel.subscribe(async (status:string)=>{
+
+if(status !== "SUBSCRIBED") return
+
+await channel.track({
+user_id:user.id,
+page:pathname
+})
+
+})
+
+}
+
+init()
+
+return ()=>{
+
+if(channel){
+supabase.removeChannel(channel)
+}
+
+}
+
+},[pathname])
+
+function username(id:string){
+
+const u = users.find((x:any)=>x.id===id)
+
+return u?.username || "Unknown"
+
+}
+
+function role(id:string){
+
+const roleId = userRoles[id]
+
+const r = roles.find((x:any)=>x.id===roleId)
+
+return r?.name || "No Role"
+
+}
+
+function pageName(path:string){
+
+const map:any={
+"/dashboard":"Dashboard",
+"/admin":"Admin",
+"/admin/roles":"Roles",
+"/inventory":"Inventory",
+"/orders":"Orders",
+"/employees":"Employees",
+"/settings":"Settings"
+}
+
+return map[path] || path
+
+}
 
 return(
 
-<AdminDataProvider>
+<div className="bg-white p-8 rounded-xl shadow">
 
-<main className="flex min-h-screen">
+<h2 className="text-lg font-semibold text-emerald-700 mb-6">
+Online Users
+</h2>
 
-<Sidebar/>
+<div className="space-y-3">
 
-<div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
+{onlineUsers.map((u:any)=>(
 
-{children}
+<div
+key={u.user_id}
+className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
+>
+
+<div className="flex items-center gap-3">
+
+<div className="w-3 h-3 bg-green-500 rounded-full"></div>
+
+<span className="font-medium">
+{username(u.user_id)}
+</span>
 
 </div>
 
-</main>
+<div className="flex gap-4 text-sm text-emerald-700">
 
-</AdminDataProvider>
+<span>{role(u.user_id)}</span>
+
+<span className="text-gray-500 italic">
+{pageName(u.page)}
+</span>
+
+</div>
+
+</div>
+
+))}
+
+</div>
+
+</div>
 
 )
 
