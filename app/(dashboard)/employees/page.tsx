@@ -4,7 +4,13 @@ import { usePermission } from "@/lib/usePermission"
 
 export default function EmployeesPage(){
 
-usePermission("employees")
+const ready = usePermission("employees")
+
+/* wait for permission validation */
+
+if(!ready){
+return null
+}
 
 return(
 

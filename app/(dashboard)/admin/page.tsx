@@ -1,21 +1,23 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePermission } from "@/lib/usePermission"
 
 export default function AdminPage(){
 
-usePermission("admin")
+const ready = usePermission("admin")
 
 const [users,setUsers] = useState<any[]>([])
 const [roles,setRoles] = useState<any[]>([])
 
 useEffect(()=>{
 
+if(!ready) return
+
 load()
 
-},[])
+},[ready])
 
 async function load(){
 
@@ -55,6 +57,12 @@ role_id:roleId
 
 }
 
+/* prevent render until permission check finishes */
+
+if(!ready){
+return null
+}
+
 return(
 
 <div className="w-[1100px]">
@@ -83,6 +91,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="flex gap-3">
 
 <select
+defaultValue=""
 onChange={(e)=>changeRole(user.id,e.target.value)}
 className="border border-emerald-300 rounded px-2"
 >

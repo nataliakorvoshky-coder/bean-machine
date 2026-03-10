@@ -6,7 +6,13 @@ import { usePermission } from "@/lib/usePermission"
 
 export default function DashboardPage(){
 
-usePermission("dashboard")
+const ready = usePermission("dashboard")
+
+/* wait for permission check */
+
+if(!ready){
+return null
+}
 
 return(
 

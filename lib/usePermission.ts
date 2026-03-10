@@ -1,53 +1,71 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
-export function usePermission(page:string){
+export function usePermission(page: string) {
 
-const router = useRouter()
+  const router = useRouter()
+  const [checked, setChecked] = useState(false)
 
-useEffect(()=>{
+  useEffect(() => {
 
-async function check(){
+    async function checkPermission() {
 
-const { data:userData } = await supabase.auth.getUser()
-const user = userData?.user
+      const { data: userData } = await supabase.auth.getUser()
+      const user = userData?.user
 
-if(!user){
-router.replace("/")
-return
-}
+      if (!user) {
+        router.replace("/")
+        return
+      }
 
-const { data:roleData } = await supabase
-.from("user_roles")
-.select("role_id")
-.eq("user_id",user.id)
-.single()
+      /* get role */
 
-if(!roleData){
-router.replace("/dashboard")
-return
-}
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role_id")
+        .eq("user_id", user.id)
+        .maybeSingle()
 
-const { data:permissions } = await supabase
-.from("permissions")
-.select("page,can_view")
-.eq("role_id",roleData.role_id)
+      if (!roleData) {
+        router.replace("/dashboard")
+        return
+      }
 
-const allowed = permissions?.find(
-(p:any)=>p.page===page
-)
+      /* admin bypass (prevents lockout forever) */
 
-if(!allowed?.can_view){
-router.replace("/dashboard")
-}
+      const { data: roleName } = await supabase
+        .from("roles")
+        .select("name")
+        .eq("id", roleData.role_id)
+        .maybeSingle()
 
-}
+      if (roleName?.name === "admin") {
+        setChecked(true)
+        return
+      }
 
-check()
+      /* permission check */
 
-},[])
+      const { data: permissions } = await supabase
+        .from("permissions")
+        .select("page,can_view")
+        .eq("role_id", roleData.role_id)
 
+      const allowed = permissions?.find((p: any) => p.page === page)
+
+      if (!allowed?.can_view) {
+        router.replace("/dashboard")
+      }
+
+      setChecked(true)
+    }
+
+    checkPermission()
+
+  }, [page])
+
+  return checked
 }
