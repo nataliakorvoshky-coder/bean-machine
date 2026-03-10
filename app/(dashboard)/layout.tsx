@@ -101,7 +101,7 @@ Bean Machine
 
 <>
 
-<p className="text-emerald-200 font-semibold">
+<p className="text-emerald-300 font-semibold uppercase tracking-wide text-xs">
 Admin Panel
 </p>
 
