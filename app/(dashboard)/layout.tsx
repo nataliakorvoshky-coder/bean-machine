@@ -145,6 +145,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               Dashboard
             </Link>
 
+            <Link
+href="/admin/roles"
+className={pathname==="/admin/roles"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
+Roles & Permissions
+</Link>
+
           </div>
 
         )}
