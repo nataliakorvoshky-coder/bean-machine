@@ -109,21 +109,27 @@ Admin Panel
 
 <Link
 href="/admin"
-className="text-white"
+className={pathname === "/admin"
+? "font-bold text-white"
+: "text-white"}
 >
 Admin Dashboard
 </Link>
 
 <Link
 href="/dashboard"
-className="text-white"
+className={pathname === "/dashboard"
+? "font-bold text-white"
+: "text-white"}
 >
 Dashboard
 </Link>
 
 <Link
 href="/admin/roles"
-className="text-white"
+className={pathname === "/admin/roles"
+? "font-bold text-white"
+: "text-white"}
 >
 Roles & Permissions
 </Link>
@@ -147,14 +153,18 @@ Stock Management
 
 <Link
 href="/inventory"
-className="text-white"
+className={pathname === "/inventory"
+? "font-bold text-white"
+: "text-white"}
 >
 Inventory
 </Link>
 
 <Link
 href="/orders"
-className="text-white"
+className={pathname === "/orders"
+? "font-bold text-white"
+: "text-white"}
 >
 Orders
 </Link>
@@ -176,7 +186,9 @@ Employee Management
 
 <Link
 href="/employees"
-className="text-white"
+className={pathname === "/employees"
+? "font-bold text-white"
+: "text-white"}
 >
 Employees
 </Link>
@@ -198,7 +210,9 @@ User Tools
 
 <Link
 href="/settings"
-className="text-white"
+className={pathname === "/settings"
+? "font-bold text-white"
+: "text-white"}
 >
 Settings
 </Link>
