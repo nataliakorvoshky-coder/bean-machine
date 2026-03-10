@@ -1,103 +1,53 @@
 "use client"
 
-import { usePresence } from "@/lib/PresenceContext"
-import { useUserData } from "@/lib/UserDataContext"
+import { useAdminData } from "@/lib/AdminDataContext"
 
-type Connection = {
-  id: string
-  page?: string
-  status?: string
-}
+export default function OnlineUsers(){
 
-function pageLabel(page?: string) {
+const { users,roles,userRoles } = useAdminData()
 
-  if (!page) return "Active"
+return(
 
-  if (page.includes("dashboard")) return "Dashboard"
-  if (page.includes("admin")) return "Admin"
-  if (page.includes("settings")) return "Settings"
+<div className="bg-white p-8 rounded-xl shadow">
 
-  return "Active"
-}
+<h2 className="font-semibold mb-6 text-emerald-700">
+Online Users
+</h2>
 
-export default function OnlineUsers() {
+<div className="space-y-3">
 
-  const connections = usePresence() as Connection[]
-  const { users } = useUserData()
+{users.map((u:any)=>{
 
-  /* Remove duplicate connections */
+const roleId = userRoles?.[u.id]
 
-  const uniqueConnections = Array.from(
-    new Map(connections.map(c => [c.id, c])).values()
-  )
+const roleName =
+roles.find((r:any)=>r.id===roleId)?.name || "No Role"
 
-  return (
+return(
 
-    <div className="w-[420px] bg-white p-8 rounded-xl shadow">
+<div
+key={u.id}
+className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+>
 
-      <h2 className="font-semibold mb-6 text-emerald-700">
-        Online Users
-      </h2>
+<span className="font-medium">
+{u.username}
+</span>
 
-      <div className="space-y-3">
+<span className="text-xs text-emerald-700">
+{roleName}
+</span>
 
-        {uniqueConnections.map(conn => {
+</div>
 
-          const user = users.find((u: any) => u.id === conn.id)
+)
 
-          if (!user) return null
+})}
 
-          const statusColor =
-            conn.status === "idle"
-              ? "bg-yellow-400"
-              : "bg-green-400"
+</div>
 
-          const statusText =
-            conn.status === "idle"
-              ? "Idle"
-              : pageLabel(conn.page)
+</div>
 
-          return (
-
-            <div
-              key={conn.id}
-              className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-            >
-
-              <div className="flex items-center gap-3">
-
-                <div
-                  className={`w-3 h-3 rounded-full ${statusColor}`}
-                />
-
-                <span className="font-medium">
-                  {user.username}
-                </span>
-
-              </div>
-
-              <span className="text-sm text-gray-500">
-                {statusText}
-              </span>
-
-            </div>
-
-          )
-
-        })}
-
-        {uniqueConnections.length === 0 && (
-
-          <div className="text-sm text-gray-400">
-            No users online
-          </div>
-
-        )}
-
-      </div>
-
-    </div>
-
-  )
+)
 
 }
