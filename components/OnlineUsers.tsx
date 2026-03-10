@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
-import type { RealtimeChannel } from "@supabase/supabase-js"
 
 export default function OnlineUsers(){
 
@@ -13,6 +12,8 @@ const pathname = usePathname()
 const { users, roles, userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
+
+/* readable page */
 
 function pageName(path:string){
 
@@ -25,18 +26,22 @@ if(path.includes("admin")) return "Admin"
 return path
 }
 
-function statusColor(lastActive:number){
+/* status */
 
-const diff = Date.now() - lastActive
+function statusColor(lastSeen:string){
+
+const diff = Date.now() - new Date(lastSeen).getTime()
 
 if(diff < 60000) return "bg-green-500"
 
 return "bg-yellow-400"
+
 }
 
 useEffect(()=>{
 
-let channel:RealtimeChannel | null = null
+let heartbeat:any
+let fetchUsers:any
 
 async function start(){
 
@@ -48,69 +53,39 @@ if(!user) return
 
 const userId = user.id
 
-channel = supabase.channel("online-users",{
-config:{
-presence:{ key:userId },
-broadcast:{ self:true }
-}
-})
+/* heartbeat every 10 seconds */
 
-/* presence updates */
+heartbeat = setInterval(async()=>{
 
-channel.on("presence",{event:"sync"},()=>{
-
-if(!channel) return
-
-const state = channel.presenceState()
-
-const list:any[] = []
-
-Object.values(state).forEach((entries:any)=>{
-entries.forEach((entry:any)=> list.push(entry))
-})
-
-/* dedupe */
-
-const unique:any = {}
-
-list.forEach(u=>{
-unique[u.user_id] = u
-})
-
-setOnlineUsers(Object.values(unique))
-
-})
-
-/* join channel */
-
-await channel.subscribe(async status=>{
-
-if(status !== "SUBSCRIBED") return
-
-/* track user immediately */
-
-await channel?.track({
+await supabase
+.from("online_users")
+.upsert({
 user_id:userId,
 page:pathname,
-lastActive:Date.now()
+last_seen:new Date().toISOString()
 })
 
-})
+},10000)
 
-/* activity tracking */
+/* fetch online users */
 
-const updateActivity = ()=>{
+fetchUsers = setInterval(async()=>{
 
-channel?.track({
-user_id:userId,
-page:pathname,
-lastActive:Date.now()
-})
+const { data } = await supabase
+.from("online_users")
+.select("*")
 
-}
+if(!data) return
 
-window.addEventListener("mousemove",updateActivity)
-window.addEventListener("keydown",updateActivity)
+/* filter active users */
+
+const active = data.filter(
+u => Date.now() - new Date(u.last_seen).getTime() < 120000
+)
+
+setOnlineUsers(active)
+
+},3000)
 
 }
 
@@ -118,9 +93,8 @@ start()
 
 return ()=>{
 
-if(channel){
-supabase.removeChannel(channel)
-}
+clearInterval(heartbeat)
+clearInterval(fetchUsers)
 
 }
 
@@ -165,7 +139,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <div className="flex items-center gap-3">
 
-<div className={`w-3 h-3 rounded-full ${statusColor(u.lastActive)}`}></div>
+<div className={`w-3 h-3 rounded-full ${statusColor(u.last_seen)}`}></div>
 
 <span className="font-medium text-emerald-700">
 {profile?.username || "User"}
