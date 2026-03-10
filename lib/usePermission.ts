@@ -4,68 +4,77 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
-export function usePermission(page: string) {
+export function usePermission(page:string){
 
-  const router = useRouter()
-  const [checked, setChecked] = useState(false)
+const router = useRouter()
+const [ready,setReady] = useState(false)
 
-  useEffect(() => {
+useEffect(()=>{
 
-    async function checkPermission() {
+async function check(){
 
-      const { data: userData } = await supabase.auth.getUser()
-      const user = userData?.user
+/* get logged in user */
 
-      if (!user) {
-        router.replace("/")
-        return
-      }
+const { data:userData } = await supabase.auth.getUser()
+const user = userData?.user
 
-      /* get role */
+if(!user){
+router.replace("/")
+return
+}
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role_id")
-        .eq("user_id", user.id)
-        .maybeSingle()
+/* get role id */
 
-      if (!roleData) {
-        router.replace("/dashboard")
-        return
-      }
+const { data:userRole } = await supabase
+.from("user_roles")
+.select("role_id")
+.eq("user_id",user.id)
+.maybeSingle()
 
-      /* admin bypass (prevents lockout forever) */
+if(!userRole){
+router.replace("/dashboard")
+return
+}
 
-      const { data: roleName } = await supabase
-        .from("roles")
-        .select("name")
-        .eq("id", roleData.role_id)
-        .maybeSingle()
+/* get role name */
 
-      if (roleName?.name === "admin") {
-        setChecked(true)
-        return
-      }
+const { data:role } = await supabase
+.from("roles")
+.select("name")
+.eq("id",userRole.role_id)
+.maybeSingle()
 
-      /* permission check */
+/* admin bypass */
 
-      const { data: permissions } = await supabase
-        .from("permissions")
-        .select("page,can_view")
-        .eq("role_id", roleData.role_id)
+if(role?.name === "admin"){
+setReady(true)
+return
+}
 
-      const allowed = permissions?.find((p: any) => p.page === page)
+/* check permissions */
 
-      if (!allowed?.can_view) {
-        router.replace("/dashboard")
-      }
+const { data:permissions } = await supabase
+.from("permissions")
+.select("page,can_view")
+.eq("role_id",userRole.role_id)
 
-      setChecked(true)
-    }
+const allowed = permissions?.find(
+(p:any)=>p.page===page
+)
 
-    checkPermission()
+if(!allowed?.can_view){
+router.replace("/dashboard")
+return
+}
 
-  }, [page])
+setReady(true)
 
-  return checked
+}
+
+check()
+
+},[page])
+
+return ready
+
 }
