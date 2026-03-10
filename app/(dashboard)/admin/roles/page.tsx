@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useAdminData } from "@/lib/AdminDataContext"
 import { supabase } from "@/lib/supabase"
 
