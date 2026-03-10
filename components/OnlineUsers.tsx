@@ -14,16 +14,13 @@ const { users, roles, userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
-/* convert page */
+/* readable page */
 
 function pageName(path:string){
 
-if(!path) return ""
-
 if(path.includes("dashboard")) return "Dashboard"
-if(path.includes("inventory")) return "Inventory"
-if(path.includes("orders")) return "Orders"
 if(path.includes("employees")) return "Employees"
+if(path.includes("inventory")) return "Inventory"
 if(path.includes("settings")) return "Settings"
 if(path.includes("admin")) return "Admin"
 
@@ -31,7 +28,7 @@ return path
 
 }
 
-/* status */
+/* idle status */
 
 function getStatus(lastActive:number){
 
@@ -45,7 +42,7 @@ return "idle"
 
 useEffect(()=>{
 
-let channel:RealtimeChannel | null = null
+let channel:RealtimeChannel
 
 async function init(){
 
@@ -55,19 +52,21 @@ const user = data?.user
 
 if(!user) return
 
-const userId = String(user.id)
+const userId = user.id
+
+/* create channel */
 
 channel = supabase.channel("online-users",{
-config:{
-presence:{ key:userId }
-}
+config:{ presence:{ key:userId } }
 })
 
-channel.subscribe(async (status)=>{
+/* subscribe */
+
+channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
 
-await channel?.track({
+await channel.track({
 user_id:userId,
 page:pathname,
 lastActive:Date.now()
@@ -75,11 +74,11 @@ lastActive:Date.now()
 
 })
 
-/* activity */
+/* activity tracking */
 
-function updateActivity(){
+const updateActivity = ()=>{
 
-channel?.track({
+channel.track({
 user_id:userId,
 page:pathname,
 lastActive:Date.now()
@@ -95,8 +94,6 @@ window.addEventListener("click",updateActivity)
 
 channel.on("presence",{event:"sync"},()=>{
 
-if(!channel) return
-
 const state = channel.presenceState()
 
 const list:any[] = []
@@ -109,17 +106,15 @@ list.push(entry)
 
 })
 
-/* dedupe */
+/* remove duplicates */
 
 const unique:any = {}
 
 list.forEach(u=>{
-unique[String(u.user_id)] = u
+unique[u.user_id] = u
 })
 
-const usersOnline = Object.values(unique)
-
-setOnlineUsers(usersOnline)
+setOnlineUsers(Object.values(unique))
 
 })
 
@@ -157,21 +152,11 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
-/* FIXED USERNAME MATCH */
-
-const profile = users.find(
-(x:any)=>String(x.id) === String(u.user_id)
-)
-
-const username = profile?.username || "Unknown"
-
-/* role */
+const profile = users.find(x=>String(x.id) === String(u.user_id))
 
 const roleId = userRoles[u.user_id]
 
-const role = roles.find((r:any)=>String(r.id) === String(roleId))
-
-/* status */
+const role = roles.find(r=>String(r.id) === String(roleId))
 
 const status = getStatus(u.lastActive)
 
@@ -192,7 +177,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className={`w-3 h-3 rounded-full ${color}`}></div>
 
 <span className="font-medium text-emerald-700">
-{username}
+{profile?.username || "User"}
 </span>
 
 </div>
