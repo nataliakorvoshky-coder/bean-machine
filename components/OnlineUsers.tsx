@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
@@ -10,9 +10,25 @@ export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { users,roles,userRoles } = useAdminData()
+const { users, roles, userRoles } = useAdminData()
 
-const [onlineUsers,setOnlineUsers] = useState<any[]>([])
+/* instant render cache */
+
+const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
+
+if(typeof window !== "undefined"){
+
+const cache = sessionStorage.getItem("onlineUsers")
+
+if(cache) return JSON.parse(cache)
+
+}
+
+return []
+
+})
+
+/* page display helper */
 
 function pageName(path:string){
 
@@ -29,9 +45,22 @@ return path
 
 }
 
+/* idle / away detection */
+
+function getStatus(lastActive:number){
+
+const diff = Date.now() - lastActive
+
+if(diff < 60000) return "active"
+if(diff < 300000) return "idle"
+
+return "away"
+
+}
+
 useEffect(()=>{
 
-let channel:RealtimeChannel
+let channel:RealtimeChannel | null = null
 
 async function init(){
 
@@ -41,39 +70,47 @@ const user = data?.user
 
 if(!user) return
 
+const userId = user.id
+
 channel = supabase.channel("online-users",{
 config:{
-presence:{ key:user.id }
+presence:{ key:userId }
 }
 })
 
-/* presence subscribe */
-
-channel.subscribe(async status=>{
+channel.subscribe(async (status)=>{
 
 if(status !== "SUBSCRIBED") return
 
-await channel.track({
-user_id:user.id,
-page:pathname
+await channel?.track({
+user_id:userId,
+page:pathname,
+lastActive:Date.now()
 })
 
 })
 
-/* broadcast page change */
+/* activity tracking */
 
-channel.send({
-type:"broadcast",
-event:"page-change",
-payload:{
-user_id:user.id,
-page:pathname
+function updateActivity(){
+
+channel?.track({
+user_id:userId,
+page:pathname,
+lastActive:Date.now()
+})
+
 }
-})
+
+window.addEventListener("mousemove",updateActivity)
+window.addEventListener("keydown",updateActivity)
+window.addEventListener("click",updateActivity)
 
 /* presence sync */
 
 channel.on("presence",{event:"sync"},()=>{
+
+if(!channel) return
 
 const state = channel.presenceState()
 
@@ -87,29 +124,24 @@ list.push(entry)
 
 })
 
+/* dedupe users */
+
 const unique:any = {}
 
 list.forEach(u=>{
 unique[u.user_id] = u
 })
 
-setOnlineUsers(Object.values(unique))
+const usersOnline = Object.values(unique)
 
-})
+setOnlineUsers(usersOnline)
 
-/* instant page updates */
+/* cache for refresh stability */
 
-channel.on("broadcast",{event:"page-change"},payload=>{
-
-setOnlineUsers(prev=>{
-
-return prev.map(u=>
-u.user_id === payload.payload.user_id
-? {...u,page:payload.payload.page}
-: u
+sessionStorage.setItem(
+"onlineUsers",
+JSON.stringify(usersOnline)
 )
-
-})
 
 })
 
@@ -150,7 +182,16 @@ No users online
 const profile = users.find(x=>x.id === u.user_id)
 
 const roleId = userRoles[u.user_id]
-const role = roles.find(r=>r.id===roleId)
+const role = roles.find(r=>r.id === roleId)
+
+const status = getStatus(u.lastActive)
+
+const color =
+status === "active"
+? "bg-green-500"
+: status === "idle"
+? "bg-yellow-400"
+: "bg-gray-400"
 
 return(
 
@@ -161,9 +202,9 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <div className="flex items-center gap-3">
 
-<div className="w-3 h-3 rounded-full bg-green-500"></div>
+<div className={`w-3 h-3 rounded-full ${color}`}></div>
 
-<span className="font-medium">
+<span className="font-medium text-emerald-700">
 {profile?.username || "User"}
 </span>
 
