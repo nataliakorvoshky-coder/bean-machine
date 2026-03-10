@@ -1,187 +1,141 @@
 "use client"
 
-import { useEffect,useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useAdminData } from "@/lib/AdminDataContext"
-import { RealtimeChannel } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase"
+import { AdminDataProvider } from "@/lib/AdminDataContext"
 
-export default function OnlineUsers(){
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
 
-const pathname = usePathname()
+  const pathname = usePathname()
+
+  const [username, setUsername] = useState("")
 
-const { users,roles,userRoles } = useAdminData()
+  useEffect(() => {
+    async function loadUser() {
+
+      const { data } = await supabase.auth.getUser()
+
+      const user = data?.user
+
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single()
 
-const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
+      if (profile?.username) {
+        setUsername(profile.username)
+      }
 
-if(typeof window !== "undefined"){
+    }
 
-const cache = sessionStorage.getItem("onlineUsers")
+    loadUser()
+  }, [])
 
-if(cache) return JSON.parse(cache)
+  async function logout() {
+    await supabase.auth.signOut()
+    window.location.href = "/login"
+  }
 
-}
+  return (
+    <AdminDataProvider>
 
-return []
+      <main className="flex min-h-screen">
 
-})
+        {/* SIDEBAR */}
 
-useEffect(()=>{
+        <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
 
-let channel:RealtimeChannel
+          <div className="flex items-center gap-3 mb-10">
+            <img src="/logo.png" className="w-10 h-10" />
+            <h1 className="text-2xl font-bold">
+              Bean Machine
+            </h1>
+          </div>
 
-async function init(){
+          <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
+            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            <span>{username}</span>
+          </div>
 
-const { data } = await supabase.auth.getUser()
+          <nav className="flex flex-col gap-3 text-sm">
 
-const user = data?.user
+            <p className="text-emerald-200 font-semibold mb-2">
+              Admin Panel
+            </p>
 
-if(!user) return
+            <Link
+              href="/admin"
+              className={pathname === "/admin" ? "text-white" : "text-white/80"}
+            >
+              Admin Dashboard
+            </Link>
 
-/* seed instantly */
+            <Link
+              href="/dashboard"
+              className={pathname === "/dashboard" ? "text-white" : "text-white/80"}
+            >
+              Dashboard
+            </Link>
 
-setOnlineUsers(prev=>{
+            <Link
+              href="/admin/roles"
+              className={pathname === "/admin/roles" ? "text-white" : "text-white/80"}
+            >
+              Roles & Permissions
+            </Link>
 
-if(prev.length>0) return prev
+            <p className="text-emerald-200 font-semibold mt-6">
+              Employee Management
+            </p>
 
-return [{
-user_id:user.id,
-page:pathname
-}]
+            <Link
+              href="/employees"
+              className={pathname === "/employees" ? "text-white" : "text-white/80"}
+            >
+              Employees
+            </Link>
 
-})
+            <p className="text-emerald-200 font-semibold mt-6">
+              User Tools
+            </p>
 
-channel = supabase.channel("online-users",{
-config:{presence:{key:user.id}}
-})
+            <Link
+              href="/settings"
+              className={pathname === "/settings" ? "text-white" : "text-white/80"}
+            >
+              Settings
+            </Link>
 
-channel.on("presence",{event:"sync"},()=>{
+            <button
+              onClick={logout}
+              className="text-left text-white/80 mt-6"
+            >
+              Logout
+            </button>
 
-const state = channel.presenceState()
+          </nav>
 
-const online:any[]=[]
+        </div>
 
-Object.values(state).forEach((entries:any)=>{
+        {/* PAGE CONTENT */}
 
-entries.forEach((entry:any)=>{
-online.push(entry)
-})
+        <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
-})
+          {children}
 
-setOnlineUsers(online)
+        </div>
 
-sessionStorage.setItem(
-"onlineUsers",
-JSON.stringify(online)
-)
+      </main>
 
-})
-
-channel.subscribe(async (status:string)=>{
-
-if(status !== "SUBSCRIBED") return
-
-await channel.track({
-user_id:user.id,
-page:pathname
-})
-
-})
-
-}
-
-init()
-
-return ()=>{
-
-if(channel){
-supabase.removeChannel(channel)
-}
-
-}
-
-},[pathname])
-
-function username(id:string){
-
-const u = users.find((x:any)=>x.id===id)
-
-return u?.username || "Unknown"
-
-}
-
-function role(id:string){
-
-const roleId = userRoles[id]
-
-const r = roles.find((x:any)=>x.id===roleId)
-
-return r?.name || "No Role"
-
-}
-
-function pageName(path:string){
-
-const map:any={
-"/dashboard":"Dashboard",
-"/admin":"Admin",
-"/admin/roles":"Roles",
-"/inventory":"Inventory",
-"/orders":"Orders",
-"/employees":"Employees",
-"/settings":"Settings"
-}
-
-return map[path] || path
-
-}
-
-return(
-
-<div className="bg-white p-8 rounded-xl shadow">
-
-<h2 className="text-lg font-semibold text-emerald-700 mb-6">
-Online Users
-</h2>
-
-<div className="space-y-3">
-
-{onlineUsers.map((u:any)=>(
-
-<div
-key={u.user_id}
-className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
->
-
-<div className="flex items-center gap-3">
-
-<div className="w-3 h-3 bg-green-500 rounded-full"></div>
-
-<span className="font-medium">
-{username(u.user_id)}
-</span>
-
-</div>
-
-<div className="flex gap-4 text-sm text-emerald-700">
-
-<span>{role(u.user_id)}</span>
-
-<span className="text-gray-500 italic">
-{pageName(u.page)}
-</span>
-
-</div>
-
-</div>
-
-))}
-
-</div>
-
-</div>
-
-)
-
+    </AdminDataProvider>
+  )
 }

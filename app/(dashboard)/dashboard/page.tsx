@@ -2,32 +2,25 @@
 
 import OnlineUsers from "@/components/OnlineUsers"
 import ActivityFeed from "@/components/ActivityFeed"
-import { useAdminData } from "@/lib/AdminDataContext"
 
-export default function DashboardPage(){
+export default function DashboardPage() {
 
-const { canAccess } = useAdminData()
+  return (
+    <div className="w-[1100px]">
 
-if(!canAccess("dashboard")) return null
+      <h1 className="text-3xl font-bold text-emerald-700 mb-10">
+        Dashboard
+      </h1>
 
-return(
+      <div className="grid grid-cols-2 gap-8">
 
-<div className="w-[1100px]">
+        <OnlineUsers />
 
-<h1 className="text-3xl font-bold text-emerald-700 mb-10">
-Dashboard
-</h1>
+        <ActivityFeed />
 
-<div className="grid grid-cols-2 gap-8">
+      </div>
 
-<OnlineUsers/>
-
-<ActivityFeed/>
-
-</div>
-
-</div>
-
-)
+    </div>
+  )
 
 }
