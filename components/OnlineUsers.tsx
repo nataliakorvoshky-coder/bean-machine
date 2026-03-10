@@ -10,10 +10,9 @@ export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { roles, userRoles } = useAdminData()
+const { users, roles, userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
-const [usernames,setUsernames] = useState<Record<string,string>>({})
 
 function pageName(path:string){
 
@@ -30,39 +29,11 @@ return path
 
 }
 
-/* load usernames */
-
-async function loadUsernames(ids:string[]){
-
-const missing = ids.filter(id => !usernames[id])
-
-if(missing.length === 0) return
-
-const { data } = await supabase
-.from("profiles")
-.select("id,username")
-.in("id",missing)
-
-if(!data) return
-
-const map:Record<string,string> = {}
-
-data.forEach(u=>{
-map[u.id] = u.username
-})
-
-setUsernames(prev=>({
-...prev,
-...map
-}))
-
-}
-
 useEffect(()=>{
 
 let channel:RealtimeChannel
 
-async function init(){
+async function startPresence(){
 
 const { data } = await supabase.auth.getUser()
 
@@ -95,9 +66,15 @@ const list:any[] = []
 
 Object.values(state).forEach((entries:any)=>{
 
-entries.forEach((presence:any)=>{
+entries.forEach((entry:any)=>{
 
-list.push(presence)
+/* presence payload is inside entry */
+
+if(entry.user_id){
+
+list.push(entry)
+
+}
 
 })
 
@@ -111,17 +88,13 @@ list.forEach(u=>{
 unique[u.user_id] = u
 })
 
-const users = Object.values(unique)
-
-setOnlineUsers(users)
-
-loadUsernames(users.map((u:any)=>u.user_id))
+setOnlineUsers(Object.values(unique))
 
 })
 
 }
 
-init()
+startPresence()
 
 return ()=>{
 
@@ -153,6 +126,8 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
+const profile = users.find(x=>x.id === u.user_id)
+
 const roleId = userRoles[u.user_id]
 const role = roles.find(r=>r.id===roleId)
 
@@ -168,7 +143,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{usernames[u.user_id] || "Loading..."}
+{profile?.username || "User"}
 </span>
 
 </div>
