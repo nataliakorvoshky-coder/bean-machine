@@ -53,7 +53,7 @@ export default function AdminPage(){
 
     await supabase
       .from("profiles")
-      .update({ disabled:!disabled })
+      .update({ disabled: !disabled })
       .eq("id",id)
 
     await refreshUsers()
@@ -70,7 +70,7 @@ export default function AdminPage(){
 
       <div className="flex gap-12">
 
-        {/* CREATE USER */}
+        {/* CREATE USER PANEL */}
 
         <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -106,7 +106,8 @@ export default function AdminPage(){
 
         </div>
 
-        {/* CURRENT USERS */}
+
+        {/* CURRENT USERS PANEL */}
 
         <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -117,6 +118,8 @@ export default function AdminPage(){
           <div className="space-y-3">
 
             {(users as User[]).map((u)=>{
+
+              const disabled = !!u.disabled
 
               return(
 
@@ -130,15 +133,15 @@ export default function AdminPage(){
                   </span>
 
                   <button
-                    onClick={()=>toggleUser(u.id,!!u.disabled)}
+                    onClick={()=>toggleUser(u.id,disabled)}
                     className={`px-3 py-1 rounded text-white text-sm ${
-                      u.disabled
+                      disabled
                       ? "bg-gray-500 hover:bg-gray-600"
                       : "bg-emerald-600 hover:bg-emerald-700"
                     }`}
                   >
 
-                    {u.disabled ? "Enable" : "Disable"}
+                    {disabled ? "Enable" : "Disable"}
 
                   </button>
 
