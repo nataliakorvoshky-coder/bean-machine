@@ -10,7 +10,7 @@ export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { users,roles,userRoles } = useAdminData()
+const { roles,userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
 
@@ -25,37 +25,6 @@ if(cache) return JSON.parse(cache)
 return []
 
 })
-
-/* username resolver */
-
-function resolveUsername(id:string){
-
-/* check loaded profiles */
-
-const profile = users.find(u=>u.id===id)
-
-if(profile?.username){
-
-sessionStorage.setItem(
-"username_"+id,
-profile.username
-)
-
-return profile.username
-
-}
-
-/* fallback to cache */
-
-const cached = sessionStorage.getItem("username_"+id)
-
-if(cached) return cached
-
-return "User"
-
-}
-
-/* readable page names */
 
 function pageName(path:string){
 
@@ -72,27 +41,6 @@ return path
 
 }
 
-/* cache usernames when profiles load */
-
-useEffect(()=>{
-
-users.forEach((u:any)=>{
-
-if(u.username){
-
-sessionStorage.setItem(
-"username_"+u.id,
-u.username
-)
-
-}
-
-})
-
-},[users])
-
-/* presence */
-
 useEffect(()=>{
 
 let channel:RealtimeChannel
@@ -105,6 +53,16 @@ const user = data?.user
 
 if(!user) return
 
+/* get username directly */
+
+const { data:profile } = await supabase
+.from("profiles")
+.select("username")
+.eq("id",user.id)
+.single()
+
+const username = profile?.username || "User"
+
 channel = supabase.channel("online-users",{
 config:{
 presence:{ key:user.id }
@@ -115,8 +73,11 @@ channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
 
+/* send username inside presence */
+
 await channel.track({
 user_id:user.id,
+username:username,
 page:pathname
 })
 
@@ -127,8 +88,6 @@ channel.on("presence",{event:"sync"},()=>{
 const state = channel.presenceState()
 
 const map:any = {}
-
-/* dedupe tabs */
 
 Object.values(state).forEach((entries:any)=>{
 
@@ -208,7 +167,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{resolveUsername(u.user_id)}
+{u.username}
 </span>
 
 </div>
