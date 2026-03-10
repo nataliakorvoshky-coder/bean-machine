@@ -99,11 +99,13 @@ if(!ready) return null
 
 return(
 
-<div className="w-[1100px] space-y-10">
+<div className="w-[1100px]">
 
-<h1 className="text-3xl font-bold text-emerald-700">
+<h1 className="text-3xl font-bold text-emerald-700 mb-10">
 Admin Dashboard
 </h1>
+
+<div className="grid grid-cols-2 gap-8">
 
 {/* CREATE USER */}
 
@@ -113,13 +115,13 @@ Admin Dashboard
 Create User
 </h2>
 
-<div className="flex gap-4">
+<div className="flex flex-col gap-4">
 
 <input
 placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2 w-[260px]"
+className="border border-emerald-300 rounded px-3 py-2"
 />
 
 <input
@@ -127,12 +129,12 @@ type="password"
 placeholder="Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2 w-[260px]"
+className="border border-emerald-300 rounded px-3 py-2"
 />
 
 <button
 onClick={createUser}
-className="bg-emerald-600 text-white px-5 py-2 rounded"
+className="bg-emerald-600 text-white px-5 py-2 rounded w-fit"
 >
 Create
 </button>
@@ -140,6 +142,7 @@ Create
 </div>
 
 </div>
+
 
 {/* CURRENT USERS */}
 
@@ -181,13 +184,8 @@ className="border border-emerald-300 rounded px-2 py-1"
 
 {roles.map(role=>(
 
-<option
-key={role.id}
-value={role.id}
->
-
+<option key={role.id} value={role.id}>
 {role.name}
-
 </option>
 
 ))}
@@ -216,6 +214,8 @@ user.disabled
 </div>
 
 )}
+
+</div>
 
 </div>
 
