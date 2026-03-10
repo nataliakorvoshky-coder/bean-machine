@@ -47,9 +47,12 @@ setLoading(false)
 
 async function createUser(){
 
-if(!email || !password) return
+if(!email || !password){
+alert("Enter email and password")
+return
+}
 
-const { data,error } = await supabase.auth.signUp({
+const { error } = await supabase.auth.signUp({
 email,
 password
 })
@@ -116,7 +119,7 @@ Create User
 placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2 w-[250px]"
+className="border border-emerald-300 rounded px-3 py-2 w-[260px]"
 />
 
 <input
@@ -124,7 +127,7 @@ type="password"
 placeholder="Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2 w-[250px]"
+className="border border-emerald-300 rounded px-3 py-2 w-[260px]"
 />
 
 <button
