@@ -1,58 +1,128 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
+import { usePresence } from "@/lib/PresenceContext"
+
+type Connection = {
+  id:string
+  status?:string
+}
 
 export default function AdminPage(){
 
 const { users } = useUserData()
+const connections = usePresence() as Connection[]
 
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
+const [isAdmin,setIsAdmin] = useState(false)
+
+const onlineIds = connections.map(c=>c.id)
 
 async function createUser(){
+
+const { data } = await supabase.auth.getUser()
+const user = data?.user
+if(!user) return
 
 const res = await fetch("/api/admin/create-user",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body: JSON.stringify({
 email,
-password
+password,
+userId:user.id
 })
 })
 
 const result = await res.json()
 
 if(result.error){
-
 setMessage(result.error)
-
 }else{
-
 setMessage("User created successfully")
-
 setEmail("")
 setPassword("")
+location.reload()
+}
 
-/* LOG ACTIVITY */
+}
+
+async function deleteUser(id:string){
+
+if(!confirm("Delete this user?")) return
+
+await fetch("/api/admin/delete-user",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify({ id })
+})
+
+location.reload()
+
+}
+
+async function disableUser(id:string){
+
+await fetch("/api/admin/disable-user",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify({ id })
+})
+
+location.reload()
+
+}
+
+async function enableUser(id:string){
+
+await fetch("/api/admin/enable-user",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify({ id })
+})
+
+location.reload()
+
+}
+
+useEffect(()=>{
+
+async function init(){
 
 const { data } = await supabase.auth.getUser()
+const user = data?.user
 
-await fetch("/api/activity/create",{
+if(!user){
+window.location.href="/"
+return
+}
+
+const adminRes = await fetch("/api/admin/check-admin",{
 method:"POST",
-headers:{ "Content-Type":"application/json"},
-body: JSON.stringify({
-username:data?.user?.email,
-action:"Created new user",
-type:"Admin"
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify({ userId:user.id })
 })
-})
+
+const adminData = await adminRes.json()
+
+if(!adminData.admin){
+window.location.href="/"
+return
+}
+
+setIsAdmin(true)
 
 }
 
-}
+init()
+
+},[])
+
+if(!isAdmin) return null
 
 return(
 
@@ -79,7 +149,7 @@ Email
 <input
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-400 p-3 w-full rounded mb-4 focus:ring-2 focus:ring-emerald-400"
+className="border border-emerald-400 p-3 w-full rounded mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-400"
 />
 
 <label className="block text-sm mb-1">
@@ -89,7 +159,7 @@ Temporary Password
 <input
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-400 p-3 w-full rounded mb-6 focus:ring-2 focus:ring-emerald-400"
+className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-400"
 />
 
 <button
@@ -117,20 +187,61 @@ Current Users ({users.length})
 
 <div className="space-y-3">
 
-{users.map((u:any)=>(
+{users.map((u:any)=>{
+
+const isOnline = onlineIds.includes(u.id)
+
+return(
 
 <div
 key={u.id}
-className="border border-emerald-400 p-3 rounded-lg"
+className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
 >
 
+<div className="flex items-center gap-3">
+
+<div
+className={`w-3 h-3 rounded-full ${
+isOnline ? "bg-green-400" : "bg-gray-400"
+}`}
+/>
+
 <span className="font-medium">
-{u.username ?? u.email}
+{u.username || u.email}
 </span>
 
 </div>
 
-))}
+<div className="flex gap-3 text-sm">
+
+<button
+onClick={()=>disableUser(u.id)}
+className="text-yellow-600 hover:text-yellow-800"
+>
+Disable
+</button>
+
+<button
+onClick={()=>enableUser(u.id)}
+className="text-green-600 hover:text-green-800"
+>
+Enable
+</button>
+
+<button
+onClick={()=>deleteUser(u.id)}
+className="text-red-600 hover:text-red-800"
+>
+Delete
+</button>
+
+</div>
+
+</div>
+
+)
+
+})}
 
 </div>
 
