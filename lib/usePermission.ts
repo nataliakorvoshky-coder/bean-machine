@@ -4,13 +4,13 @@ import { useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
-export function usePermission(page:string){
+export function usePermission(page: string){
 
   const router = useRouter()
 
   useEffect(()=>{
 
-    async function checkPermission(){
+    async function check(){
 
       const { data:userData } = await supabase.auth.getUser()
       const user = userData?.user
@@ -20,53 +20,35 @@ export function usePermission(page:string){
         return
       }
 
-      const { data:roleData, error } = await supabase
+      const { data } = await supabase
         .from("user_roles")
         .select(`
           roles(
-            name
+            permissions(
+              page,
+              can_view
+            )
           )
         `)
         .eq("user_id",user.id)
         .single()
 
-      if(error || !roleData){
-        return
-      }
+      /* roles returns as array */
 
-      const role = roleData.roles?.[0]?.name
+      const permissions =
+        data?.roles?.[0]?.permissions || []
 
-      if(!role){
-        return
-      }
+      const allowed = permissions.find(
+        (p:any)=>p.page===page
+      )
 
-      /* ADMIN ACCESS */
-
-      if(role === "admin"){
-        return
-      }
-
-      /* PERMISSIONS MAP */
-
-      const permissions:Record<string,string[]> = {
-
-        manager:["dashboard","employees","settings"],
-
-        supervisor:["dashboard","employees","settings"],
-
-        employee:["dashboard","settings"]
-
-      }
-
-      const allowed = permissions[role]?.includes(page)
-
-      if(!allowed){
+      if(!allowed?.can_view){
         router.replace("/dashboard")
       }
 
     }
 
-    checkPermission()
+    check()
 
   },[page,router])
 
