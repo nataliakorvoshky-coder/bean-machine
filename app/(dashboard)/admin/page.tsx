@@ -6,7 +6,7 @@ import { usePermission } from "@/lib/usePermission"
 
 export default function AdminPage(){
 
-const { loading:permLoading, allowed } = usePermission("admin")
+const { allowed } = usePermission("admin")
 
 const [users,setUsers] = useState<any[]>([])
 const [roles,setRoles] = useState<any[]>([])
@@ -15,20 +15,14 @@ const [userRoles,setUserRoles] = useState<any>({})
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 
-const [loading,setLoading] = useState(true)
+/* load instantly */
 
 useEffect(()=>{
-
-if(!allowed) return
-
 load()
-
-},[allowed])
+},[])
 
 
 async function load(){
-
-setLoading(true)
 
 const { data:usersData } = await supabase
 .from("profiles")
@@ -56,10 +50,10 @@ setUsers(usersData || [])
 setRoles(rolesData || [])
 setUserRoles(roleMap)
 
-setLoading(false)
-
 }
 
+
+/* CREATE USER */
 
 async function createUser(){
 
@@ -103,11 +97,11 @@ load()
 }
 
 
+/* ENABLE / DISABLE USER */
+
 async function toggleUser(user:any){
 
 const { data:userData } = await supabase.auth.getUser()
-
-/* prevent disabling yourself */
 
 if(userData?.user?.id === user.id){
 alert("You cannot disable your own account")
@@ -128,6 +122,8 @@ u.id === user.id
 }
 
 
+/* CHANGE ROLE */
+
 async function changeRole(userId:string,roleId:string){
 
 await supabase
@@ -145,7 +141,6 @@ setUserRoles({
 }
 
 
-if(permLoading) return null
 if(!allowed) return null
 
 
@@ -204,14 +199,6 @@ Create
 Current Users
 </h2>
 
-{loading ? (
-
-<p className="text-gray-500">
-Loading users...
-</p>
-
-):( 
-
 <div className="space-y-3">
 
 {users.map(user=>(
@@ -265,8 +252,6 @@ user.disabled
 ))}
 
 </div>
-
-)}
 
 </div>
 
