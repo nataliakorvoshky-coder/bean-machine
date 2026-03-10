@@ -1,17 +1,22 @@
 "use client"
 
-import { useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { useState } from "react"
 import { useAdminData } from "@/lib/AdminDataContext"
 
 export default function AdminPage(){
 
-const { users,roles,userRoles,load } = useAdminData()
+const { users, load } = useAdminData()
 
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 
 async function createUser(){
+
+if(!email || !password){
+alert("Enter email and password")
+return
+}
 
 const { error } = await supabase.auth.signUp({
 email,
@@ -36,19 +41,6 @@ await supabase
 .from("profiles")
 .update({disabled:!user.disabled})
 .eq("id",user.id)
-
-load()
-
-}
-
-async function changeRole(userId:string,roleId:string){
-
-await supabase
-.from("user_roles")
-.upsert({
-user_id:userId,
-role_id:roleId
-})
 
 load()
 
@@ -100,6 +92,7 @@ Create
 
 </div>
 
+
 {/* CURRENT USERS */}
 
 <div className="bg-white p-8 rounded-xl shadow">
@@ -117,29 +110,13 @@ key={user.id}
 className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
 >
 
-<span>{user.username}</span>
-
-<div className="flex gap-3">
-
-<select
-value={userRoles[user.id] || ""}
-onChange={(e)=>changeRole(user.id,e.target.value)}
-className="border border-emerald-300 rounded px-2 py-1"
->
-
-<option value="">Role</option>
-
-{roles.map((role:any)=>(
-<option key={role.id} value={role.id}>
-{role.name}
-</option>
-))}
-
-</select>
+<span className="font-medium">
+{user.username}
+</span>
 
 <button
 onClick={()=>toggleUser(user)}
-className={`px-3 py-1 rounded text-white ${
+className={`px-4 py-1 rounded text-white ${
 user.disabled
 ? "bg-gray-500"
 : "bg-emerald-600"
@@ -149,8 +126,6 @@ user.disabled
 {user.disabled ? "Enable" : "Disable"}
 
 </button>
-
-</div>
 
 </div>
 

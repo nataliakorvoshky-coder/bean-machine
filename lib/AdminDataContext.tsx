@@ -1,24 +1,46 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext,useContext,useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
 
 type AdminContextType = {
-  users: any[]
-  roles: any[]
-  permissions: any[]
-  userRoles: Record<string,string>
-  currentRole: string
-  load: () => Promise<void>
-  canAccess: (page:string) => boolean
+users:any[]
+roles:any[]
+permissions:any[]
+userRoles:Record<string,string>
+currentRole:string
+load:()=>Promise<void>
+canAccess:(page:string)=>boolean
 }
 
 const AdminContext = createContext<AdminContextType | null>(null)
 
-export function AdminDataProvider({ children }:{ children:React.ReactNode }){
+export function AdminDataProvider({children}:{children:React.ReactNode}){
 
-const [users,setUsers] = useState<any[]>([])
-const [roles,setRoles] = useState<any[]>([])
+/* hydrate instantly from cache */
+
+const [users,setUsers] = useState<any[]>(()=>{
+
+if(typeof window !== "undefined"){
+const cache = sessionStorage.getItem("users")
+if(cache) return JSON.parse(cache)
+}
+
+return []
+
+})
+
+const [roles,setRoles] = useState<any[]>(()=>{
+
+if(typeof window !== "undefined"){
+const cache = sessionStorage.getItem("roles")
+if(cache) return JSON.parse(cache)
+}
+
+return []
+
+})
+
 const [permissions,setPermissions] = useState<any[]>([])
 const [userRoles,setUserRoles] = useState<Record<string,string>>({})
 const [currentRole,setCurrentRole] = useState<string>("")
@@ -41,8 +63,10 @@ const channel = supabase
 )
 .subscribe()
 
-return () => {
+return ()=>{
+
 supabase.removeChannel(channel)
+
 }
 
 },[])
@@ -75,16 +99,32 @@ const rolesData = rolesRes.data || []
 const permData = permRes.data || []
 const userRoleData = userRoleRes.data || []
 
+/* map user roles */
+
 const map:Record<string,string> = {}
 
 userRoleData.forEach((r:any)=>{
 map[r.user_id] = r.role_id
 })
 
+/* update state */
+
 setUsers(usersData)
 setRoles(rolesData)
 setPermissions(permData)
 setUserRoles(map)
+
+/* cache for instant reload */
+
+sessionStorage.setItem(
+"users",
+JSON.stringify(usersData)
+)
+
+sessionStorage.setItem(
+"roles",
+JSON.stringify(rolesData)
+)
 
 if(userId){
 setCurrentRole(map[userId] ?? "")
@@ -94,10 +134,12 @@ setCurrentRole(map[userId] ?? "")
 
 function canAccess(page:string){
 
+/* prevent lockout */
+
 if(!currentRole) return true
 
 const perm = permissions.find(
-(p:any)=>p.role_id === currentRole && p.page === page
+(p:any)=>p.role_id===currentRole && p.page===page
 )
 
 return perm?.can_view || false
