@@ -5,75 +5,42 @@ import { supabase } from "@/lib/supabase"
 
 export function usePermission(page:string){
 
-const [ready,setReady] = useState(false)
+const [loading,setLoading] = useState(true)
+const [allowed,setAllowed] = useState(false)
 
 useEffect(()=>{
 
 async function check(){
 
-console.log("checking permission for",page)
-
-/* get user */
-
-const { data:userData,error:userError } = await supabase.auth.getUser()
-
-console.log("user",userData,userError)
-
+const { data:userData } = await supabase.auth.getUser()
 const user = userData?.user
 
 if(!user){
-setReady(true)
+setLoading(false)
 return
 }
 
-/* get role */
-
-const { data:userRole,error:roleError } = await supabase
+const { data:userRole } = await supabase
 .from("user_roles")
 .select("role_id")
 .eq("user_id",user.id)
 .maybeSingle()
 
-console.log("userRole",userRole,roleError)
-
-/* if no role -> allow temporarily */
-
 if(!userRole){
-setReady(true)
+setAllowed(true) // fallback admin safety
+setLoading(false)
 return
 }
-
-/* get role name */
-
-const { data:role } = await supabase
-.from("roles")
-.select("name")
-.eq("id",userRole.role_id)
-.maybeSingle()
-
-console.log("role",role)
-
-/* admin bypass */
-
-if(role?.name === "admin"){
-setReady(true)
-return
-}
-
-/* check permissions */
 
 const { data:permissions } = await supabase
 .from("permissions")
 .select("page,can_view")
 .eq("role_id",userRole.role_id)
 
-console.log("permissions",permissions)
+const match = permissions?.find(p => p.page === page)
 
-const allowed = permissions?.find(
-(p:any)=>p.page===page
-)
-
-setReady(allowed?.can_view ?? false)
+setAllowed(match?.can_view ?? false)
+setLoading(false)
 
 }
 
@@ -81,6 +48,6 @@ check()
 
 },[page])
 
-return ready
+return { loading, allowed }
 
 }
