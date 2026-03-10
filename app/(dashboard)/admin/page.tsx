@@ -6,8 +6,7 @@ import { useUserData } from "@/lib/UserDataContext"
 import { usePresence } from "@/lib/PresenceContext"
 
 type Connection = {
-  id:string
-  status?:string
+  id: string
 }
 
 export default function AdminPage(){
@@ -18,7 +17,7 @@ const connections = usePresence() as Connection[]
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
-const [isAdmin,setIsAdmin] = useState(false)
+const [isAdmin,setIsAdmin] = useState<boolean | null>(null)
 
 const onlineIds = connections.map(c=>c.id)
 
@@ -89,6 +88,8 @@ location.reload()
 
 }
 
+/* ADMIN CHECK */
+
 useEffect(()=>{
 
 async function init(){
@@ -101,28 +102,21 @@ window.location.href="/"
 return
 }
 
-const adminRes = await fetch("/api/admin/check-admin",{
+const res = await fetch("/api/admin/check-admin",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body: JSON.stringify({ userId:user.id })
 })
 
-const adminData = await adminRes.json()
+const result = await res.json()
 
-if(!adminData.admin){
-window.location.href="/"
-return
-}
-
-setIsAdmin(true)
+setIsAdmin(result.admin)
 
 }
 
 init()
 
 },[])
-
-if(!isAdmin) return null
 
 return(
 
@@ -134,7 +128,7 @@ Admin Dashboard
 
 <div className="flex gap-12">
 
-{/* CREATE USER */}
+{/* CREATE USER PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -142,24 +136,18 @@ Admin Dashboard
 Create User
 </h2>
 
-<label className="block text-sm mb-1">
-Email
-</label>
-
 <input
+placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-400 p-3 w-full rounded mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+className="border border-emerald-400 p-3 w-full rounded mb-4"
 />
 
-<label className="block text-sm mb-1">
-Temporary Password
-</label>
-
 <input
+placeholder="Temporary Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-400 p-3 w-full rounded mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+className="border border-emerald-400 p-3 w-full rounded mb-6"
 />
 
 <button
@@ -177,7 +165,7 @@ Create User
 
 </div>
 
-{/* USER LIST */}
+{/* USER LIST PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -204,7 +192,7 @@ className="flex justify-between items-center border border-emerald-400 p-3 round
 className={`w-3 h-3 rounded-full ${
 isOnline ? "bg-green-400" : "bg-gray-400"
 }`}
-/>
+></div>
 
 <span className="font-medium">
 {u.username || u.email}
