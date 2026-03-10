@@ -6,7 +6,7 @@ import { useAdminData } from "@/lib/AdminDataContext"
 
 export default function OnlineUsers(){
 
-const { users, roles, userRoles } = useAdminData()
+const { users, roles, userRoles, load } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
@@ -83,7 +83,10 @@ event:"*",
 schema:"public",
 table:"user_roles"
 },
-()=>loadUsers()
+async ()=>{
+await load()      // refresh AdminDataContext
+await loadUsers() // refresh online list
+}
 )
 .subscribe()
 

@@ -75,7 +75,9 @@ role_id:roleUpdates[userId]
 setPermUpdates({})
 setRoleUpdates({})
 
-await load()
+setTimeout(()=>{
+load()
+},200)
 
 }
 
