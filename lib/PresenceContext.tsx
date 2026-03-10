@@ -11,7 +11,7 @@ type Connection = {
 
 const PresenceContext = createContext<Connection[]>([])
 
-let channel: any = null
+let channel:any = null
 
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
@@ -32,8 +32,6 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
     return []
 
   })
-
-  /* START PRESENCE */
 
   useEffect(()=>{
 
@@ -64,12 +62,24 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
           new Map(flat.map(c=>[c.id,c])).values()
         )
 
-        setConnections(unique)
+        /* MERGE instead of replace */
 
-        sessionStorage.setItem(
-          "presence",
-          JSON.stringify(unique)
-        )
+        setConnections(prev => {
+
+          const merged = new Map(prev.map(c => [c.id, c]))
+
+          unique.forEach(c => merged.set(c.id, c))
+
+          const result = Array.from(merged.values())
+
+          sessionStorage.setItem(
+            "presence",
+            JSON.stringify(result)
+          )
+
+          return result
+
+        })
 
       }
 
@@ -98,11 +108,9 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
   },[])
 
-  /* UPDATE LOCATION */
-
   useEffect(()=>{
 
-    async function updateLocation(){
+    async function updatePage(){
 
       const { data } = await supabase.auth.getUser()
       const user = data?.user
@@ -116,7 +124,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     }
 
-    updateLocation()
+    updatePage()
 
   },[pathname])
 
