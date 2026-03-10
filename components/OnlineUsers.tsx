@@ -18,44 +18,68 @@ useEffect(()=>{
 
 let channel:RealtimeChannel
 
-async function start(){
+async function init(){
 
 const { data } = await supabase.auth.getUser()
+
 const user = data?.user
 
 if(!user) return
+
+/* instant mount (prevents empty render) */
+
+setOnlineUsers([
+{
+user_id:user.id,
+page:pathname
+}
+])
 
 channel = supabase.channel("online-users",{
 config:{presence:{key:user.id}}
 })
 
+/* presence sync */
+
 channel.on("presence",{event:"sync"},()=>{
 
 const state = channel.presenceState()
 
-const list:any[] = []
+const online:any[] = []
 
 Object.values(state).forEach((entries:any)=>{
-entries.forEach((entry:any)=>list.push(entry))
+
+entries.forEach((entry:any)=>{
+online.push(entry)
 })
 
-setOnlineUsers(list)
+})
+
+setOnlineUsers(online)
 
 })
+
+/* user joins */
 
 channel.on("presence",{event:"join"},()=>{
 
 const state = channel.presenceState()
 
-const list:any[] = []
+const online:any[] = []
 
 Object.values(state).forEach((entries:any)=>{
-entries.forEach((entry:any)=>list.push(entry))
+
+entries.forEach((entry:any)=>{
+online.push(entry)
 })
 
-setOnlineUsers(list)
+})
+
+setOnlineUsers(online)
 
 })
+
+/* subscribe */
 
 channel.subscribe(async (status:string)=>{
 
@@ -70,7 +94,7 @@ page:pathname
 
 }
 
-start()
+init()
 
 return ()=>{
 
@@ -82,15 +106,44 @@ supabase.removeChannel(channel)
 
 },[pathname])
 
+/* username lookup */
+
 function username(id:string){
+
 const u = users.find((x:any)=>x.id===id)
+
 return u?.username || "Unknown"
+
 }
 
+/* role lookup */
+
 function role(id:string){
+
 const roleId = userRoles[id]
+
 const r = roles.find((x:any)=>x.id===roleId)
+
 return r?.name || "No Role"
+
+}
+
+/* friendly page names */
+
+function pageName(path:string){
+
+const map:any={
+"/dashboard":"Dashboard",
+"/admin":"Admin",
+"/admin/roles":"Roles & Permissions",
+"/inventory":"Inventory",
+"/orders":"Orders",
+"/employees":"Employees",
+"/settings":"Settings"
+}
+
+return map[path] || path
+
 }
 
 return(
@@ -122,10 +175,12 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 
 <div className="flex gap-4 text-sm text-emerald-700">
 
-<span>{role(u.user_id)}</span>
+<span>
+{role(u.user_id)}
+</span>
 
 <span className="text-gray-500 italic">
-{u.page}
+{pageName(u.page)}
 </span>
 
 </div>
@@ -135,7 +190,11 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 ))}
 
 {onlineUsers.length === 0 && (
-<p className="text-gray-400">No users online</p>
+
+<p className="text-gray-400">
+No users online
+</p>
+
 )}
 
 </div>
