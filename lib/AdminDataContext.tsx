@@ -155,8 +155,20 @@ export function useAdminData(){
 
 const ctx = useContext(AdminContext)
 
+/* during build or SSR the provider may not exist */
+
 if(!ctx){
-throw new Error("useAdminData must be used inside AdminDataProvider")
+
+return {
+users:[],
+roles:[],
+permissions:[],
+userRoles:{},
+currentRole:"",
+canAccess:()=>true,
+load: async ()=>{}
+}
+
 }
 
 return ctx

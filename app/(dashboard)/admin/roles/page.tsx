@@ -13,11 +13,17 @@ useEffect(()=>{
 setMounted(true)
 },[])
 
+/* prevent hook during prerender */
+
 if(!mounted){
 return null
 }
 
-const { roles, permissions } = useAdminData()
+/* hook runs only in browser */
+
+const admin = useAdminData()
+
+const { roles, permissions } = admin
 
 return(
 
@@ -30,9 +36,11 @@ Roles & Permissions
 <div className="bg-white p-8 rounded-xl shadow">
 
 {roles.map((role:any)=>(
+
 <div key={role.id}>
 {role.name}
 </div>
+
 ))}
 
 </div>
