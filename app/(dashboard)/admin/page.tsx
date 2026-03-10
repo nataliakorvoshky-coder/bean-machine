@@ -21,6 +21,8 @@ const [isAdmin,setIsAdmin] = useState<boolean | null>(null)
 
 const onlineIds = connections.map(c=>c.id)
 
+/* CREATE USER */
+
 async function createUser(){
 
 const { data } = await supabase.auth.getUser()
@@ -50,19 +52,7 @@ location.reload()
 
 }
 
-async function deleteUser(id:string){
-
-if(!confirm("Delete this user?")) return
-
-await fetch("/api/admin/delete-user",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({ id })
-})
-
-location.reload()
-
-}
+/* DISABLE USER */
 
 async function disableUser(id:string){
 
@@ -75,6 +65,8 @@ body: JSON.stringify({ id })
 location.reload()
 
 }
+
+/* ENABLE USER */
 
 async function enableUser(id:string){
 
@@ -136,15 +128,21 @@ Admin Dashboard
 Create User
 </h2>
 
+<label className="block text-sm mb-1">
+Email
+</label>
+
 <input
-placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
 className="border border-emerald-400 p-3 w-full rounded mb-4"
 />
 
+<label className="block text-sm mb-1">
+Temporary Password
+</label>
+
 <input
-placeholder="Temporary Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
 className="border border-emerald-400 p-3 w-full rounded mb-6"
@@ -158,14 +156,16 @@ Create User
 </button>
 
 {message &&(
+
 <p className="text-sm text-gray-600 mt-4">
 {message}
 </p>
+
 )}
 
 </div>
 
-{/* USER LIST PANEL */}
+{/* USER MANAGEMENT PANEL */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -214,13 +214,6 @@ onClick={()=>enableUser(u.id)}
 className="text-green-600 hover:text-green-800"
 >
 Enable
-</button>
-
-<button
-onClick={()=>deleteUser(u.id)}
-className="text-red-600 hover:text-red-800"
->
-Delete
 </button>
 
 </div>
