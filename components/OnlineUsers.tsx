@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
@@ -10,21 +10,10 @@ export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { roles,userRoles } = useAdminData()
+const { roles, userRoles } = useAdminData()
 
-const [onlineUsers,setOnlineUsers] = useState<any[]>(()=>{
-
-if(typeof window !== "undefined"){
-
-const cache = sessionStorage.getItem("onlineUsers")
-
-if(cache) return JSON.parse(cache)
-
-}
-
-return []
-
-})
+const [onlineUsers,setOnlineUsers] = useState<any[]>([])
+const [usernames,setUsernames] = useState<Record<string,string>>({})
 
 function pageName(path:string){
 
@@ -41,6 +30,34 @@ return path
 
 }
 
+/* fetch username for user ids */
+
+async function resolveUsernames(ids:string[]){
+
+const missing = ids.filter(id => !usernames[id])
+
+if(missing.length === 0) return
+
+const { data } = await supabase
+.from("profiles")
+.select("id,username")
+.in("id",missing)
+
+if(!data) return
+
+const map:Record<string,string> = {}
+
+data.forEach(u=>{
+map[u.id] = u.username
+})
+
+setUsernames(prev=>({
+...prev,
+...map
+}))
+
+}
+
 useEffect(()=>{
 
 let channel:RealtimeChannel
@@ -52,11 +69,6 @@ const { data } = await supabase.auth.getUser()
 const user = data?.user
 
 if(!user) return
-
-/* get username from session cache */
-
-const username =
-sessionStorage.getItem("username") || "User"
 
 channel = supabase.channel("online-users",{
 config:{
@@ -70,7 +82,6 @@ if(status !== "SUBSCRIBED") return
 
 await channel.track({
 user_id:user.id,
-username:username,
 page:pathname
 })
 
@@ -85,29 +96,16 @@ const map:any = {}
 Object.values(state).forEach((entries:any)=>{
 
 entries.forEach((entry:any)=>{
-
 map[entry.user_id] = entry
-
 })
 
 })
 
 const list = Object.values(map)
 
-setOnlineUsers(prev=>{
+setOnlineUsers(list)
 
-if(JSON.stringify(prev) === JSON.stringify(list)){
-return prev
-}
-
-sessionStorage.setItem(
-"onlineUsers",
-JSON.stringify(list)
-)
-
-return list
-
-})
+resolveUsernames(list.map((u:any)=>u.user_id))
 
 })
 
@@ -160,7 +158,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{u.username}
+{usernames[u.user_id] || "Loading..."}
 </span>
 
 </div>
