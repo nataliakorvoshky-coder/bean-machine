@@ -2,27 +2,30 @@
 
 import OnlineUsers from "@/components/OnlineUsers"
 import ActivityFeed from "@/components/ActivityFeed"
+import { usePermission } from "@/lib/usePermission"
 
 export default function DashboardPage(){
 
-return(
+  usePermission("dashboard")
 
-<div className="w-[1000px]">
+  return(
 
-<h1 className="text-3xl font-bold text-emerald-700 mb-10">
-Dashboard
-</h1>
+    <div className="w-[1000px]">
 
-<div className="flex gap-12">
+      <h1 className="text-3xl font-bold text-emerald-700 mb-10">
+        Dashboard
+      </h1>
 
-<OnlineUsers/>
+      <div className="flex gap-12">
 
-<ActivityFeed/>
+        <OnlineUsers/>
 
-</div>
+        <ActivityFeed/>
 
-</div>
+      </div>
 
-)
+    </div>
+
+  )
 
 }
