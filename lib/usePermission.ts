@@ -1,57 +1,50 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 
-export function usePermission(page:string){
+export function usePermission(page: string) {
 
-const router = useRouter()
-const [ready,setReady] = useState(false)
+  const router = useRouter()
 
-useEffect(()=>{
+  useEffect(() => {
 
-async function check(){
+    async function checkPermission() {
 
-const { data } = await supabase.auth.getUser()
-const user = data?.user
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
 
-if(!user){
-router.replace("/")
-return
-}
+      if (!user) {
+        router.replace("/")
+        return
+      }
 
-const { data:roleData } = await supabase
-.from("user_roles")
-.select("role")
-.eq("user_id",user.id)
-.maybeSingle()
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle()
 
-if(!roleData){
-router.replace("/dashboard")
-return
-}
+      if (!roleData) {
+        router.replace("/dashboard")
+        return
+      }
 
-const role = roleData.role
+      const role = roleData.role
 
-if(role==="admin"){
-setReady(true)
-return
-}
+      // Admin always allowed
+      if (role === "admin") return
 
-if(role!==page){
-router.replace("/dashboard")
-return
-}
+      // Basic page permissions
+      if (page !== role) {
+        router.replace("/dashboard")
+      }
 
-setReady(true)
+    }
 
-}
+    checkPermission()
 
-check()
-
-},[])
-
-return ready
+  }, [page, router])
 
 }
