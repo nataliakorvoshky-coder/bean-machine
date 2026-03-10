@@ -53,15 +53,10 @@ const user = data?.user
 
 if(!user) return
 
-/* get username directly */
+/* get username from session cache */
 
-const { data:profile } = await supabase
-.from("profiles")
-.select("username")
-.eq("id",user.id)
-.single()
-
-const username = profile?.username || "User"
+const username =
+sessionStorage.getItem("username") || "User"
 
 channel = supabase.channel("online-users",{
 config:{
@@ -72,8 +67,6 @@ presence:{ key:user.id }
 channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
-
-/* send username inside presence */
 
 await channel.track({
 user_id:user.id,
