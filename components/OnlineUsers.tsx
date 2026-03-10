@@ -10,7 +10,7 @@ export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { roles,userRoles } = useAdminData()
+const { roles, userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 const [usernames,setUsernames] = useState<Record<string,string>>({})
@@ -29,6 +29,8 @@ if(path.includes("admin")) return "Admin"
 return path
 
 }
+
+/* load usernames */
 
 async function loadUsernames(ids:string[]){
 
@@ -60,7 +62,7 @@ useEffect(()=>{
 
 let channel:RealtimeChannel
 
-async function startPresence(){
+async function init(){
 
 const { data } = await supabase.auth.getUser()
 
@@ -74,8 +76,6 @@ presence:{ key:user.id }
 }
 })
 
-/* subscribe */
-
 channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
@@ -87,43 +87,41 @@ page:pathname
 
 })
 
-/* read presence */
-
 channel.on("presence",{event:"sync"},()=>{
 
 const state = channel.presenceState()
 
-const users:any[] = []
+const list:any[] = []
 
 Object.values(state).forEach((entries:any)=>{
 
-entries.forEach((entry:any)=>{
+entries.forEach((presence:any)=>{
 
-users.push(entry)
-
-})
+list.push(presence)
 
 })
 
-/* dedupe users */
+})
 
-const unique:any = {}
+/* remove duplicates */
 
-users.forEach(u=>{
+const unique:Record<string,any> = {}
+
+list.forEach(u=>{
 unique[u.user_id] = u
 })
 
-const list = Object.values(unique)
+const users = Object.values(unique)
 
-setOnlineUsers(list)
+setOnlineUsers(users)
 
-loadUsernames(list.map((u:any)=>u.user_id))
+loadUsernames(users.map((u:any)=>u.user_id))
 
 })
 
 }
 
-startPresence()
+init()
 
 return ()=>{
 
