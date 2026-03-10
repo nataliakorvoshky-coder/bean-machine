@@ -4,65 +4,62 @@ import { useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
-export function usePermission(page: string) {
+export function usePermission(page:string){
 
-  const router = useRouter()
+const router = useRouter()
 
-  useEffect(() => {
+useEffect(()=>{
 
-    async function checkPermission() {
+async function check(){
 
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
+const { data } = await supabase.auth.getUser()
+const user = data?.user
 
-      if (!user) {
-        router.replace("/")
-        return
-      }
+if(!user){
+router.replace("/")
+return
+}
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select(`
-          roles (
-            name
-          )
-        `)
-        .eq("user_id", user.id)
-        .single()
+const { data:roleData } = await supabase
+.from("user_roles")
+.select(`
+roles (
+name
+)
+`)
+.eq("user_id",user.id)
+.single()
 
-      /* roles comes back as array */
+const role = roleData?.roles?.[0]?.name
 
-      const role = roleData?.roles?.[0]?.name
+/* Admin can access EVERYTHING */
 
-      if (!role) {
-        router.replace("/dashboard")
-        return
-      }
+if(role==="admin"){
+return
+}
 
-      /* admin can access everything */
+/* Page permissions */
 
-      if (role === "admin") return
+const permissions:any = {
 
-      const rolePermissions: Record<string,string[]> = {
+manager:["dashboard","employees","settings"],
 
-        manager: ["dashboard","employees","settings"],
+supervisor:["dashboard","employees","settings"],
 
-        supervisor: ["dashboard","employees","settings"],
+employee:["dashboard","settings"]
 
-        employee: ["dashboard","settings"]
+}
 
-      }
+const allowed = permissions[role]?.includes(page)
 
-      const allowed = rolePermissions[role]?.includes(page)
+if(!allowed){
+router.replace("/dashboard")
+}
 
-      if (!allowed) {
-        router.replace("/dashboard")
-      }
+}
 
-    }
+check()
 
-    checkPermission()
-
-  }, [page, router])
+},[page,router])
 
 }

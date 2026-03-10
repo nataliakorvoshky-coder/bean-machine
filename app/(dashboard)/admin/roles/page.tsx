@@ -4,7 +4,7 @@ import { usePermission } from "@/lib/usePermission"
 
 export default function RolesPage(){
 
-usePermission("roles")
+usePermission("admin")
 
 return(
 
