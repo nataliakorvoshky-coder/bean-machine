@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect,useState } from "react"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
@@ -10,7 +10,7 @@ export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { users, roles, userRoles } = useAdminData()
+const { users,roles,userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
@@ -33,7 +33,7 @@ useEffect(()=>{
 
 let channel:RealtimeChannel
 
-async function startPresence(){
+async function init(){
 
 const { data } = await supabase.auth.getUser()
 
@@ -47,19 +47,31 @@ presence:{ key:user.id }
 }
 })
 
+/* presence subscribe */
+
 channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
 
-const username = sessionStorage.getItem("username") || "User"
-
 await channel.track({
-  user_id: user.id,
-  username: username,
-  page: pathname
+user_id:user.id,
+page:pathname
 })
 
 })
+
+/* broadcast page change */
+
+channel.send({
+type:"broadcast",
+event:"page-change",
+payload:{
+user_id:user.id,
+page:pathname
+}
+})
+
+/* presence sync */
 
 channel.on("presence",{event:"sync"},()=>{
 
@@ -70,22 +82,12 @@ const list:any[] = []
 Object.values(state).forEach((entries:any)=>{
 
 entries.forEach((entry:any)=>{
-
-/* presence payload is inside entry */
-
-if(entry.user_id){
-
 list.push(entry)
-
-}
-
 })
 
 })
 
-/* remove duplicates */
-
-const unique:Record<string,any> = {}
+const unique:any = {}
 
 list.forEach(u=>{
 unique[u.user_id] = u
@@ -95,9 +97,25 @@ setOnlineUsers(Object.values(unique))
 
 })
 
+/* instant page updates */
+
+channel.on("broadcast",{event:"page-change"},payload=>{
+
+setOnlineUsers(prev=>{
+
+return prev.map(u=>
+u.user_id === payload.payload.user_id
+? {...u,page:payload.payload.page}
+: u
+)
+
+})
+
+})
+
 }
 
-startPresence()
+init()
 
 return ()=>{
 
@@ -146,7 +164,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{u.username}
+{profile?.username || "User"}
 </span>
 
 </div>
