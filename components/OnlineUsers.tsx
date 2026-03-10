@@ -2,11 +2,10 @@
 
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
-import { useState, useEffect } from "react"
 
 type Connection = {
-  id: string
-  page?: string
+  id:string
+  page?:string
 }
 
 function pageLabel(page?:string){
@@ -26,30 +25,6 @@ export default function OnlineUsers(){
   const connections = usePresence() as Connection[]
   const { users } = useUserData()
 
-  const [ready,setReady] = useState(false)
-
-  useEffect(()=>{
-
-    if(users && connections){
-      setReady(true)
-    }
-
-  },[users,connections])
-
-  if(!ready){
-    return(
-      <div className="w-[420px] bg-white p-8 rounded-xl shadow">
-        <h2 className="font-semibold mb-6 text-emerald-700">
-          Online Users
-        </h2>
-      </div>
-    )
-  }
-
-  const unique = Array.from(
-    new Map(connections.map(c=>[c.id,c])).values()
-  )
-
   return(
 
     <div className="w-[420px] bg-white p-8 rounded-xl shadow">
@@ -60,7 +35,7 @@ export default function OnlineUsers(){
 
       <div className="space-y-3">
 
-        {unique.map(conn=>{
+        {connections.map(conn=>{
 
           const user = users.find((u:any)=>u.id===conn.id)
           if(!user) return null

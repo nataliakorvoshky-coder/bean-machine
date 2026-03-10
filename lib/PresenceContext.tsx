@@ -5,8 +5,8 @@ import { supabase } from "@/lib/supabase"
 import { usePathname } from "next/navigation"
 
 type Connection = {
-  id: string
-  page?: string
+  id:string
+  page?:string
 }
 
 const PresenceContext = createContext<Connection[]>([])
@@ -57,11 +57,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
           new Map(flat.map(c=>[c.id,c])).values()
         )
 
-        /* CRITICAL FIX */
-
-        if(unique.length === 0){
-          return
-        }
+        if(unique.length === 0) return
 
         setConnections(unique)
 
