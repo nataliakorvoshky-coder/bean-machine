@@ -69,7 +69,7 @@ function linkStyle(route:string){
 
 return pathname === route
 ? "text-white font-bold"
-: "text-emerald-300 hover:text-white hover:font-bold"
+: "text-emerald-200"
 
 }
 
@@ -227,7 +227,7 @@ Settings
 
 <button
 onClick={logout}
-className="text-left hover:text-white mt-6 text-emerald-200"
+className="text-left text-emerald-200 mt-6"
 >
 Logout
 </button>
