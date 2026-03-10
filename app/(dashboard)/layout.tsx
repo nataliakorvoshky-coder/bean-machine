@@ -4,10 +4,9 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { AdminDataProvider } from "@/lib/AdminDataContext"
 
-export default function DashboardLayout({
-  children
-}:{children:React.ReactNode}){
+export default function DashboardLayout({ children }:{children:React.ReactNode}){
 
 const pathname = usePathname()
 
@@ -241,11 +240,15 @@ Logout
 
 {/* PAGE CONTENT */}
 
+<AdminDataProvider>
+
 <div className="flex-1 bg-gradient-to-br from-emerald-100 via-emerald-50 to-emerald-200 flex justify-center items-start pt-20">
 
 {children}
 
 </div>
+
+</AdminDataProvider>
 
 </main>
 

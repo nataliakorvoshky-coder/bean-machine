@@ -1,57 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { usePermission } from "@/lib/usePermission"
+import { useAdminData } from "@/lib/AdminDataContext"
 
 export default function AdminPage(){
 
-const { allowed } = usePermission("admin")
-
-const [users,setUsers] = useState<any[]>([])
-const [roles,setRoles] = useState<any[]>([])
-const [userRoles,setUserRoles] = useState<any>({})
+const { users, roles, userRoles, updateUser, updateRole, reload } = useAdminData() || {}
 
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
-
-/* load instantly */
-
-useEffect(()=>{
-load()
-},[])
-
-
-async function load(){
-
-const { data:usersData } = await supabase
-.from("profiles")
-.select("id,username,disabled")
-.order("username")
-
-const { data:rolesData } = await supabase
-.from("roles")
-.select("*")
-.order("name")
-
-const { data:userRoleData } = await supabase
-.from("user_roles")
-.select("*")
-
-/* build role lookup */
-
-const roleMap:any = {}
-
-userRoleData?.forEach((r:any)=>{
-roleMap[r.user_id] = r.role_id
-})
-
-setUsers(usersData || [])
-setRoles(rolesData || [])
-setUserRoles(roleMap)
-
-}
-
 
 /* CREATE USER */
 
@@ -62,7 +20,7 @@ alert("Enter email and password")
 return
 }
 
-const { data,error } = await supabase.auth.signUp({
+const { error } = await supabase.auth.signUp({
 email,
 password
 })
@@ -72,27 +30,10 @@ alert(error.message)
 return
 }
 
-/* assign employee role automatically */
-
-const employeeRole = roles.find(r => r.name === "employee")
-
-if(employeeRole && data?.user){
-
-await supabase
-.from("user_roles")
-.insert({
-user_id:data.user.id,
-role_id:employeeRole.id
-})
-
-}
-
-alert("User created")
-
 setEmail("")
 setPassword("")
 
-load()
+reload?.()
 
 }
 
@@ -101,23 +42,15 @@ load()
 
 async function toggleUser(user:any){
 
-const { data:userData } = await supabase.auth.getUser()
-
-if(userData?.user?.id === user.id){
-alert("You cannot disable your own account")
-return
-}
-
 await supabase
 .from("profiles")
 .update({disabled:!user.disabled})
 .eq("id",user.id)
 
-setUsers(users.map(u =>
-u.id === user.id
-? {...u,disabled:!u.disabled}
-: u
-))
+updateUser?.({
+...user,
+disabled:!user.disabled
+})
 
 }
 
@@ -133,16 +66,9 @@ user_id:userId,
 role_id:roleId
 })
 
-setUserRoles({
-...userRoles,
-[userId]:roleId
-})
+updateRole?.(userId,roleId)
 
 }
-
-
-if(!allowed) return null
-
 
 return(
 
@@ -201,7 +127,7 @@ Current Users
 
 <div className="space-y-3">
 
-{users.map(user=>(
+{users?.map((user:any)=>(
 
 <div
 key={user.id}
@@ -215,19 +141,17 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="flex gap-3 items-center">
 
 <select
-value={userRoles[user.id] || ""}
+value={userRoles?.[user.id] || ""}
 onChange={(e)=>changeRole(user.id,e.target.value)}
 className="border border-emerald-300 rounded px-2 py-1"
 >
 
 <option value="">Role</option>
 
-{roles.map(role=>(
-
+{roles?.map((role:any)=>(
 <option key={role.id} value={role.id}>
 {role.name}
 </option>
-
 ))}
 
 </select>
