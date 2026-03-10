@@ -28,7 +28,7 @@ return []
 
 })
 
-/* page display helper */
+/* convert path to readable page */
 
 function pageName(path:string){
 
@@ -45,16 +45,15 @@ return path
 
 }
 
-/* idle / away detection */
+/* idle detection */
 
 function getStatus(lastActive:number){
 
 const diff = Date.now() - lastActive
 
-if(diff < 60000) return "active"
-if(diff < 300000) return "idle"
+if(diff < 60000) return "online"
 
-return "away"
+return "idle"
 
 }
 
@@ -90,7 +89,7 @@ lastActive:Date.now()
 
 })
 
-/* activity tracking */
+/* track activity */
 
 function updateActivity(){
 
@@ -134,9 +133,9 @@ unique[u.user_id] = u
 
 const usersOnline = Object.values(unique)
 
-setOnlineUsers(usersOnline)
+/* cache */
 
-/* cache for refresh stability */
+setOnlineUsers(usersOnline)
 
 sessionStorage.setItem(
 "onlineUsers",
@@ -179,19 +178,26 @@ No users online
 
 {onlineUsers.map((u:any)=>{
 
-const profile = users.find(x=>x.id === u.user_id)
+/* username resolution */
+
+const profile = users.find((x:any)=>String(x.id) === String(u.user_id))
+
+const username = profile?.username ?? "Unknown"
+
+/* role resolution */
 
 const roleId = userRoles[u.user_id]
-const role = roles.find(r=>r.id === roleId)
+
+const role = roles.find((r:any)=>String(r.id) === String(roleId))
+
+/* status */
 
 const status = getStatus(u.lastActive)
 
 const color =
-status === "active"
+status === "online"
 ? "bg-green-500"
-: status === "idle"
-? "bg-yellow-400"
-: "bg-gray-400"
+: "bg-yellow-400"
 
 return(
 
@@ -205,7 +211,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className={`w-3 h-3 rounded-full ${color}`}></div>
 
 <span className="font-medium text-emerald-700">
-{profile?.username || "User"}
+{username}
 </span>
 
 </div>
