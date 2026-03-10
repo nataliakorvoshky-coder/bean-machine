@@ -51,9 +51,12 @@ channel.subscribe(async status=>{
 
 if(status !== "SUBSCRIBED") return
 
+const username = sessionStorage.getItem("username") || "User"
+
 await channel.track({
-user_id:user.id,
-page:pathname
+  user_id: user.id,
+  username: username,
+  page: pathname
 })
 
 })
@@ -143,7 +146,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 rounded-full bg-green-500"></div>
 
 <span className="font-medium">
-{profile?.username || "User"}
+{u.username}
 </span>
 
 </div>
