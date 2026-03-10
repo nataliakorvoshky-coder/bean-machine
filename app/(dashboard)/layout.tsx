@@ -120,7 +120,7 @@ Admin Dashboard
 href="/dashboard"
 className={pathname==="/dashboard"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
 >
 Dashboard
 </Link>
@@ -129,7 +129,7 @@ Dashboard
 href="/admin/roles"
 className={pathname==="/admin/roles"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
 >
 Roles & Permissions
 </Link>
@@ -161,7 +161,7 @@ Stock Management
 href="/inventory"
 className={pathname==="/inventory"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
 >
 Inventory
 </Link>
@@ -170,7 +170,7 @@ Inventory
 href="/orders"
 className={pathname==="/orders"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
 >
 Orders
 </Link>
@@ -204,7 +204,7 @@ Employee Management
 href="/employees"
 className={pathname==="/employees"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
 >
 Employees
 </Link>
@@ -234,7 +234,7 @@ User Tools
 href="/settings"
 className={pathname==="/settings"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "text-emerald-200 hover:text-white hover:bg-emerald-700 px-2 py-1 rounded"}
 >
 Settings
 </Link>
