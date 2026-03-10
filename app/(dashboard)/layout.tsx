@@ -9,13 +9,27 @@ import { AdminDataProvider,useAdminData } from "@/lib/AdminDataContext"
 function Sidebar(){
 
 const pathname = usePathname()
+
 const { canAccess } = useAdminData()
 
-const [username,setUsername] = useState("")
+/* FIX: username loads instantly from cache */
+
+const [username,setUsername] = useState(()=>{
+
+if(typeof window !== "undefined"){
+return sessionStorage.getItem("username") || ""
+}
+
+return ""
+
+})
+
 const [adminOpen,setAdminOpen] = useState(true)
 const [stockOpen,setStockOpen] = useState(false)
 const [employeeOpen,setEmployeeOpen] = useState(false)
 const [toolsOpen,setToolsOpen] = useState(true)
+
+/* load username silently */
 
 useEffect(()=>{
 
@@ -30,11 +44,17 @@ const { data:profile } = await supabase
 .from("profiles")
 .select("username")
 .eq("id",user.id)
-.single()
+.maybeSingle()
 
 if(profile?.username){
+
 setUsername(profile.username)
-sessionStorage.setItem("username",profile.username)
+
+sessionStorage.setItem(
+"username",
+profile.username
+)
+
 }
 
 }
@@ -46,6 +66,7 @@ loadUser()
 async function logout(){
 
 await supabase.auth.signOut()
+
 window.location.href="/"
 
 }
@@ -73,7 +94,7 @@ Bean Machine
 <div className="w-3 h-3 rounded-full bg-green-400"></div>
 
 <span className="font-semibold">
-{username || "User"}
+{username}
 </span>
 
 </div>
@@ -82,40 +103,44 @@ Bean Machine
 
 {/* ADMIN PANEL */}
 
+{canAccess("admin") && (
+
+<>
+
 <button
 onClick={()=>setAdminOpen(!adminOpen)}
-className="text-left font-semibold text-emerald-200 mt-2"
+className="text-left font-semibold text-emerald-200"
 >
 Admin Panel
 </button>
 
 {adminOpen &&(
 
-<div className="flex flex-col gap-2 ml-3">
+<div className="ml-3 flex flex-col gap-2">
 
 <Link
 href="/admin"
-className={pathname === "/admin"
+className={pathname==="/admin"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "hover:text-emerald-200"}
 >
 Admin Dashboard
 </Link>
 
 <Link
 href="/dashboard"
-className={pathname === "/dashboard"
+className={pathname==="/dashboard"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "hover:text-emerald-200"}
 >
 Dashboard
 </Link>
 
 <Link
 href="/admin/roles"
-className={pathname === "/admin/roles"
+className={pathname==="/admin/roles"
 ? "font-semibold text-white"
-: "text-emerald-100 hover:text-white"}
+: "hover:text-emerald-200"}
 >
 Roles & Permissions
 </Link>
@@ -124,7 +149,15 @@ Roles & Permissions
 
 )}
 
+</>
+
+)}
+
 {/* STOCK */}
+
+{canAccess("inventory") && (
+
+<>
 
 <button
 onClick={()=>setStockOpen(!stockOpen)}
@@ -135,26 +168,39 @@ Stock Management
 
 {stockOpen &&(
 
-<div className="ml-3 flex flex-col gap-2 border-l border-emerald-400 pl-3">
-
-{canAccess("inventory") &&(
+<div className="ml-3 flex flex-col gap-2">
 
 <Link
 href="/inventory"
-className={pathname === "/inventory"
+className={pathname==="/inventory"
 ? "font-semibold text-white"
 : "hover:text-emerald-200"}
 >
 Inventory
 </Link>
 
-)}
+<Link
+href="/orders"
+className={pathname==="/orders"
+? "font-semibold text-white"
+: "hover:text-emerald-200"}
+>
+Orders
+</Link>
 
 </div>
 
 )}
 
+</>
+
+)}
+
 {/* EMPLOYEES */}
+
+{canAccess("employees") && (
+
+<>
 
 <button
 onClick={()=>setEmployeeOpen(!employeeOpen)}
@@ -165,22 +211,22 @@ Employee Management
 
 {employeeOpen &&(
 
-<div className="ml-3 flex flex-col gap-2 border-l border-emerald-400 pl-3">
-
-{canAccess("employees") &&(
+<div className="ml-3 flex flex-col gap-2">
 
 <Link
 href="/employees"
-className={pathname === "/employees"
+className={pathname==="/employees"
 ? "font-semibold text-white"
 : "hover:text-emerald-200"}
 >
 Employees
 </Link>
 
+</div>
+
 )}
 
-</div>
+</>
 
 )}
 
@@ -195,20 +241,16 @@ User Tools
 
 {toolsOpen &&(
 
-<div className="ml-3 flex flex-col gap-2 border-l border-emerald-400 pl-3">
-
-{canAccess("settings") &&(
+<div className="ml-3 flex flex-col gap-2">
 
 <Link
 href="/settings"
-className={pathname === "/settings"
+className={pathname==="/settings"
 ? "font-semibold text-white"
 : "hover:text-emerald-200"}
 >
 Settings
 </Link>
-
-)}
 
 </div>
 
@@ -229,7 +271,9 @@ Logout
 
 }
 
-export default function DashboardLayout({children}:{children:React.ReactNode}){
+export default function DashboardLayout({
+children
+}:{children:React.ReactNode}){
 
 return(
 
