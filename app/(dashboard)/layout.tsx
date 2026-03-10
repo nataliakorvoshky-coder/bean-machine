@@ -1,18 +1,15 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import React,{useEffect,useState} from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import { AdminDataProvider,useAdminData } from "@/lib/AdminDataContext"
+import {usePathname} from "next/navigation"
+import {supabase} from "@/lib/supabase"
+import {AdminDataProvider,useAdminData} from "@/lib/AdminDataContext"
 
-function Sidebar(){
+const Sidebar = React.memo(function Sidebar(){
 
 const pathname = usePathname()
-
-const { canAccess } = useAdminData()
-
-/* FIX: username loads instantly from cache */
+const {canAccess} = useAdminData()
 
 const [username,setUsername] = useState(()=>{
 
@@ -25,22 +22,17 @@ return ""
 })
 
 const [adminOpen,setAdminOpen] = useState(true)
-const [stockOpen,setStockOpen] = useState(false)
-const [employeeOpen,setEmployeeOpen] = useState(false)
-const [toolsOpen,setToolsOpen] = useState(true)
-
-/* load username silently */
 
 useEffect(()=>{
 
 async function loadUser(){
 
-const { data } = await supabase.auth.getUser()
+const {data} = await supabase.auth.getUser()
 const user = data?.user
 
 if(!user) return
 
-const { data:profile } = await supabase
+const {data:profile} = await supabase
 .from("profiles")
 .select("username")
 .eq("id",user.id)
@@ -66,7 +58,6 @@ loadUser()
 async function logout(){
 
 await supabase.auth.signOut()
-
 window.location.href="/"
 
 }
@@ -74,8 +65,6 @@ window.location.href="/"
 return(
 
 <div className="w-[260px] bg-emerald-800 text-white flex flex-col p-6">
-
-{/* LOGO */}
 
 <div className="flex items-center gap-3 mb-10">
 
@@ -86,8 +75,6 @@ Bean Machine
 </h1>
 
 </div>
-
-{/* USER */}
 
 <div className="bg-emerald-700 rounded p-3 flex items-center gap-3 shadow mb-10">
 
@@ -100,8 +87,6 @@ Bean Machine
 </div>
 
 <nav className="flex flex-col gap-3 text-sm">
-
-{/* ADMIN PANEL */}
 
 {canAccess("admin") && (
 
@@ -153,109 +138,6 @@ Roles & Permissions
 
 )}
 
-{/* STOCK */}
-
-{canAccess("inventory") && (
-
-<>
-
-<button
-onClick={()=>setStockOpen(!stockOpen)}
-className="text-left font-semibold text-emerald-200 mt-4"
->
-Stock Management
-</button>
-
-{stockOpen &&(
-
-<div className="ml-3 flex flex-col gap-2">
-
-<Link
-href="/inventory"
-className={pathname==="/inventory"
-? "font-semibold text-white"
-: "hover:text-emerald-200"}
->
-Inventory
-</Link>
-
-<Link
-href="/orders"
-className={pathname==="/orders"
-? "font-semibold text-white"
-: "hover:text-emerald-200"}
->
-Orders
-</Link>
-
-</div>
-
-)}
-
-</>
-
-)}
-
-{/* EMPLOYEES */}
-
-{canAccess("employees") && (
-
-<>
-
-<button
-onClick={()=>setEmployeeOpen(!employeeOpen)}
-className="text-left font-semibold text-emerald-200 mt-4"
->
-Employee Management
-</button>
-
-{employeeOpen &&(
-
-<div className="ml-3 flex flex-col gap-2">
-
-<Link
-href="/employees"
-className={pathname==="/employees"
-? "font-semibold text-white"
-: "hover:text-emerald-200"}
->
-Employees
-</Link>
-
-</div>
-
-)}
-
-</>
-
-)}
-
-{/* USER TOOLS */}
-
-<button
-onClick={()=>setToolsOpen(!toolsOpen)}
-className="text-left font-semibold text-emerald-200 mt-4"
->
-User Tools
-</button>
-
-{toolsOpen &&(
-
-<div className="ml-3 flex flex-col gap-2">
-
-<Link
-href="/settings"
-className={pathname==="/settings"
-? "font-semibold text-white"
-: "hover:text-emerald-200"}
->
-Settings
-</Link>
-
-</div>
-
-)}
-
 <button
 onClick={logout}
 className="text-left hover:text-emerald-200 mt-6"
@@ -269,11 +151,9 @@ Logout
 
 )
 
-}
+})
 
-export default function DashboardLayout({
-children
-}:{children:React.ReactNode}){
+export default function DashboardLayout({children}:{children:React.ReactNode}){
 
 return(
 

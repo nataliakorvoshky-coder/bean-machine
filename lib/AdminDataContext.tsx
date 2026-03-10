@@ -64,9 +64,7 @@ const channel = supabase
 .subscribe()
 
 return ()=>{
-
 supabase.removeChannel(channel)
-
 }
 
 },[])
@@ -74,7 +72,6 @@ supabase.removeChannel(channel)
 async function load(){
 
 const { data:userData } = await supabase.auth.getUser()
-
 const userId = userData?.user?.id
 
 const [
@@ -85,11 +82,8 @@ userRoleRes
 ] = await Promise.all([
 
 supabase.from("profiles").select("id,username,disabled"),
-
 supabase.from("roles").select("*"),
-
 supabase.from("permissions").select("*"),
-
 supabase.from("user_roles").select("*")
 
 ])
@@ -99,32 +93,21 @@ const rolesData = rolesRes.data || []
 const permData = permRes.data || []
 const userRoleData = userRoleRes.data || []
 
-/* map user roles */
-
 const map:Record<string,string> = {}
 
 userRoleData.forEach((r:any)=>{
 map[r.user_id] = r.role_id
 })
 
-/* update state */
-
 setUsers(usersData)
 setRoles(rolesData)
 setPermissions(permData)
 setUserRoles(map)
 
-/* cache for instant reload */
+/* cache data for instant reload */
 
-sessionStorage.setItem(
-"users",
-JSON.stringify(usersData)
-)
-
-sessionStorage.setItem(
-"roles",
-JSON.stringify(rolesData)
-)
+sessionStorage.setItem("users",JSON.stringify(usersData))
+sessionStorage.setItem("roles",JSON.stringify(rolesData))
 
 if(userId){
 setCurrentRole(map[userId] ?? "")
@@ -134,7 +117,7 @@ setCurrentRole(map[userId] ?? "")
 
 function canAccess(page:string){
 
-/* prevent lockout */
+/* prevents admin lockout during load */
 
 if(!currentRole) return true
 

@@ -1,12 +1,12 @@
 "use client"
 
-import { supabase } from "@/lib/supabase"
-import { useState } from "react"
-import { useAdminData } from "@/lib/AdminDataContext"
+import {useState} from "react"
+import {supabase} from "@/lib/supabase"
+import {useAdminData} from "@/lib/AdminDataContext"
 
 export default function AdminPage(){
 
-const { users, load } = useAdminData()
+const {users,load} = useAdminData()
 
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
@@ -18,7 +18,7 @@ alert("Enter email and password")
 return
 }
 
-const { error } = await supabase.auth.signUp({
+const {error} = await supabase.auth.signUp({
 email,
 password
 })
@@ -70,7 +70,7 @@ Create User
 placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-200"
+className="border border-emerald-300 rounded px-3 py-2"
 />
 
 <input
@@ -78,7 +78,7 @@ type="password"
 placeholder="Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-200"
+className="border border-emerald-300 rounded px-3 py-2"
 />
 
 <button
@@ -92,7 +92,6 @@ Create
 
 </div>
 
-
 {/* CURRENT USERS */}
 
 <div className="bg-white p-8 rounded-xl shadow">
@@ -103,7 +102,7 @@ Current Users
 
 <div className="space-y-3">
 
-{users.map((user:any)=>(
+{users.length > 0 && users.map((user:any)=>(
 
 <div
 key={user.id}
