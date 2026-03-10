@@ -1,15 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { usePermission } from "@/lib/usePermission"
 import { useUserData } from "@/lib/UserDataContext"
 import { usePresence } from "@/lib/PresenceContext"
+import { useState } from "react"
 
 type Connection = {
-  id: string
+id:string
 }
 
 export default function AdminPage(){
+
+usePermission("admin")
 
 const { users } = useUserData()
 const connections = usePresence() as Connection[]
@@ -17,26 +19,15 @@ const connections = usePresence() as Connection[]
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 const [message,setMessage] = useState("")
-const [isAdmin,setIsAdmin] = useState<boolean | null>(null)
 
 const onlineIds = connections.map(c=>c.id)
 
-/* CREATE USER */
-
 async function createUser(){
-
-const { data } = await supabase.auth.getUser()
-const user = data?.user
-if(!user) return
 
 const res = await fetch("/api/admin/create-user",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({
-email,
-password,
-userId:user.id
-})
+body: JSON.stringify({ email,password })
 })
 
 const result = await res.json()
@@ -52,8 +43,6 @@ location.reload()
 
 }
 
-/* DISABLE USER */
-
 async function disableUser(id:string){
 
 await fetch("/api/admin/disable-user",{
@@ -65,8 +54,6 @@ body: JSON.stringify({ id })
 location.reload()
 
 }
-
-/* ENABLE USER */
 
 async function enableUser(id:string){
 
@@ -80,36 +67,6 @@ location.reload()
 
 }
 
-/* ADMIN CHECK */
-
-useEffect(()=>{
-
-async function init(){
-
-const { data } = await supabase.auth.getUser()
-const user = data?.user
-
-if(!user){
-window.location.href="/"
-return
-}
-
-const res = await fetch("/api/admin/check-admin",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({ userId:user.id })
-})
-
-const result = await res.json()
-
-setIsAdmin(result.admin)
-
-}
-
-init()
-
-},[])
-
 return(
 
 <div className="w-[1000px]">
@@ -120,7 +77,7 @@ Admin Dashboard
 
 <div className="flex gap-12">
 
-{/* CREATE USER PANEL */}
+{/* CREATE USER */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -128,21 +85,15 @@ Admin Dashboard
 Create User
 </h2>
 
-<label className="block text-sm mb-1">
-Email
-</label>
-
 <input
+placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
 className="border border-emerald-400 p-3 w-full rounded mb-4"
 />
 
-<label className="block text-sm mb-1">
-Temporary Password
-</label>
-
 <input
+placeholder="Temporary Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
 className="border border-emerald-400 p-3 w-full rounded mb-6"
@@ -150,7 +101,7 @@ className="border border-emerald-400 p-3 w-full rounded mb-6"
 
 <button
 onClick={createUser}
-className="bg-emerald-500 text-white p-3 w-full rounded hover:bg-emerald-600"
+className="bg-emerald-500 text-white p-3 w-full rounded"
 >
 Create User
 </button>
@@ -165,7 +116,7 @@ Create User
 
 </div>
 
-{/* USER MANAGEMENT PANEL */}
+{/* CURRENT USERS */}
 
 <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
