@@ -18,7 +18,7 @@ useEffect(()=>{
 
 let channel:RealtimeChannel
 
-async function init(){
+async function start(){
 
 const { data } = await supabase.auth.getUser()
 const user = data?.user
@@ -29,27 +29,33 @@ channel = supabase.channel("online-users",{
 config:{presence:{key:user.id}}
 })
 
-/* PRESENCE LISTENER */
-
 channel.on("presence",{event:"sync"},()=>{
 
 const state = channel.presenceState()
 
-const online:any[] = []
+const list:any[] = []
 
 Object.values(state).forEach((entries:any)=>{
-
-entries.forEach((entry:any)=>{
-online.push(entry)
+entries.forEach((entry:any)=>list.push(entry))
 })
 
-})
-
-setOnlineUsers(online)
+setOnlineUsers(list)
 
 })
 
-/* SUBSCRIBE */
+channel.on("presence",{event:"join"},()=>{
+
+const state = channel.presenceState()
+
+const list:any[] = []
+
+Object.values(state).forEach((entries:any)=>{
+entries.forEach((entry:any)=>list.push(entry))
+})
+
+setOnlineUsers(list)
+
+})
 
 channel.subscribe(async (status:string)=>{
 
@@ -64,7 +70,7 @@ page:pathname
 
 }
 
-init()
+start()
 
 return ()=>{
 
@@ -76,22 +82,15 @@ supabase.removeChannel(channel)
 
 },[pathname])
 
-function getUsername(id:string){
-
+function username(id:string){
 const u = users.find((x:any)=>x.id===id)
-
 return u?.username || "Unknown"
-
 }
 
-function getRole(id:string){
-
+function role(id:string){
 const roleId = userRoles[id]
-
-const role = roles.find((r:any)=>r.id===roleId)
-
-return role?.name || "No Role"
-
+const r = roles.find((x:any)=>x.id===roleId)
+return r?.name || "No Role"
 }
 
 return(
@@ -116,16 +115,16 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
 
 <span className="font-medium">
-{getUsername(u.user_id)}
+{username(u.user_id)}
 </span>
 
 </div>
 
-<div className="text-sm text-emerald-700 flex gap-4">
+<div className="flex gap-4 text-sm text-emerald-700">
 
-<span>{getRole(u.user_id)}</span>
+<span>{role(u.user_id)}</span>
 
-<span className="italic text-gray-500">
+<span className="text-gray-500 italic">
 {u.page}
 </span>
 
@@ -136,11 +135,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 ))}
 
 {onlineUsers.length === 0 && (
-
-<p className="text-gray-400">
-No users online
-</p>
-
+<p className="text-gray-400">No users online</p>
 )}
 
 </div>
