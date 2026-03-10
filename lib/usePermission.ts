@@ -6,63 +6,45 @@ import { useRouter } from "next/navigation"
 
 export function usePermission(page:string){
 
-  const router = useRouter()
+const router = useRouter()
 
-  useEffect(()=>{
+useEffect(()=>{
 
-    async function check(){
+async function check(){
 
-      const { data:userData } = await supabase.auth.getUser()
-      const user = userData?.user
+const { data:userData } = await supabase.auth.getUser()
+const user = userData?.user
 
-      if(!user){
-        router.replace("/")
-        return
-      }
+if(!user) return
 
-      /* GET ROLE */
+const { data:roleData } = await supabase
+.from("user_roles")
+.select("role_id")
+.eq("user_id",user.id)
+.single()
 
-      const { data:roleRow } = await supabase
-        .from("user_roles")
-        .select("role_id")
-        .eq("user_id",user.id)
-        .single()
+if(!roleData){
+router.replace("/dashboard")
+return
+}
 
-      if(!roleRow){
-        return
-      }
+const { data:permissions } = await supabase
+.from("permissions")
+.select("page,can_view")
+.eq("role_id",roleData.role_id)
 
-      const { data:role } = await supabase
-        .from("roles")
-        .select("name")
-        .eq("id",roleRow.role_id)
-        .single()
+const allowed = permissions?.find(
+(p:any)=>p.page===page
+)
 
-      const roleName = role?.name
+if(!allowed?.can_view){
+router.replace("/dashboard")
+}
 
-      /* ADMIN ALWAYS ALLOWED */
+}
 
-      if(roleName === "admin"){
-        return
-      }
+check()
 
-      /* CHECK PAGE PERMISSIONS */
-
-      const { data:perm } = await supabase
-        .from("permissions")
-        .select("can_view")
-        .eq("role_id",roleRow.role_id)
-        .eq("page",page)
-        .single()
-
-      if(!perm?.can_view){
-        router.replace("/dashboard")
-      }
-
-    }
-
-    check()
-
-  },[page,router])
+},[])
 
 }

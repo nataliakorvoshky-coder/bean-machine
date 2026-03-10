@@ -1,139 +1,117 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePermission } from "@/lib/usePermission"
 
 export default function RolesPage(){
 
-  usePermission("admin")
+usePermission("admin")
 
-  const [roles,setRoles] = useState<any[]>([])
-  const [permissions,setPermissions] = useState<any[]>([])
+const [roles,setRoles] = useState<any[]>([])
+const [permissions,setPermissions] = useState<any[]>([])
 
-  const pages = ["admin","dashboard","employees","settings"]
+const pages = ["admin","dashboard","employees","settings"]
 
-  useEffect(()=>{
+useEffect(()=>{
 
-    async function load(){
+load()
 
-      const { data:rolesData } = await supabase
-        .from("roles")
-        .select("*")
-        .order("name")
+},[])
 
-      const { data:permData } = await supabase
-        .from("permissions")
-        .select("*")
+async function load(){
 
-      console.log("ROLES:",rolesData)
-      console.log("PERMISSIONS:",permData)
+const { data:rolesData } = await supabase
+.from("roles")
+.select("*")
 
-      setRoles(rolesData || [])
-      setPermissions(permData || [])
+const { data:permData } = await supabase
+.from("permissions")
+.select("*")
 
-    }
+setRoles(rolesData || [])
+setPermissions(permData || [])
 
-    load()
+}
 
-  },[])
+async function toggle(roleId:string,page:string,current:boolean){
 
-  async function toggle(roleId:string,page:string,current:boolean){
+await supabase
+.from("permissions")
+.update({can_view:!current})
+.eq("role_id",roleId)
+.eq("page",page)
 
-    await supabase
-      .from("permissions")
-      .update({can_view:!current})
-      .eq("role_id",roleId)
-      .eq("page",page)
+load()
 
-    setPermissions(p=>p.map((perm:any)=>{
-      if(perm.role_id===roleId && perm.page===page){
-        return {...perm,can_view:!current}
-      }
-      return perm
-    }))
+}
 
-  }
+return(
 
-  return(
+<div className="w-[1100px]">
 
-    <div className="w-[1000px]">
+<h1 className="text-3xl font-bold text-emerald-700 mb-10">
+Roles & Permissions
+</h1>
 
-      <h1 className="text-3xl font-bold text-emerald-700 mb-10">
-        Roles & Permissions
-      </h1>
+<div className="space-y-6">
 
-      {roles.length===0 && (
-        <p className="text-gray-500">
-          No roles found in database.
-        </p>
-      )}
+{roles.map(role=>(
 
-      <div className="space-y-6">
+<div key={role.id} className="bg-white p-6 rounded-xl shadow">
 
-        {roles.map(role=>{
+<h2 className="font-semibold text-lg text-emerald-700 mb-4">
+{role.name}
+</h2>
 
-          return(
+<div className="space-y-2">
 
-            <div
-              key={role.id}
-              className="bg-white p-6 rounded-xl shadow"
-            >
+{pages.map(page=>{
 
-              <h2 className="font-semibold text-lg text-emerald-700 mb-4">
-                {role.name}
-              </h2>
+const perm = permissions.find(
+(p:any)=>p.role_id===role.id && p.page===page
+)
 
-              <div className="space-y-2">
+const enabled = perm?.can_view ?? false
 
-                {pages.map(page=>{
+return(
 
-                  const perm = permissions.find(
-                    (p:any)=>p.role_id===role.id && p.page===page
-                  )
+<div
+key={page}
+className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
+>
 
-                  const enabled = perm?.can_view ?? false
+<span>{page}</span>
 
-                  return(
+<button
+onClick={()=>toggle(role.id,page,enabled)}
+className={`px-3 py-1 rounded text-white ${
+enabled
+? "bg-emerald-600"
+: "bg-gray-400"
+}`}
+>
 
-                    <div
-                      key={page}
-                      className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
-                    >
+{enabled ? "Enabled" : "Disabled"}
 
-                      <span className="capitalize">
-                        {page}
-                      </span>
+</button>
 
-                      <button
-                        onClick={()=>toggle(role.id,page,enabled)}
-                        className={`px-3 py-1 rounded text-white ${
-                          enabled
-                          ? "bg-emerald-600"
-                          : "bg-gray-400"
-                        }`}
-                      >
-                        {enabled ? "Enabled" : "Disabled"}
-                      </button>
+</div>
 
-                    </div>
+)
 
-                  )
+})}
 
-                })}
+</div>
 
-              </div>
+</div>
 
-            </div>
+))}
 
-          )
+</div>
 
-        })}
+</div>
 
-      </div>
-
-    </div>
-
-  )
+)
 
 }

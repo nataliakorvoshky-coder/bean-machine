@@ -8,7 +8,7 @@ usePermission("employees")
 
 return(
 
-<div className="w-[1000px]">
+<div className="w-[1100px]">
 
 <h1 className="text-3xl font-bold text-emerald-700 mb-10">
 Employees

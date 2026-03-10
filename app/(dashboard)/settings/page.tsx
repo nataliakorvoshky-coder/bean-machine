@@ -2,28 +2,23 @@
 
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { usePermission } from "@/lib/usePermission"
 
 export default function SettingsPage(){
 
+usePermission("settings")
+
 const [username,setUsername] = useState("")
 const [password,setPassword] = useState("")
-const [showPassword,setShowPassword] = useState(false)
 
 async function updateUsername(){
 
-const { data } = await supabase.auth.getUser()
-const user = data?.user
-
-if(!user) return
+const { data:userData } = await supabase.auth.getUser()
 
 await supabase
 .from("profiles")
-.update({ username })
-.eq("id",user.id)
-
-sessionStorage.setItem("username",username)
-
-alert("Username updated")
+.update({username})
+.eq("id",userData?.user?.id)
 
 }
 
@@ -33,81 +28,51 @@ await supabase.auth.updateUser({
 password
 })
 
-alert("Password updated")
-
 }
 
 return(
 
-<div className="w-[1000px]">
+<div className="w-[700px]">
 
 <h1 className="text-3xl font-bold text-emerald-700 mb-10">
 Settings
 </h1>
 
-<div className="flex flex-col gap-8 w-[600px]">
+<div className="bg-white p-8 rounded-xl shadow space-y-8">
 
-{/* USERNAME PANEL */}
+<div>
 
-<div className="bg-white p-8 rounded-xl shadow">
-
-<p className="text-emerald-700 font-semibold mb-3">
-Change Username
-</p>
+<p className="font-semibold mb-2">Change Username</p>
 
 <input
 value={username}
 onChange={(e)=>setUsername(e.target.value)}
-placeholder="Enter new username"
-className="w-full border border-emerald-200 bg-emerald-50
-rounded-lg px-3 py-2
-focus:outline-none focus:ring-2 focus:ring-emerald-500
-focus:bg-white transition"
+className="w-full border border-emerald-300 rounded px-3 py-2"
 />
 
 <button
 onClick={updateUsername}
-className="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+className="bg-emerald-600 text-white px-4 py-2 rounded mt-3"
 >
 Update Username
 </button>
 
 </div>
 
-{/* PASSWORD PANEL */}
+<div>
 
-<div className="bg-white p-8 rounded-xl shadow">
-
-<p className="text-emerald-700 font-semibold mb-3">
-Change Password
-</p>
-
-<div className="relative">
+<p className="font-semibold mb-2">Change Password</p>
 
 <input
-type={showPassword ? "text" : "password"}
+type="password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-placeholder="Enter new password"
-className="w-full border border-emerald-200 bg-emerald-50
-rounded-lg px-3 py-2 pr-10
-focus:outline-none focus:ring-2 focus:ring-emerald-500
-focus:bg-white transition"
+className="w-full border border-emerald-300 rounded px-3 py-2"
 />
 
 <button
-type="button"
-onClick={()=>setShowPassword(!showPassword)}
-className="absolute right-3 top-2 text-gray-500 hover:text-emerald-600"
->
-{showPassword ? "Hide" : "Show"}
-</button>
-
-</div>
-
-<button
 onClick={updatePassword}
-className="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+className="bg-emerald-600 text-white px-4 py-2 rounded mt-3"
 >
 Update Password
 </button>
