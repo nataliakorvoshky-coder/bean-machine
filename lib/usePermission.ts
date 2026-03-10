@@ -6,67 +6,63 @@ import { useRouter } from "next/navigation"
 
 export function usePermission(page:string){
 
-const router = useRouter()
+  const router = useRouter()
 
-useEffect(()=>{
+  useEffect(()=>{
 
-async function checkPermission(){
+    async function check(){
 
-const { data:userData } = await supabase.auth.getUser()
-const user = userData?.user
+      const { data:userData } = await supabase.auth.getUser()
+      const user = userData?.user
 
-if(!user){
-router.replace("/")
-return
-}
+      if(!user){
+        router.replace("/")
+        return
+      }
 
-/* GET ROLE */
+      /* GET ROLE */
 
-const { data:roleData } = await supabase
-.from("user_roles")
-.select(`
-roles(
-id,
-name
-)
-`)
-.eq("user_id",user.id)
-.single()
+      const { data:roleRow } = await supabase
+        .from("user_roles")
+        .select("role_id")
+        .eq("user_id",user.id)
+        .single()
 
-const role = roleData?.roles?.[0]?.name
+      if(!roleRow){
+        return
+      }
 
-/* ADMIN ALWAYS ALLOWED */
+      const { data:role } = await supabase
+        .from("roles")
+        .select("name")
+        .eq("id",roleRow.role_id)
+        .single()
 
-if(role==="admin"){
-return
-}
+      const roleName = role?.name
 
-const roleId = roleData?.roles?.[0]?.id
+      /* ADMIN ALWAYS ALLOWED */
 
-if(!roleId){
-router.replace("/dashboard")
-return
-}
+      if(roleName === "admin"){
+        return
+      }
 
-/* CHECK PERMISSIONS */
+      /* CHECK PAGE PERMISSIONS */
 
-const { data:permissions } = await supabase
-.from("permissions")
-.select("page,can_view")
-.eq("role_id",roleId)
+      const { data:perm } = await supabase
+        .from("permissions")
+        .select("can_view")
+        .eq("role_id",roleRow.role_id)
+        .eq("page",page)
+        .single()
 
-const allowed = permissions?.find(
-(p:any)=>p.page===page
-)
+      if(!perm?.can_view){
+        router.replace("/dashboard")
+      }
 
-if(!allowed?.can_view){
-router.replace("/dashboard")
-}
+    }
 
-}
+    check()
 
-checkPermission()
-
-},[page,router])
+  },[page,router])
 
 }
