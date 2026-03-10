@@ -4,8 +4,8 @@ import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
 type Connection = {
-  id: string
-  page?: string
+  id:string
+  page?:string
 }
 
 function pageLabel(page?:string){
@@ -25,8 +25,6 @@ export default function OnlineUsers(){
   const connections = usePresence() as Connection[]
   const { users } = useUserData()
 
-  /* remove duplicates (multi-tab) */
-
   const uniqueConnections = Array.from(
     new Map(connections.map(c=>[c.id,c])).values()
   )
@@ -44,7 +42,6 @@ export default function OnlineUsers(){
         {uniqueConnections.map(conn=>{
 
           const user = users.find((u:any)=>u.id===conn.id)
-
           if(!user) return null
 
           return(
@@ -59,7 +56,7 @@ export default function OnlineUsers(){
                 <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
                 <span className="font-medium">
-                  {user.username || "User"}
+                  {user.username}
                 </span>
 
               </div>
@@ -73,14 +70,6 @@ export default function OnlineUsers(){
           )
 
         })}
-
-        {uniqueConnections.length===0 &&(
-
-          <div className="text-gray-400 text-sm">
-            No users online
-          </div>
-
-        )}
 
       </div>
 

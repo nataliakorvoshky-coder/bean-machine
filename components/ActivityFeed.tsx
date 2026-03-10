@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 import { useUserData } from "@/lib/UserDataContext"
 
 export default function ActivityFeed(){
@@ -13,19 +14,7 @@ export default function ActivityFeed(){
 
   async function loadLogs(){
 
-    let url="/api/activity"
-
-    const params=[]
-
-    if(userFilter) params.push(`user=${userFilter}`)
-    if(typeFilter) params.push(`type=${typeFilter}`)
-
-    if(params.length>0){
-      url+="?"+params.join("&")
-    }
-
-    const res = await fetch(url)
-
+    const res = await fetch("/api/activity")
     const data = await res.json()
 
     setLogs(data.logs || [])
@@ -33,8 +22,38 @@ export default function ActivityFeed(){
   }
 
   useEffect(()=>{
+
     loadLogs()
+
+    const channel = supabase
+      .channel("activity-feed")
+      .on(
+        "postgres_changes",
+        {
+          event:"INSERT",
+          schema:"public",
+          table:"activity_logs"
+        },
+        payload=>{
+          setLogs(prev=>[payload.new,...prev])
+        }
+      )
+      .subscribe()
+
+    return ()=>{
+      supabase.removeChannel(channel)
+    }
+
   },[])
+
+  const filtered = logs.filter(log=>{
+
+    if(userFilter && log.username!==userFilter) return false
+    if(typeFilter && log.type!==typeFilter) return false
+
+    return true
+
+  })
 
   return(
 
@@ -44,19 +63,15 @@ export default function ActivityFeed(){
         Activity Feed
       </h2>
 
-      {/* FILTERS */}
-
       <div className="flex gap-3 mb-6">
 
         <select
           value={userFilter}
-          onChange={(e)=>setUserFilter(e.target.value)}
+          onChange={e=>setUserFilter(e.target.value)}
           className="border border-emerald-400 p-2 rounded text-sm"
         >
 
-          <option value="">
-            All Users
-          </option>
+          <option value="">All Users</option>
 
           {users.map((u:any)=>(
             <option key={u.id} value={u.username}>
@@ -68,7 +83,7 @@ export default function ActivityFeed(){
 
         <select
           value={typeFilter}
-          onChange={(e)=>setTypeFilter(e.target.value)}
+          onChange={e=>setTypeFilter(e.target.value)}
           className="border border-emerald-400 p-2 rounded text-sm"
         >
 
@@ -79,20 +94,11 @@ export default function ActivityFeed(){
 
         </select>
 
-        <button
-          onClick={loadLogs}
-          className="bg-emerald-500 text-white px-3 py-2 rounded text-sm"
-        >
-          Filter
-        </button>
-
       </div>
-
-      {/* ACTIVITY LIST */}
 
       <div className="space-y-3 max-h-[350px] overflow-y-auto">
 
-        {logs.map((log:any)=>(
+        {filtered.map(log=>(
 
           <div
             key={log.id}
@@ -115,7 +121,7 @@ export default function ActivityFeed(){
 
         ))}
 
-        {logs.length===0 &&(
+        {filtered.length===0 &&(
 
           <div className="text-gray-400 text-sm">
             No activity yet
