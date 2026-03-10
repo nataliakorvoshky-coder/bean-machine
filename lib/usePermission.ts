@@ -15,7 +15,10 @@ async function check(){
 const { data:userData } = await supabase.auth.getUser()
 const user = userData?.user
 
-if(!user) return
+if(!user){
+router.replace("/")
+return
+}
 
 const { data:roleData } = await supabase
 .from("user_roles")
