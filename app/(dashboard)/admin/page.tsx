@@ -1,164 +1,108 @@
 "use client"
 
-import { useState } from "react"
-import { useUserData } from "@/lib/UserDataContext"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePermission } from "@/lib/usePermission"
 
-type User = {
-  id: string
-  email?: string
-  username?: string
-  disabled?: boolean
+export default function RolesPage(){
+
+usePermission("admin")
+
+const [users,setUsers] = useState<any[]>([])
+const [roles,setRoles] = useState<any[]>([])
+
+async function load(){
+
+const { data:rolesData } = await supabase
+.from("roles")
+.select("*")
+
+setRoles(rolesData || [])
+
+const { data } = await supabase
+.from("profiles")
+.select(`
+id,
+username,
+user_roles (
+role_id,
+roles (
+id,
+name
+)
+)
+`)
+
+setUsers(data || [])
+
 }
 
-export default function AdminPage(){
+async function changeRole(userId:string,roleId:string){
 
-  usePermission("admin")
+await supabase
+.from("user_roles")
+.update({ role_id:roleId })
+.eq("user_id",userId)
 
-  const { users, refreshUsers } = useUserData()
+load()
 
-  const [email,setEmail] = useState("")
-  const [password,setPassword] = useState("")
+}
 
-  async function createUser(){
+useEffect(()=>{
 
-    const res = await fetch("/api/admin/create-user",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        email,
-        password
-      })
-    })
+load()
 
-    if(res.ok){
+},[])
 
-      setEmail("")
-      setPassword("")
+return(
 
-      await refreshUsers()
+<div className="w-[900px]">
 
-      alert("User created")
+<h1 className="text-3xl font-bold text-emerald-700 mb-10">
+User Roles
+</h1>
 
-    }else{
+<div className="bg-white p-8 rounded-xl shadow space-y-4">
 
-      alert("Failed to create user")
+{users.map((u)=>{
 
-    }
+const currentRole = u.user_roles?.roles?.name
 
-  }
+return(
 
-  async function toggleUser(id:string,disabled:boolean){
+<div
+key={u.id}
+className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+>
 
-    await supabase
-      .from("profiles")
-      .update({ disabled: !disabled })
-      .eq("id",id)
+<span className="font-medium">
+{u.username || "New User"}
+</span>
 
-    await refreshUsers()
+<select
+value={u.user_roles?.role_id}
+onChange={(e)=>changeRole(u.id,e.target.value)}
+className="border border-emerald-400 rounded px-2 py-1"
+>
 
-  }
+{roles.map((r)=>(
+<option key={r.id} value={r.id}>
+{r.name}
+</option>
+))}
 
-  return(
+</select>
 
-    <div className="w-[1000px]">
+</div>
 
-      <h1 className="text-3xl font-bold text-emerald-700 mb-10">
-        Admin Dashboard
-      </h1>
+)
 
-      <div className="flex gap-12">
+})}
 
-        {/* CREATE USER PANEL */}
+</div>
 
-        <div className="w-[420px] bg-white p-8 rounded-xl shadow">
+</div>
 
-          <h2 className="font-semibold mb-6 text-emerald-700">
-            Create User
-          </h2>
-
-          <div className="space-y-4">
-
-            <input
-              placeholder="Email"
-              value={email}
-              onChange={(e)=>setEmail(e.target.value)}
-              className="w-full border border-emerald-300 bg-emerald-50 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-
-            <input
-              type="password"
-              placeholder="Temporary Password"
-              value={password}
-              onChange={(e)=>setPassword(e.target.value)}
-              className="w-full border border-emerald-300 bg-emerald-50 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-
-            <button
-              onClick={createUser}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-            >
-              Create User
-            </button>
-
-          </div>
-
-        </div>
-
-
-        {/* CURRENT USERS PANEL */}
-
-        <div className="w-[420px] bg-white p-8 rounded-xl shadow">
-
-          <h2 className="font-semibold mb-6 text-emerald-700">
-            Current Users
-          </h2>
-
-          <div className="space-y-3">
-
-            {(users as User[]).map((u)=>{
-
-              const disabled = !!u.disabled
-
-              return(
-
-                <div
-                  key={u.id}
-                  className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
-                >
-
-                  <span className="font-medium">
-                    {u.username || "User"}
-                  </span>
-
-                  <button
-                    onClick={()=>toggleUser(u.id,disabled)}
-                    className={`px-3 py-1 rounded text-white text-sm ${
-                      disabled
-                      ? "bg-gray-500 hover:bg-gray-600"
-                      : "bg-emerald-600 hover:bg-emerald-700"
-                    }`}
-                  >
-
-                    {disabled ? "Enable" : "Disable"}
-
-                  </button>
-
-                </div>
-
-              )
-
-            })}
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  )
+)
 
 }

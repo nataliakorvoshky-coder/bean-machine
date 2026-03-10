@@ -1,67 +1,68 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 
-export function usePermission(page:string){
+export function usePermission(page: string) {
 
-const router = useRouter()
+  const router = useRouter()
 
-useEffect(()=>{
+  useEffect(() => {
 
-async function check(){
+    async function checkPermission() {
 
-const { data } = await supabase.auth.getUser()
-const user = data?.user
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
 
-if(!user){
-router.replace("/")
-return
-}
+      if (!user) {
+        router.replace("/")
+        return
+      }
 
-/* get role */
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select(`
+          roles (
+            name
+          )
+        `)
+        .eq("user_id", user.id)
+        .single()
 
-const { data:roleData } = await supabase
-.from("user_roles")
-.select("role")
-.eq("user_id",user.id)
-.maybeSingle()
+      /* roles comes back as array */
 
-const role = roleData?.role
+      const role = roleData?.roles?.[0]?.name
 
-/* ADMIN HAS ACCESS TO EVERYTHING */
+      if (!role) {
+        router.replace("/dashboard")
+        return
+      }
 
-if(role==="admin"){
-return
-}
+      /* admin can access everything */
 
-/* BASIC PAGE PERMISSIONS */
+      if (role === "admin") return
 
-if(role==="employees" && page!=="employees"){
-router.replace("/dashboard")
-return
-}
+      const rolePermissions: Record<string,string[]> = {
 
-if(role==="dashboard" && page!=="dashboard"){
-router.replace("/dashboard")
-return
-}
+        manager: ["dashboard","employees","settings"],
 
-if(role==="settings" && page!=="settings"){
-router.replace("/dashboard")
-return
-}
+        supervisor: ["dashboard","employees","settings"],
 
-if(role==="stock" && page!=="stock"){
-router.replace("/dashboard")
-return
-}
+        employee: ["dashboard","settings"]
 
-}
+      }
 
-check()
+      const allowed = rolePermissions[role]?.includes(page)
 
-},[])
+      if (!allowed) {
+        router.replace("/dashboard")
+      }
+
+    }
+
+    checkPermission()
+
+  }, [page, router])
 
 }
