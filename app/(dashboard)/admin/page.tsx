@@ -121,7 +121,7 @@ Create User
 placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2"
+className="border border-emerald-300 rounded px-3 py-2 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
 />
 
 <input
@@ -129,7 +129,7 @@ type="password"
 placeholder="Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2"
+className="border border-emerald-300 rounded px-3 py-2 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
 />
 
 <button
