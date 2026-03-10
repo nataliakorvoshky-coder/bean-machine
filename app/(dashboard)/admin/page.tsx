@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { usePermission } from "@/lib/usePermission"
 
-export default function RolesPage(){
+export default function AdminPage(){
 
 usePermission("admin")
 

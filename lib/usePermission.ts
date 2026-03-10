@@ -6,60 +6,68 @@ import { useRouter } from "next/navigation"
 
 export function usePermission(page:string){
 
-const router = useRouter()
+  const router = useRouter()
 
-useEffect(()=>{
+  useEffect(()=>{
 
-async function check(){
+    async function checkPermission(){
 
-const { data } = await supabase.auth.getUser()
-const user = data?.user
+      const { data:userData } = await supabase.auth.getUser()
+      const user = userData?.user
 
-if(!user){
-router.replace("/")
-return
-}
+      if(!user){
+        router.replace("/")
+        return
+      }
 
-const { data:roleData } = await supabase
-.from("user_roles")
-.select(`
-roles (
-name
-)
-`)
-.eq("user_id",user.id)
-.single()
+      const { data:roleData, error } = await supabase
+        .from("user_roles")
+        .select(`
+          roles(
+            name
+          )
+        `)
+        .eq("user_id",user.id)
+        .single()
 
-const role = roleData?.roles?.[0]?.name
+      if(error || !roleData){
+        return
+      }
 
-/* Admin can access EVERYTHING */
+      const role = roleData.roles?.[0]?.name
 
-if(role==="admin"){
-return
-}
+      if(!role){
+        return
+      }
 
-/* Page permissions */
+      /* ADMIN ACCESS */
 
-const permissions:any = {
+      if(role === "admin"){
+        return
+      }
 
-manager:["dashboard","employees","settings"],
+      /* PERMISSIONS MAP */
 
-supervisor:["dashboard","employees","settings"],
+      const permissions:Record<string,string[]> = {
 
-employee:["dashboard","settings"]
+        manager:["dashboard","employees","settings"],
 
-}
+        supervisor:["dashboard","employees","settings"],
 
-const allowed = permissions[role]?.includes(page)
+        employee:["dashboard","settings"]
 
-if(!allowed){
-router.replace("/dashboard")
-}
+      }
 
-}
+      const allowed = permissions[role]?.includes(page)
 
-check()
+      if(!allowed){
+        router.replace("/dashboard")
+      }
 
-},[page,router])
+    }
+
+    checkPermission()
+
+  },[page,router])
 
 }
