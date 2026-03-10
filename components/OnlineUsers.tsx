@@ -30,6 +30,8 @@ return []
 
 function resolveUsername(id:string){
 
+/* check loaded profiles */
+
 const profile = users.find(u=>u.id===id)
 
 if(profile?.username){
@@ -43,7 +45,7 @@ return profile.username
 
 }
 
-/* fallback cache */
+/* fallback to cache */
 
 const cached = sessionStorage.getItem("username_"+id)
 
@@ -69,6 +71,27 @@ if(path.includes("admin")) return "Admin"
 return path
 
 }
+
+/* cache usernames when profiles load */
+
+useEffect(()=>{
+
+users.forEach((u:any)=>{
+
+if(u.username){
+
+sessionStorage.setItem(
+"username_"+u.id,
+u.username
+)
+
+}
+
+})
+
+},[users])
+
+/* presence */
 
 useEffect(()=>{
 
@@ -196,7 +219,7 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 {role?.name || "No Role"}
 </span>
 
-<span className="text-gray-500 italic">
+<span className="text-emerald-700 italic">
 {pageName(u.page)}
 </span>
 
