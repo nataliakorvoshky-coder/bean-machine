@@ -1,108 +1,127 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useUserData } from "@/lib/UserDataContext"
 
-type Activity = {
-  id: string
-  username: string
-  action: string
-  type: string
-  created_at: string
-}
+export default function ActivityFeed(){
 
-export default function ActivityFeed() {
+  const { users } = useUserData()
 
-  const [logs, setLogs] = useState<Activity[]>([])
-  const [userFilter, setUserFilter] = useState("")
-  const [typeFilter, setTypeFilter] = useState("")
+  const [logs,setLogs] = useState<any[]>([])
+  const [userFilter,setUserFilter] = useState("")
+  const [typeFilter,setTypeFilter] = useState("")
 
-  async function load() {
+  async function loadLogs(){
 
-    const res = await fetch("/api/activity")
+    let url="/api/activity"
+
+    const params=[]
+
+    if(userFilter) params.push(`user=${userFilter}`)
+    if(typeFilter) params.push(`type=${typeFilter}`)
+
+    if(params.length>0){
+      url+="?"+params.join("&")
+    }
+
+    const res = await fetch(url)
+
     const data = await res.json()
 
     setLogs(data.logs || [])
 
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(()=>{
+    loadLogs()
+  },[])
 
-  const filtered = logs.filter((log) => {
-
-    const userMatch = userFilter
-      ? log.username.toLowerCase().includes(userFilter.toLowerCase())
-      : true
-
-    const typeMatch = typeFilter
-      ? log.type === typeFilter
-      : true
-
-    return userMatch && typeMatch
-
-  })
-
-  return (
+  return(
 
     <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
-      <h2 className="font-semibold mb-4 text-emerald-700">
+      <h2 className="font-semibold mb-6 text-emerald-700">
         Activity Feed
       </h2>
 
-      <div className="flex gap-2 mb-4">
+      {/* FILTERS */}
 
-        <input
-          placeholder="Filter user"
-          value={userFilter}
-          onChange={(e) => setUserFilter(e.target.value)}
-          className="border border-emerald-400 rounded px-2 py-1 text-sm w-full"
-        />
+      <div className="flex gap-3 mb-6">
 
         <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="border border-emerald-400 rounded px-2 py-1 text-sm"
+          value={userFilter}
+          onChange={(e)=>setUserFilter(e.target.value)}
+          className="border border-emerald-400 p-2 rounded text-sm"
         >
 
-          <option value="">All</option>
-          <option value="Admin">Admin</option>
-          <option value="Stock">Stock</option>
-          <option value="Employee">Employee</option>
+          <option value="">
+            All Users
+          </option>
+
+          {users.map((u:any)=>(
+            <option key={u.id} value={u.username}>
+              {u.username}
+            </option>
+          ))}
 
         </select>
 
+        <select
+          value={typeFilter}
+          onChange={(e)=>setTypeFilter(e.target.value)}
+          className="border border-emerald-400 p-2 rounded text-sm"
+        >
+
+          <option value="">All Types</option>
+          <option value="admin">Admin</option>
+          <option value="stock">Stock</option>
+          <option value="employee">Employee</option>
+
+        </select>
+
+        <button
+          onClick={loadLogs}
+          className="bg-emerald-500 text-white px-3 py-2 rounded text-sm"
+        >
+          Filter
+        </button>
+
       </div>
 
-      <div className="space-y-3 max-h-[320px] overflow-y-auto">
+      {/* ACTIVITY LIST */}
 
-        {filtered.map((log) => (
+      <div className="space-y-3 max-h-[350px] overflow-y-auto">
+
+        {logs.map((log:any)=>(
 
           <div
             key={log.id}
-            className="border border-emerald-200 rounded p-3"
+            className="border border-emerald-200 p-3 rounded"
           >
 
-            <div className="flex justify-between text-sm">
-
-              <span className="font-semibold">
-                {log.username}
-              </span>
-
-              <span className="text-gray-400">
-                {new Date(log.created_at).toLocaleTimeString()}
-              </span>
-
+            <div className="text-sm font-medium">
+              {log.username}
             </div>
 
-            <div className="text-xs text-gray-600 mt-1">
+            <div className="text-sm text-gray-600">
               {log.action}
+            </div>
+
+            <div className="text-xs text-gray-400">
+              {new Date(log.created_at).toLocaleString()}
             </div>
 
           </div>
 
         ))}
+
+        {logs.length===0 &&(
+
+          <div className="text-gray-400 text-sm">
+            No activity yet
+          </div>
+
+        )}
 
       </div>
 

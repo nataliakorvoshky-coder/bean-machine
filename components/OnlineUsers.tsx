@@ -8,27 +8,30 @@ type Connection = {
   page?: string
 }
 
-function pageLabel(page?: string) {
+function pageLabel(page?:string){
 
-  if (!page) return "Active"
+  if(!page) return "Active"
 
-  if (page.includes("dashboard")) return "Dashboard"
-  if (page.includes("admin")) return "Admin"
-  if (page.includes("settings")) return "Settings"
+  if(page.includes("dashboard")) return "Dashboard"
+  if(page.includes("admin")) return "Admin"
+  if(page.includes("settings")) return "Settings"
 
   return "Active"
+
 }
 
-export default function OnlineUsers() {
+export default function OnlineUsers(){
 
   const connections = usePresence() as Connection[]
-  const { users } = useUserData() as any
+  const { users } = useUserData()
+
+  /* remove duplicates (multi-tab) */
 
   const uniqueConnections = Array.from(
-    new Map(connections.map((c) => [c.id, c])).values()
+    new Map(connections.map(c=>[c.id,c])).values()
   )
 
-  return (
+  return(
 
     <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
@@ -38,13 +41,13 @@ export default function OnlineUsers() {
 
       <div className="space-y-3">
 
-        {uniqueConnections.map((conn) => {
+        {uniqueConnections.map(conn=>{
 
-          const user = users.find((u: any) => u.id === conn.id)
+          const user = users.find((u:any)=>u.id===conn.id)
 
-          if (!user) return null
+          if(!user) return null
 
-          return (
+          return(
 
             <div
               key={conn.id}
@@ -71,7 +74,7 @@ export default function OnlineUsers() {
 
         })}
 
-        {uniqueConnections.length === 0 && (
+        {uniqueConnections.length===0 &&(
 
           <div className="text-gray-400 text-sm">
             No users online
