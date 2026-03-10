@@ -1,25 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { usePermission } from "@/lib/usePermission"
 
 export default function RolesPage(){
 
-const ready = usePermission("admin")
-
 const [roles,setRoles] = useState<any[]>([])
 const [permissions,setPermissions] = useState<any[]>([])
+const [users,setUsers] = useState<any[]>([])
+const [userRoles,setUserRoles] = useState<any>({})
 
 const pages = ["admin","dashboard","employees","settings"]
 
 useEffect(()=>{
-
-if(!ready) return
-
 load()
-
-},[ready])
+},[])
 
 async function load(){
 
@@ -32,20 +27,30 @@ const { data:permData } = await supabase
 .from("permissions")
 .select("*")
 
+const { data:userData } = await supabase
+.from("profiles")
+.select("id,username")
+
+const { data:userRoleData } = await supabase
+.from("user_roles")
+.select("*")
+
+const map:any = {}
+
+userRoleData?.forEach((r:any)=>{
+map[r.user_id] = r.role_id
+})
+
 setRoles(rolesData || [])
 setPermissions(permData || [])
+setUsers(userData || [])
+setUserRoles(map)
 
 }
 
+/* toggle permission */
+
 async function toggle(roleId:string,page:string,current:boolean){
-
-const existing = permissions.find(
-(p:any)=>p.role_id===roleId && p.page===page
-)
-
-/* update if exists */
-
-if(existing){
 
 await supabase
 .from("permissions")
@@ -53,57 +58,89 @@ await supabase
 .eq("role_id",roleId)
 .eq("page",page)
 
-setPermissions(prev =>
-prev.map(p =>
-p.role_id===roleId && p.page===page
-? {...p,can_view:!current}
-: p
-)
-)
+load()
 
-}else{
+}
 
-/* create permission if missing */
+/* assign role */
+
+async function changeRole(userId:string,roleId:string){
 
 await supabase
-.from("permissions")
-.insert({
-role_id:roleId,
-page:page,
-can_view:true
+.from("user_roles")
+.upsert({
+user_id:userId,
+role_id:roleId
 })
 
-setPermissions(prev => [
-...prev,
-{role_id:roleId,page:page,can_view:true}
-])
+setUserRoles({
+...userRoles,
+[userId]:roleId
+})
 
-}
-
-}
-
-if(!ready){
-return null
 }
 
 return(
 
-<div className="w-[1100px]">
+<div className="w-[1100px] space-y-10">
 
-<h1 className="text-3xl font-bold text-emerald-700 mb-10">
+<h1 className="text-3xl font-bold text-emerald-700">
 Roles & Permissions
 </h1>
 
-<div className="space-y-6">
+{/* USER ROLE ASSIGNMENT */}
+
+<div className="bg-white p-8 rounded-xl shadow">
+
+<h2 className="text-lg font-semibold text-emerald-700 mb-6">
+Assign Roles
+</h2>
+
+<div className="space-y-3">
+
+{users.map(user=>(
+
+<div
+key={user.id}
+className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
+>
+
+<span>{user.username}</span>
+
+<select
+value={userRoles[user.id] || ""}
+onChange={(e)=>changeRole(user.id,e.target.value)}
+className="border border-emerald-300 rounded px-2 py-1"
+>
+
+<option value="">Select Role</option>
+
+{roles.map(role=>(
+<option key={role.id} value={role.id}>
+{role.name}
+</option>
+))}
+
+</select>
+
+</div>
+
+))}
+
+</div>
+
+</div>
+
+{/* PERMISSIONS */}
 
 {roles.map(role=>(
 
 <div
 key={role.id}
-className="bg-white p-6 rounded-xl shadow"
+className="bg-white p-8 rounded-xl shadow"
 >
 
-<h2 className="font-semibold text-lg text-emerald-700 mb-4 capitalize">
+<h2 className="text-lg font-semibold text-emerald-700 mb-6">
 {role.name}
 </h2>
 
@@ -152,8 +189,6 @@ enabled
 </div>
 
 ))}
-
-</div>
 
 </div>
 
