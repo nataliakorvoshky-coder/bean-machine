@@ -6,7 +6,7 @@ import { usePermission } from "@/lib/usePermission"
 
 export default function AdminPage(){
 
-const ready = usePermission("admin")
+const { loading:permLoading, allowed } = usePermission("admin")
 
 const [users,setUsers] = useState<any[]>([])
 const [roles,setRoles] = useState<any[]>([])
@@ -18,11 +18,11 @@ const [loading,setLoading] = useState(true)
 
 useEffect(()=>{
 
-if(!ready) return
+if(!allowed) return
 
 load()
 
-},[ready])
+},[allowed])
 
 async function load(){
 
@@ -95,7 +95,8 @@ role_id:roleId
 
 }
 
-if(!ready) return null
+if(permLoading) return null
+if(!allowed) return null
 
 return(
 
