@@ -127,7 +127,7 @@ Current Users
 
 <div className="space-y-3">
 
-{users?.map((user:any)=>(
+{users.map((user:any)=>(
 
 <div
 key={user.id}
@@ -137,24 +137,6 @@ className="flex justify-between items-center border border-emerald-300 p-3 round
 <span className="font-medium">
 {user.username}
 </span>
-
-<div className="flex gap-3 items-center">
-
-<select
-value={userRoles?.[user.id] || ""}
-onChange={(e)=>changeRole(user.id,e.target.value)}
-className="border border-emerald-300 rounded px-2 py-1"
->
-
-<option value="">Role</option>
-
-{roles?.map((role:any)=>(
-<option key={role.id} value={role.id}>
-{role.name}
-</option>
-))}
-
-</select>
 
 <button
 onClick={()=>toggleUser(user)}
@@ -168,8 +150,6 @@ user.disabled
 {user.disabled ? "Enable" : "Disable"}
 
 </button>
-
-</div>
 
 </div>
 
