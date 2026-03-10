@@ -3,78 +3,86 @@
 import { usePresence } from "@/lib/PresenceContext"
 import { useUserData } from "@/lib/UserDataContext"
 
-function pageLabel(page?:string){
-
-if(!page) return "Active"
-
-if(page.includes("dashboard")) return "Dashboard"
-if(page.includes("admin")) return "Admin"
-if(page.includes("settings")) return "Settings"
-
-return "Active"
-
+type Connection = {
+  id: string
+  page?: string
 }
 
-export default function OnlineUsers(){
+function pageLabel(page?: string) {
 
-const connections = usePresence()
-const { users } = useUserData()
+  if (!page) return "Active"
 
-return(
+  if (page.includes("dashboard")) return "Dashboard"
+  if (page.includes("admin")) return "Admin"
+  if (page.includes("settings")) return "Settings"
 
-<div className="w-[420px] bg-white p-8 rounded-xl shadow">
+  return "Active"
+}
 
-<h2 className="font-semibold mb-6 text-emerald-700">
-Online Users
-</h2>
+export default function OnlineUsers() {
 
-<div className="space-y-3">
+  const connections = usePresence() as Connection[]
+  const { users } = useUserData() as any
 
-{connections.map((conn:any)=>{
+  const uniqueConnections = Array.from(
+    new Map(connections.map((c) => [c.id, c])).values()
+  )
 
-const user = users.find((u:any)=>u.id===conn.id)
+  return (
 
-if(!user) return null
+    <div className="w-[420px] bg-white p-8 rounded-xl shadow">
 
-return(
+      <h2 className="font-semibold mb-6 text-emerald-700">
+        Online Users
+      </h2>
 
-<div
-key={conn.id}
-className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
->
+      <div className="space-y-3">
 
-<div className="flex items-center gap-3">
+        {uniqueConnections.map((conn) => {
 
-<div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"/>
+          const user = users.find((u: any) => u.id === conn.id)
 
-<span className="font-medium">
-{user.username}
-</span>
+          if (!user) return null
 
-</div>
+          return (
 
-<span className="text-sm text-gray-500">
-{pageLabel(conn.page)}
-</span>
+            <div
+              key={conn.id}
+              className="flex justify-between items-center border border-emerald-400 p-3 rounded-lg"
+            >
 
-</div>
+              <div className="flex items-center gap-3">
 
-)
+                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
 
-})}
+                <span className="font-medium">
+                  {user.username || "User"}
+                </span>
 
-{connections.length===0 &&(
+              </div>
 
-<div className="text-gray-400 text-sm">
-No users online
-</div>
+              <span className="text-sm text-gray-500">
+                {pageLabel(conn.page)}
+              </span>
 
-)}
+            </div>
 
-</div>
+          )
 
-</div>
+        })}
 
-)
+        {uniqueConnections.length === 0 && (
+
+          <div className="text-gray-400 text-sm">
+            No users online
+          </div>
+
+        )}
+
+      </div>
+
+    </div>
+
+  )
 
 }
