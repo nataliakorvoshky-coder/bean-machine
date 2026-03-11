@@ -3,10 +3,11 @@
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
+import OnlineUsers from "@/components/OnlineUsers"
 
 export default function AdminPage(){
 
-const { users, roles, userRoles, load } = useAdminData()
+const { users, load } = useAdminData()
 
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
@@ -51,7 +52,7 @@ Admin Dashboard
 
 <div className="grid grid-cols-2 gap-8">
 
-{/* CREATE USER */}
+<OnlineUsers/>
 
 <div className="bg-white p-8 rounded-xl shadow">
 
@@ -87,10 +88,9 @@ Create
 
 </div>
 
+</div>
 
-{/* CURRENT USERS */}
-
-<div className="bg-white p-8 rounded-xl shadow">
+<div className="bg-white p-8 rounded-xl shadow mt-8">
 
 <h2 className="text-lg font-semibold text-emerald-700 mb-6">
 Current Users
@@ -98,13 +98,7 @@ Current Users
 
 <div className="space-y-3">
 
-{users.map((user:any)=>{
-
-const roleId = userRoles[user.id]
-
-const role = roles.find(r=>r.id===roleId)
-
-return(
+{users.map((user:any)=>(
 
 <div
 key={user.id}
@@ -128,11 +122,7 @@ user.disabled
 
 </div>
 
-)
-
-})}
-
-</div>
+))}
 
 </div>
 

@@ -1,132 +1,204 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { useUserData } from "@/lib/UserDataContext"
+import { useAdminData } from "@/lib/AdminDataContext"
 
 export default function ActivityFeed(){
 
-  const { users } = useUserData()
+const { users } = useAdminData()
 
-  const [logs,setLogs] = useState<any[]>([])
-  const [userFilter,setUserFilter] = useState("")
-  const [typeFilter,setTypeFilter] = useState("")
+const [mounted,setMounted] = useState(false)
+const [activities,setActivities] = useState<any[]>([])
+const [selectedUser,setSelectedUser] = useState("")
+const [selectedType,setSelectedType] = useState("")
 
-  async function loadLogs(){
+/* ensure client render */
 
-    const res = await fetch("/api/activity")
-    const data = await res.json()
+useEffect(()=>{
+setMounted(true)
+},[])
 
-    setLogs(data.logs || [])
+/* load activity */
 
-  }
+async function loadActivity(){
 
-  useEffect(()=>{
+const { data } = await supabase
+.from("activity_log")
+.select("*")
+.order("created_at",{ ascending:false })
+.limit(50)
 
-    loadLogs()
+setActivities(data || [])
 
-    const channel = supabase
-      .channel("activity-feed")
-      .on(
-        "postgres_changes",
-        {
-          event:"INSERT",
-          schema:"public",
-          table:"activity_logs"
-        },
-        payload=>{
-          setLogs(prev=>[payload.new,...prev])
-        }
-      )
-      .subscribe()
+}
 
-    return ()=>{
-      supabase.removeChannel(channel)
-    }
+/* realtime activity */
 
-  },[])
+useEffect(()=>{
 
-  const filtered = logs.filter(log=>{
+loadActivity()
 
-    if(userFilter && log.username!==userFilter) return false
-    if(typeFilter && log.type!==typeFilter) return false
+const channel = supabase
+.channel("activity-feed")
+.on(
+"postgres_changes",
+{
+event:"INSERT",
+schema:"public",
+table:"activity_log"
+},
+payload=>{
 
-    return true
+setActivities(prev=>[
+payload.new,
+...prev
+])
 
-  })
+}
+)
+.subscribe()
 
-  return(
+return ()=>{
 
-    <div className="w-[420px] bg-white p-8 rounded-xl shadow">
+supabase.removeChannel(channel)
 
-      <h2 className="font-semibold mb-6 text-emerald-700">
-        Activity Feed
-      </h2>
+}
 
-      <div className="flex gap-3 mb-6">
+},[])
 
-        <select
-          value={userFilter}
-          onChange={e=>setUserFilter(e.target.value)}
-          className="border border-emerald-400 p-2 rounded text-sm"
-        >
-          <option value="">All Users</option>
+/* filtering */
 
-          {users.map((u:any)=>(
-            <option key={u.id} value={u.username}>
-              {u.username}
-            </option>
-          ))}
-        </select>
+const filtered = activities.filter(a=>{
 
-        <select
-          value={typeFilter}
-          onChange={e=>setTypeFilter(e.target.value)}
-          className="border border-emerald-400 p-2 rounded text-sm"
-        >
-          <option value="">All Types</option>
-          <option value="admin">Admin</option>
-          <option value="stock">Stock</option>
-          <option value="employee">Employee</option>
-        </select>
+if(selectedUser && a.user_id !== selectedUser) return false
 
-      </div>
+if(selectedType && a.type !== selectedType) return false
 
-      <div className="space-y-3 max-h-[350px] overflow-y-auto">
+return true
 
-        {filtered.map(log=>(
+})
 
-          <div
-            key={log.id}
-            className="border border-emerald-200 p-3 rounded"
-          >
+/* prevent hydration mismatch */
 
-            <div className="text-sm font-medium">
-              {log.username}
-            </div>
+if(!mounted){
+return null
+}
 
-            <div className="text-sm text-gray-600">
-              {log.action}
-            </div>
+return(
 
-            <div className="text-xs text-gray-400">
-              {new Date(log.created_at).toLocaleString()}
-            </div>
+<div className="bg-white p-8 rounded-xl shadow">
 
-          </div>
+<div className="flex justify-between items-center mb-6">
 
-        ))}
+<h2 className="text-lg font-semibold text-emerald-700">
+Activity Feed
+</h2>
 
-        {filtered.length===0 &&(
-          <div className="text-gray-400 text-sm">
-            No activity yet
-          </div>
-        )}
+<div className="flex gap-3">
 
-      </div>
+<select
+value={selectedUser}
+onChange={e=>setSelectedUser(e.target.value)}
+className="border border-emerald-400 px-3 py-2 rounded"
+>
 
-    </div>
+<option value="">
+All Users
+</option>
 
-  )
+{users?.length > 0 && users.map((u:any)=>(
+
+<option key={u.id} value={u.id}>
+{u.username}
+</option>
+
+))}
+
+</select>
+
+<select
+value={selectedType}
+onChange={e=>setSelectedType(e.target.value)}
+className="border border-emerald-400 px-3 py-2 rounded"
+>
+
+<option value="">
+All Types
+</option>
+
+<option value="login">
+Login
+</option>
+
+<option value="role_change">
+Role Change
+</option>
+
+<option value="permission_change">
+Permission Change
+</option>
+
+<option value="user_disable">
+User Disable
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+{filtered.length === 0 ?(
+
+<p className="text-gray-500">
+No activity yet
+</p>
+
+):( 
+
+<div className="space-y-2">
+
+{filtered.map(a=>{
+
+const user = users.find(u=>u.id === a.user_id)
+
+return(
+
+<div
+key={a.id}
+className="border border-emerald-200 rounded p-3 flex justify-between"
+>
+
+<span className="text-emerald-700">
+
+<strong>
+{user?.username || "User"}
+</strong>
+
+{" "}
+{a.action}
+
+</span>
+
+<span className="text-sm text-gray-500">
+
+{new Date(a.created_at).toLocaleTimeString()}
+
+</span>
+
+</div>
+
+)
+
+})}
+
+</div>
+
+)}
+
+</div>
+
+)
 
 }

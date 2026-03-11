@@ -1,25 +1,29 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAdminData } from "@/lib/AdminDataContext"
-import { usePathname } from "next/navigation"
+import type { RealtimeChannel } from "@supabase/supabase-js"
 
 export default function OnlineUsers(){
 
 const pathname = usePathname()
 
-const { users, roles, userRoles, load } = useAdminData()
+const { users, roles, userRoles } = useAdminData()
 
 const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
 function pageName(path:string){
 
+if(path.startsWith("/admin")) return "Admin Dashboard"
 if(path.includes("dashboard")) return "Dashboard"
 if(path.includes("employees")) return "Employees"
-if(path.includes("inventory")) return "Inventory"
+if(path.includes("submit-hours")) return "Submit Hours"
+if(path.includes("inventory")) return "Stock Overview"
+if(path.includes("restock")) return "Restocking"
+if(path.includes("profile")) return "Profile"
 if(path.includes("settings")) return "Settings"
-if(path.includes("admin")) return "Admin"
 
 return "Page"
 
@@ -27,19 +31,20 @@ return "Page"
 
 useEffect(()=>{
 
-let channel:any
+let channel:RealtimeChannel
 
 async function start(){
 
 const { data } = await supabase.auth.getUser()
 
 const user = data?.user
+
 if(!user) return
 
+const userId = user.id
+
 channel = supabase.channel("online-users",{
-config:{
-presence:{ key:user.id }
-}
+config:{ presence:{ key:userId } }
 })
 
 channel.on("presence",{ event:"sync" },()=>{
@@ -54,46 +59,26 @@ entries.forEach((entry:any)=> list.push(entry))
 
 })
 
-setOnlineUsers(list)
+/* dedupe users */
+
+const unique:any = {}
+
+list.forEach(u=>{
+unique[u.user_id] = u
+})
+
+setOnlineUsers(Object.values(unique))
 
 })
 
-channel.subscribe(async (status: "SUBSCRIBED" | "TIMED_OUT" | "CLOSED" | "CHANNEL_ERROR")=>{
-
-if(status !== "SUBSCRIBED") return
+await channel.subscribe()
 
 await channel.track({
-user_id:user.id,
-page:pathname
-})
-
-})
-
-/* update location */
-
-await channel.track({
-user_id:user.id,
+user_id:userId,
 page:pathname
 })
 
 }
-
-/* live role updates */
-
-const roleChannel = supabase
-.channel("role-live")
-.on(
-"postgres_changes",
-{
-event:"*",
-schema:"public",
-table:"user_roles"
-},
-async ()=>{
-await load()
-}
-)
-.subscribe()
 
 start()
 
@@ -102,8 +87,6 @@ return ()=>{
 if(channel){
 supabase.removeChannel(channel)
 }
-
-supabase.removeChannel(roleChannel)
 
 }
 
@@ -127,18 +110,26 @@ No users online
 
 <div className="space-y-3">
 
-{onlineUsers.map((u:any)=>{
+{onlineUsers.map((u:any,index:number)=>{
 
-const profile = users.find(x=>String(x.id)===String(u.user_id))
+const profile = users.find(
+x=>String(x.id) === String(u.user_id)
+)
 
 const roleId = userRoles[u.user_id]
 
-const role = roles.find(r=>String(r.id)===String(roleId))
+const role = roles.find(
+r=>String(r.id) === String(roleId)
+)
+
+/* stable unique key */
+
+const key = `${u.user_id}-${index}`
 
 return(
 
 <div
-key={u.user_id}
+key={key}
 className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
 >
 

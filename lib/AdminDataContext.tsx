@@ -1,127 +1,225 @@
 "use client"
 
-import { createContext,useContext,useEffect,useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createContext, useContext, useEffect, useState } from "react"
+import { supabase } from "./supabase"
 
-type AdminContextType={
-users:any[]
-roles:any[]
-permissions:any[]
-userRoles:Record<string,string>
-currentRole:string
-load:()=>Promise<void>
-canAccess:(page:string)=>boolean
+type ContextType = {
+  users:any[]
+  roles:any[]
+  permissions:any[]
+  userRoles:Record<string,string>
+  username:string
+  load:()=>Promise<void>
 }
 
-const AdminContext=createContext<AdminContextType|null>(null)
+const AdminContext = createContext<ContextType | null>(null)
 
 export function AdminDataProvider({children}:{children:React.ReactNode}){
 
-const [users,setUsers]=useState<any[]>([])
-const [roles,setRoles]=useState<any[]>([])
-const [permissions,setPermissions]=useState<any[]>([])
-const [userRoles,setUserRoles]=useState<Record<string,string>>({})
-const [currentRole,setCurrentRole]=useState<string>("")
+const [users,setUsers] = useState<any[]>([])
+const [roles,setRoles] = useState<any[]>([])
+const [permissions,setPermissions] = useState<any[]>([])
+const [userRoles,setUserRoles] = useState<Record<string,string>>({})
+const [username,setUsername] = useState("")
 
 async function load(){
 
-const { data:userData }=await supabase.auth.getUser()
+const { data:profiles } = await supabase
+.from("profiles")
+.select("*")
 
-const userId=userData?.user?.id
+setUsers(profiles || [])
 
-const [usersRes,rolesRes,permRes,userRoleRes]=await Promise.all([
+const { data:rolesData } = await supabase
+.from("roles")
+.select("*")
 
-supabase.from("profiles").select("id,username,disabled"),
+setRoles(rolesData || [])
 
-supabase.from("roles").select("*"),
+const { data:permData } = await supabase
+.from("role_permissions")
+.select("*")
 
-supabase.from("permissions").select("*"),
+setPermissions(permData || [])
 
-supabase.from("user_roles").select("*")
+const { data:userRoleData } = await supabase
+.from("user_roles")
+.select("*")
 
-])
+const map:Record<string,string> = {}
 
-const map:Record<string,string>={}
-
-userRoleRes.data?.forEach((r:any)=>{
-map[r.user_id]=r.role_id
+userRoleData?.forEach((r:any)=>{
+map[r.user_id] = r.role_id
 })
 
-setUsers(usersRes.data||[])
-setRoles(rolesRes.data||[])
-setPermissions(permRes.data||[])
 setUserRoles(map)
 
-if(userId){
-setCurrentRole(map[userId]||"")
+/* username */
+
+const { data } = await supabase.auth.getUser()
+
+const user = data?.user
+
+if(user){
+
+const { data:profile } = await supabase
+.from("profiles")
+.select("username")
+.eq("id",user.id)
+.single()
+
+if(profile?.username){
+
+setUsername(profile.username)
+
+if(typeof window !== "undefined"){
+sessionStorage.setItem("username",profile.username)
 }
 
 }
+
+}
+
+}
+
+/* realtime listeners */
 
 useEffect(()=>{
 
 load()
 
-/* realtime updates */
+/* profiles */
 
-const channel=supabase
-.channel("admin-live")
-.on("postgres_changes",
-{event:"*",schema:"public",table:"permissions"},
-()=>load()
+const profilesChannel = supabase
+.channel("profiles-live")
+.on(
+"postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"profiles"
+},
+payload=>{
+
+const newRow:any = payload.new
+
+setUsers(prev=>{
+
+const list = [...prev]
+
+const index = list.findIndex(
+u => u.id === newRow?.id
 )
-.on("postgres_changes",
-{event:"*",schema:"public",table:"user_roles"},
-()=>load()
-)
-.on("postgres_changes",
-{event:"*",schema:"public",table:"roles"},
-()=>load()
+
+if(index > -1){
+
+list[index] = newRow
+
+}else{
+
+list.push(newRow)
+
+}
+
+return list
+
+})
+
+}
 )
 .subscribe()
 
-return()=>{
-supabase.removeChannel(channel)
+/* roles */
+
+const rolesChannel = supabase
+.channel("userroles-live")
+.on(
+"postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"user_roles"
+},
+payload=>{
+
+const newRow:any = payload.new
+
+setUserRoles(prev=>({
+
+...prev,
+[newRow.user_id]: newRow.role_id
+
+}))
+
+}
+)
+.subscribe()
+
+/* permissions */
+
+const permChannel = supabase
+.channel("permissions-live")
+.on(
+"postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"role_permissions"
+},
+payload=>{
+
+const newRow:any = payload.new
+
+setPermissions(prev=>{
+
+const list = [...prev]
+
+const index = list.findIndex(
+p =>
+p.role_id === newRow.role_id &&
+p.page === newRow.page
+)
+
+if(index > -1){
+
+list[index] = newRow
+
+}else{
+
+list.push(newRow)
+
+}
+
+return list
+
+})
+
+}
+)
+.subscribe()
+
+return ()=>{
+
+supabase.removeChannel(profilesChannel)
+supabase.removeChannel(rolesChannel)
+supabase.removeChannel(permChannel)
+
 }
 
 },[])
 
-function canAccess(page:string){
-
-if(!currentRole) return true
-
-const role=roles.find(r=>r.id===currentRole)
-
-if(!role) return false
-
-/* inheritance */
-
-const allowedRoles=roles
-.filter(r=>r.level<=role.level)
-.map(r=>r.id)
-
-const perm=permissions.find(p=>
-
-allowedRoles.includes(p.role_id) &&
-p.page===page &&
-p.can_view
-)
-
-return !!perm
-
-}
-
 return(
 
-<AdminContext.Provider value={{
+<AdminContext.Provider
+value={{
 users,
 roles,
 permissions,
 userRoles,
-currentRole,
-load,
-canAccess
-}}>
+username,
+load
+}}
+>
 
 {children}
 
@@ -133,7 +231,7 @@ canAccess
 
 export function useAdminData(){
 
-const ctx=useContext(AdminContext)
+const ctx = useContext(AdminContext)
 
 if(!ctx){
 throw new Error("useAdminData must be used inside AdminDataProvider")
