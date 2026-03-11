@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "app/api/get-external-stock.js"  ],
   "exclude": ["node_modules"]
 }

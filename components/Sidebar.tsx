@@ -102,8 +102,8 @@ Roles & Permissions
 Stock Items
 </Link>
 
-<Link href="/admin/stock-conversions" className={linkClass("/admin/stock-conversions")}>
-  Item Conversions
+<Link href="/admin/external-stock" className={linkClass("/admin/external-stock")}>
+External Stock
 </Link>
 
 </div>
