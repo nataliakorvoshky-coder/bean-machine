@@ -1,215 +1,335 @@
-"use client"; // Mark this as a client component
+"use client";
 
 import { useState, useEffect } from "react";
+import StyledDropdown from "@/components/StyledDropdown"
 
-// API URLs
-const externalStockApi = "/api/external-stock"; // Adjust path based on actual API route
-const stockItemsApi = "/api/stock-items"; // Correct API path for Stock Items
+const API = "/api/inventory";
 
 export default function ExternalStockPage() {
+
   const [name, setName] = useState("");
   const [price, setPrice] = useState(0);
-  const [items, setItems] = useState<any[]>([]); // External stock items
-  const [stockItems, setStockItems] = useState<any[]>([]); // Stock items from Stock Items page
-  const [selectedExternalStock, setSelectedExternalStock] = useState<string>("");
-  const [selectedStockItem, setSelectedStockItem] = useState<string>("");
-  const [quantity, setQuantity] = useState(0);
 
-  // Fetch external stock items when the component mounts
+  const [items, setItems] = useState<any[]>([]);
+  const [stockItems, setStockItems] = useState<any[]>([]);
+  const [conversionHistory, setConversionHistory] = useState<any[]>([]);
+
+  const [selectedExternalStock, setSelectedExternalStock] = useState("");
+  const [selectedStockItem, setSelectedStockItem] = useState("");
+
+  const [externalQuantity, setExternalQuantity] = useState(0);
+  const [stockQuantity, setStockQuantity] = useState(0);
+
   useEffect(() => {
-    async function fetchExternalStockItems() {
-      try {
-        const res = await fetch(externalStockApi);
-        const data = await res.json();
-        setItems(data); // Set external stock items
-      } catch (error) {
-        console.error("Error fetching external stock items:", error);
-      }
-    }
-
-    async function fetchStockItems() {
-      try {
-        const res = await fetch(stockItemsApi);
-        const data = await res.json();
-        setStockItems(data); // Set stock items
-      } catch (error) {
-        console.error("Error fetching stock items:", error);
-      }
-    }
-
-    fetchExternalStockItems();
-    fetchStockItems();
+    loadExternalStock();
+    loadStockItems();
+    loadConversions();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle the form submission for adding new external stock items
-    const res = await fetch(externalStockApi, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, price }),
+  async function api(action: string, payload: any = {}) {
+
+    const res = await fetch(API,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json"},
+      body:JSON.stringify({ action, ...payload })
     });
 
-    const result = await res.json();
-    if (result.message) {
-      alert(result.message);
-    }
+    return res.json();
+  }
+
+  async function loadExternalStock(){
+    const data = await api("getExternalStock");
+    setItems(Array.isArray(data) ? data : []);
+  }
+
+  async function loadStockItems(){
+    const data = await api("getStockItems");
+    setStockItems(Array.isArray(data) ? data : []);
+  }
+
+  async function loadConversions(){
+    const data = await api("getConversions");
+    setConversionHistory(Array.isArray(data) ? data : []);
+  }
+
+  async function addExternalStock(e:any){
+    e.preventDefault();
+
+    if(!name) return;
+
+    await api("addExternalStock",{ name, price });
 
     setName("");
     setPrice(0);
-  };
 
-  const handleConversion = async (e: React.FormEvent) => {
+    loadExternalStock();
+  }
+
+  async function convertStock(e:any){
+
     e.preventDefault();
-    // Handle the conversion of external stock to stock items
-    const res = await fetch("/api/convert-external-to-stock", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        externalStockId: selectedExternalStock,
-        stockItemId: selectedStockItem,
-        quantity,
-      }),
+
+    if(!selectedExternalStock || !selectedStockItem) return;
+
+    await api("createConversion",{
+      externalStockId:selectedExternalStock,
+      stockItemId:selectedStockItem,
+      externalQuantity,
+      stockQuantity
     });
 
-    const result = await res.json();
-    if (result.message) {
-      alert(result.message);
-    }
-  };
+    setExternalQuantity(0);
+    setStockQuantity(0);
+
+    loadConversions();
+  }
+
+  async function deleteExternal(id:string){
+
+    await api("deleteExternalStock",{ id });
+    loadExternalStock();
+  }
+
+  async function deleteConversion(id:string){
+
+    await api("deleteConversion",{ id });
+    loadConversions();
+  }
+
+  const inputStyle =
+  "w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
+
+  const selectStyle =
+  "w-full appearance-none border border-emerald-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 py-4">
-      <h1 className="text-2xl font-bold text-emerald-700 mb-4">External Stock Management</h1>
 
-      {/* External Stock Section */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-3 mb-6">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-emerald-700 text-xs mb-1">Item Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="border border-emerald-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-emerald-500 w-full"
-            />
-          </div>
+  <div className="max-w-[1100px] mx-auto px-4 py-4">
 
-          <div>
-            <label className="block text-emerald-700 text-xs mb-1">Price</label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              className="border border-emerald-300 rounded-lg px-3 py-1 text-xs focus:ring-2 focus:ring-emerald-500 w-16"
-            />
-          </div>
-        </div>
+    <h1 className="text-2xl font-bold text-emerald-700 mb-6">
+      External Stock Management
+    </h1>
 
-        <div className="mt-4 flex justify-end">
-          <button
-            type="submit"
-            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 text-xs"
-          >
-            Add Item
-          </button>
-        </div>
-      </form>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      {/* External Stock to Stock Conversion Section */}
-      <div className="bg-white rounded-xl shadow p-3 mb-6">
-        <h2 className="text-lg font-semibold text-emerald-700 mb-3">Convert External Stock to Stock Items</h2>
+      {/* LEFT COLUMN */}
 
-        <form onSubmit={handleConversion}>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-emerald-700 text-xs mb-1">Select External Stock Item</label>
-              <select
-                value={selectedExternalStock}
-                onChange={(e) => setSelectedExternalStock(e.target.value)}
-                className="border border-emerald-300 rounded-lg px-3 py-1 text-xs w-full"
-              >
-                <option value="">Select External Stock Item</option>
-                {items.length > 0 ? (
-                  items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">No External Stock Items Available</option>
-                )}
-              </select>
-            </div>
+      <div className="space-y-6">
 
-            <div>
-              <label className="block text-emerald-700 text-xs mb-1">Select Stock Item</label>
-              <select
-                value={selectedStockItem}
-                onChange={(e) => setSelectedStockItem(e.target.value)}
-                className="border border-emerald-300 rounded-lg px-3 py-1 text-xs w-full"
-              >
-                <option value="">Select Stock Item</option>
-                {stockItems.length > 0 ? (
-                  stockItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">No Stock Items Available</option>
-                )}
-              </select>
-            </div>
+        {/* ADD EXTERNAL STOCK */}
 
-            <div>
-              <label className="block text-emerald-700 text-xs mb-1">External Stock Quantity</label>
+        <div className="bg-white rounded-xl shadow p-4">
+
+          <h2 className="text-lg font-semibold text-emerald-700 mb-4">
+            Add External Stock
+          </h2>
+
+          <form onSubmit={addExternalStock}>
+
+            <div className="grid grid-cols-2 gap-3">
+
+              <input
+                type="text"
+                placeholder="Item name"
+                value={name}
+                onChange={(e)=>setName(e.target.value)}
+                className={inputStyle}
+              />
+
               <input
                 type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="border border-emerald-300 rounded-lg px-3 py-1 text-xs w-full"
+                placeholder="Price"
+                value={price}
+                onChange={(e)=>setPrice(Number(e.target.value))}
+                className={inputStyle}
               />
+
             </div>
 
-            <div>
-              <label className="block text-emerald-700 text-xs mb-1">Stock Item Quantity</label>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="border border-emerald-300 rounded-lg px-3 py-1 text-xs w-full"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            <button
-              type="submit"
-              className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 text-xs"
-            >
-              Convert
+            <button className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
+              Add Item
             </button>
-          </div>
-        </form>
-      </div>
 
-      {/* Conversion History Section */}
-      <div className="bg-white rounded-xl shadow p-4">
-        <h2 className="text-lg font-semibold text-emerald-700 mb-4">Conversion History</h2>
-        <div className="grid grid-cols-[3fr_1fr_3fr_1fr] text-emerald-700 border-b border-emerald-400 pb-2 mb-2 text-xs">
-          <div>External Stock Item</div>
-          <div>Amount</div>
-          <div>Stock Item</div>
-          <div>Amount</div>
+          </form>
+
         </div>
 
-        {/* Map through conversion data here */}
+
+        {/* EXTERNAL STOCK LIST */}
+
+        <div className="bg-white rounded-xl shadow p-4">
+
+          <h2 className="text-lg font-semibold text-emerald-700 mb-4">
+            External Stock List
+          </h2>
+
+          <div className="grid grid-cols-[5fr_1fr] text-xs text-emerald-700 border-b border-emerald-400 pb-2">
+
+            <div>Item</div>
+            <div></div>
+
+          </div>
+
+          {[...items]
+            .sort((a,b)=>a.name.localeCompare(b.name))
+            .map((item)=>(
+
+            <div
+              key={item.id}
+              className="grid grid-cols-[5fr_1fr] text-xs text-emerald-700 py-2 border-b"
+            >
+
+              <div>{item.name}</div>
+
+              <div className="text-right">
+
+                <button
+                  onClick={()=>deleteExternal(item.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  Delete
+                </button>
+
+              </div>
+
+            </div>
+
+          ))}
+
+        </div>
+
       </div>
+
+
+      {/* RIGHT COLUMN */}
+
+      <div className="space-y-6">
+
+{/* CONVERT PANEL */}
+
+<div className="bg-white rounded-xl shadow p-4">
+
+  <h2 className="text-lg font-semibold text-emerald-700 mb-4">
+    Convert External Stock
+  </h2>
+
+  <form onSubmit={convertStock}>
+
+    <div className="grid grid-cols-2 gap-3">
+
+      {/* EXTERNAL ITEM DROPDOWN */}
+
+      <StyledDropdown
+        placeholder="External Item"
+        options={
+          [...items]
+            .sort((a,b)=>a.name.localeCompare(b.name))
+            .map(i=>({
+              id:i.id,
+              name:i.name
+            }))
+        }
+        value={selectedExternalStock}
+        onChange={setSelectedExternalStock}
+      />
+
+      {/* STOCK ITEM DROPDOWN */}
+
+      <StyledDropdown
+        placeholder="Stock Item"
+        options={
+          [...stockItems]
+            .sort((a,b)=>a.name.localeCompare(b.name))
+            .map(i=>({
+              id:i.id,
+              name:i.name
+            }))
+        }
+        value={selectedStockItem}
+        onChange={setSelectedStockItem}
+      />
+
+      {/* QUANTITIES */}
+
+      <input
+        type="number"
+        placeholder="External Qty"
+        value={externalQuantity}
+        onChange={(e)=>setExternalQuantity(Number(e.target.value))}
+        className={inputStyle}
+      />
+
+      <input
+        type="number"
+        placeholder="Stock Qty"
+        value={stockQuantity}
+        onChange={(e)=>setStockQuantity(Number(e.target.value))}
+        className={inputStyle}
+      />
+
     </div>
+
+    <button className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
+      Convert
+    </button>
+
+  </form>
+
+</div>
+
+
+        {/* CONVERSION HISTORY */}
+
+        <div className="bg-white rounded-xl shadow p-4">
+
+          <h2 className="text-lg font-semibold text-emerald-700 mb-4">
+            Conversion History
+          </h2>
+
+          <div className="grid grid-cols-[3fr_1fr_3fr_1fr_1fr] text-xs text-emerald-700 border-b border-emerald-400 pb-2">
+
+            <div>External Item</div>
+            <div className="text-center">Qty</div>
+            <div>Stock Item</div>
+            <div className="text-center">Qty</div>
+            <div></div>
+
+          </div>
+
+          {conversionHistory.map((row)=>(
+
+            <div
+              key={row.id}
+              className="grid grid-cols-[3fr_1fr_3fr_1fr_1fr] text-xs text-emerald-700 py-2 border-b"
+            >
+
+              <div>{row.external_stock?.name}</div>
+              <div className="text-center">{row.external_quantity}</div>
+              <div>{row.stock_item?.name}</div>
+              <div className="text-center">{row.stock_quantity}</div>
+
+              <div className="text-right">
+
+                <button
+                  onClick={()=>deleteConversion(row.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  Delete
+                </button>
+
+              </div>
+
+            </div>
+
+          ))}
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
   );
 }

@@ -27,9 +27,7 @@ function linkClass(path:string){
 const active = pathname === path
 
 if(active){
-
 return "bg-emerald-600 text-white font-semibold px-3 py-2 rounded-md"
-
 }
 
 return "text-white/90 hover:bg-emerald-700 hover:text-white px-3 py-2 rounded-md transition"
@@ -106,6 +104,12 @@ Stock Items
 External Stock
 </Link>
 
+{/* NEW LINK ADDED HERE */}
+
+<Link href="/admin/add-employee" className={linkClass("/admin/add-employee")}>
+Create Employee
+</Link>
+
 </div>
 
 )}
@@ -160,6 +164,10 @@ Employee Management
 
 <Link href="/employees" className={linkClass("/employees")}>
 Employees
+</Link>
+
+<Link href="/past-employees" className={linkClass("/past-employees")}>
+Past Employees
 </Link>
 
 <Link href="/submit-hours" className={linkClass("/submit-hours")}>

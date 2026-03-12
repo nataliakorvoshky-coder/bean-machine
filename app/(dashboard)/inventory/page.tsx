@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 
 const SECTIONS = [
   "Oven Fridge",
@@ -24,32 +23,36 @@ export default function InventoryPage() {
 
   async function load() {
 
-    const { data } = await supabase
-      .from("stock_items")
-      .select("*")
-      .order("name")
+    try {
 
-    setItems(data || [])
+      const res = await fetch("/api/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "getStockItems"
+        })
+      })
+
+      const data = await res.json()
+
+      if (Array.isArray(data)) {
+        setItems(data)
+      } else {
+        console.error("Inventory API returned invalid data:", data)
+        setItems([])
+      }
+
+    } catch (err) {
+
+      console.error("Inventory load error:", err)
+      setItems([])
+
+    }
 
   }
 
   useEffect(() => {
-
     load()
-
-    const channel = supabase
-      .channel("inventory_live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "stock_items" },
-        () => load()
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-
   }, [])
 
   function status(current: number, goal: number) {
@@ -66,9 +69,11 @@ export default function InventoryPage() {
 
   function renderSection(section: string) {
 
-    const list = items.filter(
-      i => i.section?.trim().toLowerCase() === section.toLowerCase()
-    )
+    const list = Array.isArray(items)
+      ? items.filter(
+          i => i.section?.trim().toLowerCase() === section.toLowerCase()
+        )
+      : []
 
     return (
 

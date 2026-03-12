@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 
-export async function POST(req:Request){
+export async function POST(
+req:Request,
+context:{ params:Promise<{ id:string }> }
+){
 
-const body = await req.json()
-
-const { id,current_amount,goal_amount } = body
+const { id } = await context.params
 
 const { error } = await supabase
-.from("stock_items")
-.update({
-current_amount,
-goal_amount
-})
-.eq("id",id)
+.from("employees")
+.update({ status:"Terminated" })
+.eq("id", id)
 
 if(error){
 return NextResponse.json({error:error.message},{status:500})

@@ -1,236 +1,226 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 
-type StockItem={
-id:string
-name:string
-current_amount:number
-goal_amount:number
-}
+const API = "/api/inventory"
 
-type Conversion={
-stock_item_id:string
-purchase_name:string
-units_per_purchase:number
-price_per_purchase:number
+type RestockItem = {
+  external_name:string
+  needed_external:number
+  stock_ids:string[]
+  needed_stock:number[]
 }
 
 export default function RestockingPage(){
 
-const [items,setItems] = useState<StockItem[]>([])
-const [conv,setConv] = useState<Conversion[]>([])
-const [qty,setQty] = useState<Record<string,number>>({})
+  const [items,setItems] = useState<RestockItem[]>([])
+  const [prices,setPrices] = useState<{[key:string]:number}>({})
+  const [loading,setLoading] = useState(true)
 
-async function load(){
+  useEffect(()=>{
+    loadRestock()
+  },[])
 
-const {data:stock} = await supabase
-.from("stock_items")
-.select("*")
+  async function loadRestock(){
 
-const {data:convData} = await supabase
-.from("restock_conversion")
-.select("*")
+    const res = await fetch(API,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({
+        action:"getRestockNeeded"
+      })
+    })
 
-setItems(stock || [])
-setConv(convData || [])
+    const data = await res.json()
 
-}
+    if(!Array.isArray(data)){
+      setItems([])
+      setLoading(false)
+      return
+    }
 
-useEffect(()=>{load()},[])
+    const grouped:any = {}
 
-function need(i:StockItem){
-return Math.max(i.goal_amount - i.current_amount,0)
-}
+    data.forEach((row:any)=>{
 
-function status(i:StockItem){
+      if(!grouped[row.external_name]){
 
-if(i.current_amount < i.goal_amount)
-return {text:"LOW",color:"text-red-600 bg-red-100"}
+        grouped[row.external_name] = {
+          external_name:row.external_name,
+          needed_external:row.needed_external,
+          stock_ids:[row.stock_id],
+          needed_stock:[row.needed_stock]
+        }
 
-if(i.current_amount === i.goal_amount)
-return {text:"MET",color:"text-emerald-700 bg-emerald-100"}
+      }else{
 
-return {text:"OVER",color:"text-blue-600 bg-blue-100"}
+        grouped[row.external_name].needed_external += row.needed_external
+        grouped[row.external_name].stock_ids.push(row.stock_id)
+        grouped[row.external_name].needed_stock.push(row.needed_stock)
 
-}
+      }
 
-function buyAmount(i:StockItem){
+    })
 
-const c = conv.find(x=>x.stock_item_id===i.id)
-if(!c) return 0
+    setItems(Object.values(grouped))
+    setLoading(false)
 
-return Math.ceil(need(i)/c.units_per_purchase)
+  }
 
-}
+  function updatePrice(name:string,value:number){
 
-function cost(i:StockItem){
+    setPrices(prev=>({
+      ...prev,
+      [name]:value
+    }))
 
-const c = conv.find(x=>x.stock_item_id===i.id)
-if(!c) return 0
+  }
 
-const q = qty[i.id] ?? buyAmount(i)
+  function rowTotal(item:RestockItem){
 
-return q * c.price_per_purchase
+    const price = prices[item.external_name] ?? 0
 
-}
+    return price * item.needed_external
 
-function quickFill(i:StockItem){
+  }
 
-setQty({
-...qty,
-[i.id]:buyAmount(i)
-})
+  function totalCost(){
 
-}
+    let total = 0
 
-async function submit(){
+    items.forEach(item=>{
+      total += rowTotal(item)
+    })
 
-for(const i of items){
+    return total
 
-const c = conv.find(x=>x.stock_item_id===i.id)
-if(!c) continue
+  }
 
-const q = qty[i.id] ?? buyAmount(i)
-if(q===0) continue
+  async function submitRestock(){
 
-const added = q * c.units_per_purchase
-const costTotal = q * c.price_per_purchase
+    const payload:any[] = []
 
-await supabase
-.from("stock_items")
-.update({
-current_amount:i.current_amount + added
-})
-.eq("id",i.id)
+    items.forEach(item=>{
 
-await supabase.from("restock_orders").insert({
-stock_item_id:i.id,
-purchase_name:c.purchase_name,
-purchase_qty:q,
-units_added:added,
-cost:costTotal
-})
+      if(!Array.isArray(item.stock_ids)) return
 
-}
+      item.stock_ids.forEach((id,index)=>{
 
-load()
+        payload.push({
+          stock_id:id,
+          needed_stock:item.needed_stock?.[index] ?? 0
+        })
 
-}
+      })
 
-const total = items.reduce((sum,i)=>sum + cost(i),0)
+    })
 
-return(
+    const res = await fetch(API,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({
+        action:"submitRestock",
+        items:payload
+      })
+    })
 
-<div className="max-w-[1100px]">
+    if(res.ok){
 
-<h1 className="text-3xl font-bold text-emerald-700 mb-6">
-Restocking Forecast
-</h1>
+      loadRestock()
 
-<div className="bg-white p-4 rounded-xl shadow">
+    }else{
 
-<div className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr_1fr_1fr] text-xs font-semibold text-emerald-700 border-b pb-2">
+      alert("Error updating inventory")
 
-<div>Item</div>
-<div>Current</div>
-<div>Goal</div>
-<div>Status</div>
-<div>Purchase Item</div>
-<div>Buy</div>
-<div>Cost</div>
+    }
 
-</div>
+  }
 
-{items.map(i=>{
+  if(loading){
 
-const c = conv.find(x=>x.stock_item_id===i.id)
-if(!c) return null
+    return(
+      <div className="p-10 text-gray-500">
+        Loading restock planner...
+      </div>
+    )
 
-const s = status(i)
-const buy = buyAmount(i)
+  }
 
-return(
+  return(
 
-<div
-key={i.id}
-className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr_1fr_1fr] py-2 border-b border-emerald-100 text-sm items-center"
->
+    <div className="max-w-5xl mx-auto py-10">
 
-<div className="text-emerald-700">
-{i.name}
-</div>
+      <h1 className="text-3xl font-bold text-emerald-700 mb-8">
+        Restocking Planner
+      </h1>
 
-<div>{i.current_amount}</div>
+      <div className="bg-white rounded-xl shadow overflow-hidden">
 
-<div>{i.goal_amount}</div>
+        <div className="grid grid-cols-4 px-6 py-4 text-sm font-semibold text-emerald-700 border-b">
 
-<div>
+          <div>Needed Item</div>
+          <div className="text-center">Qty Needed</div>
+          <div className="text-center">Price Each</div>
+          <div className="text-right">Total</div>
 
-<span
-className={
-"px-2 py-[2px] rounded-full text-[11px] font-medium " + s.color
-}
->
-{s.text}
-</span>
+        </div>
 
-</div>
+        {items.map(item=>(
 
-<div>{c.purchase_name}</div>
+          <div
+            key={item.external_name}
+            className="grid grid-cols-4 px-6 py-4 text-sm border-b items-center"
+          >
 
-<div className="flex gap-2 items-center">
+            <div className="text-emerald-700 font-medium">
+              {item.external_name}
+            </div>
 
-<input
-type="number"
-value={qty[i.id] ?? buy}
-onChange={e=>setQty({...qty,[i.id]:Number(e.target.value)})}
-className="w-[60px] border border-emerald-300 rounded text-center focus:ring-2 focus:ring-emerald-500"
-/>
+            <div className="text-center">
+              {item.needed_external}
+            </div>
 
-<button
-onClick={()=>quickFill(i)}
-className="text-xs text-emerald-600"
->
-auto
-</button>
+            <div className="flex justify-center">
 
-</div>
+              <input
+                type="number"
+                value={prices[item.external_name] ?? ""}
+                onChange={(e)=>updatePrice(
+                  item.external_name,
+                  Number(e.target.value)
+                )}
+                className="border border-emerald-300 rounded px-2 py-1 w-20 text-center text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
 
-<div className="font-medium">
-${cost(i)}
-</div>
+            </div>
 
-</div>
+            <div className="text-right text-emerald-700 font-medium">
+              ${rowTotal(item).toFixed(2)}
+            </div>
 
-)
+          </div>
 
-})}
+        ))}
 
-<div className="flex justify-between mt-4">
+      </div>
 
-<div className="font-semibold text-emerald-700">
-Estimated Purchase Cost
-</div>
+      <div className="flex justify-between items-center mt-8">
 
-<div className="font-semibold text-emerald-700">
-${total}
-</div>
+        <button
+          onClick={submitRestock}
+          className="bg-emerald-600 text-white px-6 py-3 rounded hover:bg-emerald-700"
+        >
+          Submit Purchase & Update Inventory
+        </button>
 
-</div>
+        <div className="text-lg font-semibold text-emerald-700">
+          Total Purchase Cost: ${totalCost().toFixed(2)}
+        </div>
 
-<button
-onClick={submit}
-className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded hover:bg-emerald-700"
->
-Submit Restock Order
-</button>
+      </div>
 
-</div>
+    </div>
 
-</div>
-
-)
+  )
 
 }

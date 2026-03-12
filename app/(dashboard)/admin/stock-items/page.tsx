@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+
+const API = "/api/inventory"
 
 const SECTIONS = [
   "Oven Fridge",
@@ -27,45 +28,38 @@ export default function StockItemsPage() {
   const [current, setCurrent] = useState(0)
   const [goal, setGoal] = useState(0)
 
-  async function load() {
+  async function api(action:string,payload:any={}){
 
-    const { data } = await supabase
-      .from("stock_items")
-      .select("*")
-      .order("name")
+    const res = await fetch(API,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ action, ...payload })
+    })
 
-    setItems(data || [])
+    return res.json()
+  }
+
+  async function load(){
+
+    const data = await api("getStockItems")
+
+    setItems(Array.isArray(data) ? data : [])
 
   }
 
-  useEffect(() => {
-
+  useEffect(()=>{
     load()
+  },[])
 
-    const channel = supabase
-      .channel("stock_items_live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "stock_items" },
-        () => load()
-      )
-      .subscribe()
+  async function addItem(){
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    if(!name.trim()) return
 
-  }, [])
-
-  async function addItem() {
-
-    if (!name) return
-
-    await supabase.from("stock_items").insert({
+    await api("addStockItem",{
       name,
       section,
-      current_amount: current,
-      goal_amount: goal
+      current_amount:current,
+      goal_amount:goal
     })
 
     setName("")
@@ -76,32 +70,33 @@ export default function StockItemsPage() {
 
   }
 
-  async function updateCurrent(id: string, value: number) {
+  async function updateCurrent(id:string,value:number){
 
-    await supabase
-      .from("stock_items")
-      .update({ current_amount: value })
-      .eq("id", id)
+    await api("updateStockCurrent",{
+      id,
+      current_amount:value
+    })
 
-  }
-
-  async function updateGoal(id: string, value: number) {
-
-    await supabase
-      .from("stock_items")
-      .update({ goal_amount: value })
-      .eq("id", id)
+    load()
 
   }
 
-  async function deleteItem(id: string) {
+  async function updateGoal(id:string,value:number){
 
-    if (!confirm("Delete item?")) return
+    await api("updateStockGoal",{
+      id,
+      goal_amount:value
+    })
 
-    await supabase
-      .from("stock_items")
-      .delete()
-      .eq("id", id)
+    load()
+
+  }
+
+  async function deleteItem(id:string){
+
+    if(!confirm("Delete item?")) return
+
+    await api("deleteStockItem",{ id })
 
     load()
 
@@ -128,7 +123,7 @@ export default function StockItemsPage() {
 
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e)=>setName(e.target.value)}
               className="mt-1 w-full border border-emerald-300 rounded px-2 py-1.5 text-sm
               focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
@@ -141,7 +136,7 @@ export default function StockItemsPage() {
 
             <select
               value={section}
-              onChange={(e) => setSection(e.target.value)}
+              onChange={(e)=>setSection(e.target.value)}
               className="mt-1 w-full border border-emerald-300 rounded px-2 py-1.5 text-sm text-emerald-700
               focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
@@ -159,7 +154,7 @@ export default function StockItemsPage() {
             <input
               type="number"
               value={current}
-              onChange={(e) => setCurrent(Number(e.target.value))}
+              onChange={(e)=>setCurrent(Number(e.target.value))}
               className="mt-1 w-full border border-emerald-300 rounded px-2 py-1.5 text-sm
               focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
@@ -173,7 +168,7 @@ export default function StockItemsPage() {
             <input
               type="number"
               value={goal}
-              onChange={(e) => setGoal(Number(e.target.value))}
+              onChange={(e)=>setGoal(Number(e.target.value))}
               className="mt-1 w-full border border-emerald-300 rounded px-2 py-1.5 text-sm
               focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
@@ -224,9 +219,7 @@ export default function StockItemsPage() {
               <input
                 type="number"
                 value={item.current_amount}
-                onChange={(e) =>
-                  updateCurrent(item.id, Number(e.target.value))
-                }
+                onChange={(e)=>updateCurrent(item.id,Number(e.target.value))}
                 className="w-[70px] border border-emerald-300 rounded text-center text-sm py-0.5
                 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
@@ -238,9 +231,7 @@ export default function StockItemsPage() {
               <input
                 type="number"
                 value={item.goal_amount}
-                onChange={(e) =>
-                  updateGoal(item.id, Number(e.target.value))
-                }
+                onChange={(e)=>updateGoal(item.id,Number(e.target.value))}
                 className="w-[70px] border border-emerald-300 rounded text-center text-sm py-0.5
                 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
@@ -250,7 +241,7 @@ export default function StockItemsPage() {
             <div className="text-right">
 
               <button
-                onClick={() => deleteItem(item.id)}
+                onClick={()=>deleteItem(item.id)}
                 className="text-red-500 text-sm hover:underline"
               >
                 Delete
