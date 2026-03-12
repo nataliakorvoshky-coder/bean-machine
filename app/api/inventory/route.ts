@@ -8,9 +8,10 @@ export async function POST(req: Request){
     const body = await req.json()
     const { action } = body
 
-    /* -------------------------------- */
-    /* GET STOCK ITEMS (Inventory Page) */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* GET STOCK ITEMS                   */
+    /* ================================= */
 
     if(action === "getStockItems"){
 
@@ -25,10 +26,10 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* GET RESTOCK NEEDED               */
-    /* Combines stock across sections   */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* GET RESTOCK NEEDED                */
+    /* ================================= */
 
     if(action === "getRestockNeeded"){
 
@@ -37,6 +38,7 @@ export async function POST(req: Request){
         .select(`
           stock_item_id,
           external_stock_item_id,
+          external_quantity,
           stock_quantity,
           stock_item:stock_item_id(
             id,
@@ -55,8 +57,8 @@ export async function POST(req: Request){
 
       data?.forEach((row:any)=>{
 
-        const current = row.stock_item.current_amount
-        const goal = row.stock_item.goal_amount
+        const current = row.stock_item?.current_amount ?? 0
+        const goal = row.stock_item?.goal_amount ?? 0
 
         const missing = Math.max(goal - current,0)
 
@@ -69,7 +71,8 @@ export async function POST(req: Request){
           grouped[key] = {
             external_name: row.external_stock.name,
             needed_stock: 0,
-            stock_ids: []
+            stock_ids: [],
+            conversion: row
           }
 
         }
@@ -79,25 +82,36 @@ export async function POST(req: Request){
 
       })
 
+
       const results:any[] = []
+
 
       Object.values(grouped).forEach((item:any)=>{
 
-        const conversion = data.find(
-          (r:any)=>r.external_stock.name === item.external_name
-        )
+        const conversion = item.conversion
+
+        const ratio =
+          conversion.stock_quantity /
+          conversion.external_quantity
 
         const needed_external = Math.ceil(
-          item.needed_stock / conversion.stock_quantity
+          item.needed_stock / ratio
+        )
+
+        const perStock = Math.floor(
+          item.needed_stock / item.stock_ids.length
         )
 
         results.push({
+
           external_name:item.external_name,
           needed_external,
+
           stock_ids:item.stock_ids,
-          needed_stock:Array(item.stock_ids.length).fill(
-            Math.ceil(item.needed_stock / item.stock_ids.length)
-          )
+
+          needed_stock:Array(item.stock_ids.length)
+            .fill(perStock)
+
         })
 
       })
@@ -106,17 +120,20 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* SUBMIT RESTOCK                   */
-    /* Updates inventory                */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* SUBMIT RESTOCK                    */
+    /* ================================= */
 
     if(action === "submitRestock"){
 
       const { items } = body
 
       if(!Array.isArray(items)){
-        return NextResponse.json({ error:"Invalid items" },{ status:400 })
+        return NextResponse.json(
+          { error:"Invalid items" },
+          { status:400 }
+        )
       }
 
       for(const item of items){
@@ -129,7 +146,9 @@ export async function POST(req: Request){
           .eq("id",stock_id)
           .single()
 
-        if(!current) continue
+        if(!current || typeof current.current_amount !== "number"){
+          continue
+        }
 
         await supabase
           .from("stock_items")
@@ -144,9 +163,10 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* GET EXTERNAL STOCK               */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* GET EXTERNAL STOCK                */
+    /* ================================= */
 
     if(action === "getExternalStock"){
 
@@ -161,9 +181,10 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* ADD EXTERNAL STOCK               */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* ADD EXTERNAL STOCK                */
+    /* ================================= */
 
     if(action === "addExternalStock"){
 
@@ -179,9 +200,10 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* DELETE EXTERNAL STOCK            */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* DELETE EXTERNAL STOCK             */
+    /* ================================= */
 
     if(action === "deleteExternalStock"){
 
@@ -198,9 +220,10 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* CREATE CONVERSION                */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* CREATE CONVERSION                 */
+    /* ================================= */
 
     if(action === "createConversion"){
 
@@ -226,9 +249,10 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* GET CONVERSIONS                  */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* GET CONVERSIONS                   */
+    /* ================================= */
 
     if(action === "getConversions"){
 
@@ -248,9 +272,10 @@ export async function POST(req: Request){
 
     }
 
-    /* -------------------------------- */
-    /* DELETE CONVERSION                */
-    /* -------------------------------- */
+
+    /* ================================= */
+    /* DELETE CONVERSION                 */
+    /* ================================= */
 
     if(action === "deleteConversion"){
 
@@ -266,6 +291,7 @@ export async function POST(req: Request){
       return NextResponse.json({ success:true })
 
     }
+
 
     return NextResponse.json(
       { error:"Invalid action" },
