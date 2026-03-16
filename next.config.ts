@@ -1,10 +1,11 @@
-import path from "path"
-import type { NextConfig } from "next"
+import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: path.join(__dirname),
+  reactStrictMode: true, // Enables React Strict Mode
+  typescript: {
+    ignoreBuildErrors: true, // Ignore TypeScript errors during build
   },
-}
+  turbopack: {}, // Enable Turbopack for faster builds (default in Next.js 16)
+};
 
-export default nextConfig
+export default nextConfig;

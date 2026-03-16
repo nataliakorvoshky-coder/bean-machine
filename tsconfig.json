@@ -11,13 +11,9 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",  // Ensure this line is added
+    "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./*"]
     }
@@ -28,7 +24,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
-, "app/api/get-external-stock.js"  ],
+    "app/**/*.ts", // Ensure this includes app directory for TS files
+    "app/**/*.tsx",
+    "app/api/**/*.ts"  // Ensure routes are properly included here
+  ],
   "exclude": ["node_modules"]
 }

@@ -1,32 +1,18 @@
-import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase"; // Ensure the correct import path
 
-
-
-/* ======================
-   GET EMPLOYEE
-====================== */
-
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-){
-
+// GET method to fetch basic employee details for the profile page
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
+    // Unwrap params as it is a Promise
+    const { id } = await params;
 
-    const { id } = await params
-
-    if(!id){
-      return NextResponse.json(
-        { error:"Missing employee id" },
-        { status:400 }
-      )
+    if (!id) {
+      return NextResponse.json({ error: "Missing employee id" }, { status: 400 });
     }
 
-
-    /* GET EMPLOYEE */
-
-    const { data: employee, error } = await supabase
+    // Fetch employee details from the employee table
+    const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select(`
         id,
@@ -34,155 +20,89 @@ export async function GET(
         status,
         rank_id,
         hire_date,
+        termination_date,
         phone,
         cid,
         iban,
         last_promotion_date,
-        strikes,
-        current_hours,
-        lifetime_hours,
-        earnings,
-        lifetime_earnings
+        is_admin_employee
       `)
       .eq("id", id)
-      .single()
+      .single(); // Fetch single employee data based on ID
 
-    if(error){
-      console.error("EMPLOYEE FETCH ERROR:", error)
-
-      return NextResponse.json(
-        { error:error.message },
-        { status:500 }
-      )
+    if (employeeError || !employee) {
+      console.error("Employee not found:", employeeError);
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-
-
-    /* GET RANK */
-
-    const { data: rank } = await supabase
+    // Fetch rank details using the rank_id from the employee table
+    const { data: rank, error: rankError } = await supabase
       .from("employee_ranks")
-      .select("rank_name,wage")
+      .select("rank_name, wage")
       .eq("id", employee.rank_id)
-      .single()
+      .single(); // Fetch single rank based on rank_id
 
+    if (rankError || !rank) {
+      console.error("Error fetching rank:", rankError);
+      return NextResponse.json({ error: "Rank not found" }, { status: 404 });
+    }
 
-
-    /* GET STRIKE HISTORY */
-
-    const { data: strikeHistory } = await supabase
-      .from("employee_strikes")
-      .select("*")
-      .eq("employee_id", id)
-      .order("created_at",{ ascending:false })
-
-
-
+    // Return combined data (employee details + rank details)
     return NextResponse.json({
-
       ...employee,
-
-      rank: rank?.rank_name ?? "-",
-      wage: rank?.wage ?? 0,
-
-      current_hours: employee.current_hours ?? 0,
-      lifetime_hours: employee.lifetime_hours ?? 0,
-
-      earnings: employee.earnings ?? 0,
-      lifetime_earnings: employee.lifetime_earnings ?? 0,
-
-      strike_history: strikeHistory ?? []
-
-    })
-
+      rank: rank?.rank_name ?? "Unassigned", // Default to "Unassigned" if rank is null
+      wage: rank?.wage ?? 0, // Default to 0 if wage is null
+    });
+  } catch (err) {
+    console.error("Error fetching employee:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-
-  catch(err){
-
-    console.error("GET EMPLOYEE CRASH:", err)
-
-    return NextResponse.json(
-      { error:"Server error" },
-      { status:500 }
-    )
-
-  }
-
 }
 
-
-
-/* ======================
-   UPDATE EMPLOYEE
-====================== */
-
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-){
-
+// POST method to update employee status
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
+    // Unwrap params to get the employee id
+    const { id } = await params;
+    const { status } = await req.json(); // Get the new status from the request body
 
-    const { id } = await params
-    const body = await req.json()
-
-    const updates:any = {}
-
-
-    if(body.status){
-      updates.status = body.status
+    if (!status) {
+      return NextResponse.json({ error: "Missing status" }, { status: 400 });
     }
 
-    if(body.last_promotion_date){
-      updates.last_promotion_date = body.last_promotion_date
+    // Implement check to prevent updating for "Coffee Panda" rank
+    const { data: employee, error: employeeError } = await supabase
+      .from("employees")
+      .select("rank_id")
+      .eq("id", id)
+      .single();
+
+    if (employeeError || !employee) {
+      console.error("Error fetching employee:", employeeError);
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-
-    if(Object.keys(updates).length === 0){
-
-      return NextResponse.json(
-        { error:"No valid fields provided" },
-        { status:400 }
-      )
-
+    // Check if the employee's rank is "Coffee Panda" (id: 1)
+    if (employee.rank_id === 1) {  // Assuming 1 is "Coffee Panda"
+      return NextResponse.json({ error: "Cannot update status for Coffee Panda rank" }, { status: 400 });
     }
 
-
+    // Update the employee's status in the database
     const { data, error } = await supabase
       .from("employees")
-      .update(updates)
+      .update({ status })
       .eq("id", id)
-      .select()
-      .single()
+      .select() // Select the updated employee data
+      .single(); // Fetch the updated employee data
 
-    if(error){
-
-      console.error("UPDATE ERROR:", error)
-
-      return NextResponse.json(
-        { error:error.message },
-        { status:500 }
-      )
-
+    if (error || !data) {
+      console.error("Error updating employee status:", error);
+      return NextResponse.json({ error: "Error updating status" }, { status: 500 });
     }
 
-
-    return NextResponse.json({
-      success:true,
-      updated:data
-    })
-
+    return NextResponse.json({ success: true, updated_employee: data });
+  } catch (err) {
+    console.error("POST EMPLOYEE STATUS ERROR:", err);
+    return NextResponse.json({ error: "Server error updating status" }, { status: 500 });
   }
-
-  catch(err){
-
-    console.error("POST EMPLOYEE CRASH:", err)
-
-    return NextResponse.json(
-      { error:"Server error updating employee" },
-      { status:500 }
-    )
-
-  }
-
 }

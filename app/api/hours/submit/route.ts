@@ -1,3 +1,5 @@
+"Use client";
+
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 

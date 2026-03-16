@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
+
+/* Base Colors */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #8400ff;
 }
 
 @theme inline {
@@ -12,21 +14,55 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
+/* Adjusted glow effect for admin employee */
+.admin-row {
+  border: none;
+  box-shadow: 0 0 5px rgba(138, 43, 226, 0.7); /* Darker and more intense glow */
+  transition: box-shadow 0.5s ease-in-out;
+}
+
+.admin-row:hover {
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.9); /* Slightly brighter glow on hover */
+}
+
+/* Update for Always status purple color */
+.purple-goal {
+  color: #8a2be2; /* 'Always' status purple color */
+  font-weight: bold;
+}
+
+/* Styling for the panda emoji in the rank badge */
+.rank-badge {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Align items to the left */
+  background-color: #e0f0e0;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 14px;
+}
+
+/* Floating animation for the panda emoji */
+.panda-emoji {
+  display: inline-block;
+  animation: floatUpDown 3s infinite ease-in-out;
+  margin-right: 5px; /* Add space between emoji and rank text */
+}
+
+/* Floating animation for the panda emoji */
+@keyframes floatUpDown {
+  0% {
+    transform: translateY(0);
   }
-  to {
-    opacity: 1;
+  50% {
+    transform: translateY(-5px); /* Adjusted for smooth floating up and down */
+  }
+  100% {
     transform: translateY(0);
   }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.4s ease-in-out;
-}
-
-body {
- font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+/* Glowing Effect for Admin Employee */
+.purple-glow {
+  box-shadow: 0 0 10px rgba(132, 0, 255, 0.7); /* Apply darker glow for the admin row */
 }
