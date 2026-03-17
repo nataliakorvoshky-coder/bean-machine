@@ -1,47 +1,19 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
-const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export async function GET() {
+  try {
+    const { data: hours, error } = await supabase
+      .from("employee_hours") // Assuming this is the table where hours are stored
+      .select("*");
 
-export async function POST(req:Request){
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
-try{
-
-const body = await req.json()
-
-const {
-employee_id,
-date,
-hours,
-minutes
-} = body
-
-
-const { error } = await supabase
-.from("work_hours")
-.insert({
-employee_id,
-work_date:date,
-hours,
-minutes
-})
-
-if(error) throw error
-
-return NextResponse.json({ success:true })
-
-}catch(err){
-
-console.error("SUBMIT HOURS ERROR:",err)
-
-return NextResponse.json(
-{ error:"Failed submitting hours" },
-{ status:500 }
-)
-
-}
-
+    return NextResponse.json(hours);
+  } catch (err) {
+    console.error("Error fetching hours data:", err);
+    return NextResponse.json({ error: "Failed to fetch hours" }, { status: 500 });
+  }
 }

@@ -28,10 +28,28 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Fetch most recent termination date from the termination_history table
+    const { data: terminationHistory, error: terminationError } = await supabase
+      .from("termination_history")
+      .select("termination_date")
+      .in("employee_id", data.map((emp: any) => emp.id)) // Fetch termination dates for all employees
+      .order("termination_date", { ascending: false })
+      .limit(1); // We assume that the latest termination date is relevant for the employee
+
+    if (terminationError) {
+      console.error("Error fetching termination history:", terminationError);
+      return NextResponse.json({ error: terminationError.message }, { status: 500 });
+    }
+
     // Format the data to include only the necessary information
     const formatted = (data || []).map((emp: any) => {
       // Check if the employee's weekly hours meet the goal (compared with rank's required hours)
       const meetsGoal = emp.weekly_hours >= (emp.employee_ranks?.hours_required ?? 0);
+
+      // Conditionally remove termination date for rehired employees
+      const terminationDate = emp.status === "Terminated"
+        ? new Date(terminationHistory[0]?.termination_date).toLocaleDateString() // Use the most recent termination date
+        : "N/A";
 
       return {
         id: emp.id,
@@ -41,6 +59,7 @@ export async function GET() {
         wage: emp.employee_ranks?.wage ?? 0,  // Default to 0 if wage is null
         earnings: emp.weekly_earnings ?? 0,  // Assuming weekly_earnings is already calculated in the DB
         last_promotion_date: emp.last_promotion_date ?? "N/A",  // Default to "N/A" if last_promotion_date is null
+        termination_date: terminationDate, // Set termination date from the termination_history table
         goal_met: meetsGoal,  // Set goal_met based on the comparison of hours
       };
     });

@@ -4,8 +4,7 @@ import { supabase } from "@/lib/supabase"; // Ensure the correct import path
 // GET method to fetch basic employee details for the profile page
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    // Unwrap params as it is a Promise
-    const { id } = await params;
+    const { id } = await params;  // Unwrap params and get the employee ID
 
     if (!id) {
       return NextResponse.json({ error: "Missing employee id" }, { status: 400 });
@@ -20,12 +19,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         status,
         rank_id,
         hire_date,
-        termination_date,
         phone,
         cid,
         iban,
         last_promotion_date,
-        is_admin_employee
+        is_admin_employee,
+        weekly_hours,
+        weekly_earnings,
+        lifetime_hours,
+        lifetime_earnings
       `)
       .eq("id", id)
       .single(); // Fetch single employee data based on ID
@@ -33,6 +35,27 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     if (employeeError || !employee) {
       console.error("Employee not found:", employeeError);
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    /* ====================== 
+    GET TERMINATION DATE FROM TERMINATION_HISTORY
+    ====================== */
+    const { data: terminationHistory, error: terminationError } = await supabase
+      .from("termination_history")
+      .select("termination_date")
+      .eq("employee_id", id)
+      .order("termination_date", { ascending: false }) // Get the most recent termination date
+      .limit(1)
+      .single(); // Fetch a single record
+
+    let termination_date = "N/A"; // Default to "N/A" if no termination history is found
+
+    if (terminationError) {
+      console.error("Error fetching termination history:", terminationError);
+    }
+
+    if (terminationHistory) {
+      termination_date = new Date(terminationHistory.termination_date).toLocaleDateString();
     }
 
     // Fetch rank details using the rank_id from the employee table
@@ -47,9 +70,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: "Rank not found" }, { status: 404 });
     }
 
-    // Return combined data (employee details + rank details)
+    // Return combined data (employee details + rank details + termination date + earnings stats)
     return NextResponse.json({
       ...employee,
+      termination_date, // Add termination_date here
       rank: rank?.rank_name ?? "Unassigned", // Default to "Unassigned" if rank is null
       wage: rank?.wage ?? 0, // Default to 0 if wage is null
     });

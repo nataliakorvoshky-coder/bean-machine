@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import StyledDropdown from "@/components/StyledDropdown"; // Assuming you have a styled dropdown component
+import StyledDropdown from "@/components/StyledDropdown";
+import '../../globals.css'; // Import the updated global styles
 
 const API = "/api/employees";
 
@@ -18,9 +19,7 @@ export default function EmployeesPage() {
   async function loadEmployees() {
     const res = await fetch(API);
     const data = await res.json();
-
     console.log("Fetched Employees:", data);  // Check what data you're receiving
-
     setEmployees(Array.isArray(data) ? data : []);
   }
 
@@ -43,6 +42,7 @@ export default function EmployeesPage() {
   };
 
   const filteredEmployees = employees
+    .filter((emp) => emp.status !== "Terminated") // Filter out terminated employees
     .filter((emp) => {
       if (!search) return true;
       const name = emp.name.toLowerCase();
@@ -67,29 +67,29 @@ export default function EmployeesPage() {
     return "bg-gray-100 text-gray-600";
   }
 
-  // Rank badge color based on rank
+  // Rank badge color based on rank with opacity
   function rankBadgeColor(rank: string) {
     switch (rank) {
       case "Macchiato":
-        return "bg-rose-200 text-rose-600";  // Rose for Macchiato
+        return "bg-[var(--macchiato)] text-white";  // Rose for Macchiato
       case "Cappuccino":
-        return "bg-blue-500 text-white";    // Electric Blue for Cappuccino
+        return "bg-[var(--cappuccino)] text-white";    // Electric Blue for Cappuccino
       case "Latte":
-        return "bg-petalforest-200 text-petalforest-700";  // Petal Forest for Latte
+        return "bg-[var(--latte)] text-white";  // Petal Forest for Latte
       case "Mocha":
-        return "bg-seagreen-200 text-seagreen-700";  // Sea Green for Mocha
+        return "bg-[var(--mocha)] text-white";  // Sea Green for Mocha
       case "Iced Coffee":
-        return "bg-amber-200 text-amber-700";  // Amber for Iced Coffee
+        return "bg-[var(--iced-coffee)] text-white";  // Amber for Iced Coffee
       case "Frappuccino":
-        return "bg-lilac-200 text-lilac-600";  // Lilac for Frappuccino
+        return "bg-[var(--frappuccino)] text-white";  // Lilac for Frappuccino
       case "Croissant":
-        return "bg-royalgold-200 text-royalgold-700";  // Royal Gold for Croissant
+        return "bg-[var(--croissant)] text-white";  // Royal Gold for Croissant
       case "Coffee Panda":
-        return "bg-purple-100 text-purple-600";  // Purple for Coffee Panda
+        return "bg-[var(--coffee-panda)] text-white";  // Purple for Coffee Panda
       case "Bean":
-        return "bg-gray-200 text-gray-600";    // Platinum for Bean
+        return "bg-[var(--bean)] text-gray-700";    // Platinum for Bean
       case "Coffee":
-        return "bg-sapphire-700 text-white";    // Sapphire for Coffee
+        return "bg-[var(--coffee)] text-white";    // Sapphire for Coffee
       default:
         return "bg-gray-100 text-gray-600";  // Default gray color
     }
@@ -230,8 +230,8 @@ export default function EmployeesPage() {
               className={isAdmin
                 ? "text-purple-500 font-semibold text-sm"
                 : emp.goal_met
-                  ? "text-emerald-600"
-                  : "text-red-500"}
+                ? "text-emerald-600"
+                : "text-red-500"}
             >
               {isAdmin ? "Always" : emp.goal_met ? "Met" : "Not Met"}
             </div>

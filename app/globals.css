@@ -1,68 +1,103 @@
+/* Import Tailwind if needed */
 @import "tailwindcss";
 
-
-/* Base Colors */
+/* Define Custom Colors in globals.css */
 :root {
-  --background: #ffffff;
-  --foreground: #8400ff;
+  --coffee: rgba(0, 60, 143, 0.6); /* Sapphire with 60% opacity */
+  --latte: rgba(125, 187, 30, 0.6); /* Petal Forest with 60% opacity */
+  --mocha: rgba(16, 204, 76, 0.6); /* Sea Green with 60% opacity */
+  --iced-coffee: rgba(251, 165, 6, 0.6); /* Amber with 60% opacity */
+  --cappuccino: rgba(0, 251, 255, 0.6); /* Electric Blue with 60% opacity */
+  --macchiato: rgba(255, 0, 0, 0.6); /* Rose with 60% opacity */
+  --frappuccino: rgba(216, 156, 216, 0.6); /* Lilac with 60% opacity */
+  --croissant: rgba(255, 216, 77, 0.6); /* Royal Gold with 60% opacity */
+  --bean: rgba(229, 229, 229, 0.6); /* Platinum with 60% opacity */
+  --coffee-panda: rgba(158, 1, 255, 0.6); /* Purple for Coffee Panda with 60% opacity */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-/* Adjusted glow effect for admin employee */
-.admin-row {
-  border: none;
-  box-shadow: 0 0 5px rgba(138, 43, 226, 0.7); /* Darker and more intense glow */
-  transition: box-shadow 0.5s ease-in-out;
-}
-
-.admin-row:hover {
-  box-shadow: 0 0 10px rgba(138, 43, 226, 0.9); /* Slightly brighter glow on hover */
-}
-
-/* Update for Always status purple color */
-.purple-goal {
-  color: #8a2be2; /* 'Always' status purple color */
-  font-weight: bold;
-}
-
-/* Styling for the panda emoji in the rank badge */
+/* Styling for custom rank badges */
 .rank-badge {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* Align items to the left */
-  background-color: #e0f0e0;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 14px;
+  display: inline-flex;               /* Use flexbox to align items */
+  align-items: center;                /* Vertically align items in the middle */
+  justify-content: flex-start;        /* Align items to the left */
+  padding: 4px 14px;                  /* Adjust padding to make the badge larger */
+  border-radius: 15px;                /* Rounded corners */
+  font-size: 12px;                    /* Font size of the rank text */
+  font-weight: bold;                  /* Bold text */
+  position: relative;                 /* Position elements inside the badge */
+  width: auto;                        /* Let the badge resize based on the content */
+  overflow: hidden;                   /* Ensure nothing overflows the badge */
 }
 
-/* Floating animation for the panda emoji */
+/* Styling for Panda emoji */
 .panda-emoji {
-  display: inline-block;
-  animation: floatUpDown 3s infinite ease-in-out;
-  margin-right: 5px; /* Add space between emoji and rank text */
+  font-size: 14px;                    /* Adjust the size of the emoji */
+  margin-right: 5px;                  /* Space between emoji and rank text */
+  position: relative;                 /* Ensure the emoji is aligned correctly inside the badge */
+  top: 0;                             /* Ensure the emoji stays at the top of the badge */
+  animation: pandaFloat 3s ease-in-out infinite;  /* Floating effect for the emoji */
 }
 
-/* Floating animation for the panda emoji */
-@keyframes floatUpDown {
+/* Keyframes for floating panda emoji */
+@keyframes pandaFloat {
   0% {
-    transform: translateY(0);
+    transform: translateY(0);         /* Start position */
   }
   50% {
-    transform: translateY(-5px); /* Adjusted for smooth floating up and down */
+    transform: translateY(-6px);      /* Move up */
   }
   100% {
-    transform: translateY(0);
+    transform: translateY(0);         /* Back to original position */
   }
 }
 
-/* Glowing Effect for Admin Employee */
-.purple-glow {
-  box-shadow: 0 0 10px rgba(132, 0, 255, 0.7); /* Apply darker glow for the admin row */
+/* Apply custom colors for ranks with opacity */
+.rank-croissant {
+  background-color: rgba(255, 216, 77, 0.6); /* Royal Gold with opacity */
+  color: white;
+}
+
+.rank-frappuccino {
+  background-color: rgba(216, 156, 216, 0.6); /* Lilac with opacity */
+  color: white;
+}
+
+.rank-macchiato {
+  background-color: rgba(255, 0, 0, 0.6); /* Rose with opacity */
+  color: white;
+}
+
+.rank-cappuccino {
+  background-color: rgba(0, 251, 255, 0.6); /* Electric Blue with opacity */
+  color: white;
+}
+
+.rank-iced-coffee {
+  background-color: rgba(251, 165, 6, 0.6); /* Amber with opacity */
+  color: white;
+}
+
+.rank-mocha {
+  background-color: rgba(16, 204, 76, 0.6); /* Sea Green with opacity */
+  color: white;
+}
+
+.rank-latte {
+  background-color: rgba(125, 187, 30, 0.6); /* Petal Forest with opacity */
+  color: white;
+}
+
+.rank-coffee {
+  background-color: rgba(0, 60, 143, 0.6); /* Sapphire with opacity */
+  color: white;
+}
+
+.rank-bean {
+  background-color: rgba(229, 229, 229, 0.6); /* Platinum with opacity */
+  color: gray;
+}
+
+.rank-coffee-panda {
+  background-color: rgba(158, 1, 255, 0.6); /* Purple with opacity for Coffee Panda */
+  color: white;
 }

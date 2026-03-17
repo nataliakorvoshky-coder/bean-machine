@@ -13,6 +13,7 @@ type Props = {
   value: string
   onChange: (value: string) => void
   className?: string // Add the className prop here to allow it to be passed in
+  width?: string // Optional width prop to set a custom width
 }
 
 export default function StyledDropdown({
@@ -21,6 +22,7 @@ export default function StyledDropdown({
   value,
   onChange,
   className = "", // Default to an empty string if no className is provided
+  width = "200px", // Default width set to 200px, can be changed from the parent
 }: Props) {
 
   const [open, setOpen] = useState(false)
@@ -46,8 +48,7 @@ export default function StyledDropdown({
   }, []) // We don't need to listen for changes to open in the dependency array
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className}`}>
-
+    <div ref={containerRef} className={`relative ${className}`} style={{ width: width }}>
       {/* BUTTON */}
       <button
         type="button"
@@ -95,7 +96,6 @@ export default function StyledDropdown({
           ))}
         </div>
       )}
-
     </div>
   )
 }
