@@ -30,7 +30,7 @@ can_view
 )
 `)
 .eq("user_id",userId)
-.single()
+.maybeSingle()
 
 if(error || !data){
 return NextResponse.json({ allowed:false })

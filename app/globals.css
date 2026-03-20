@@ -101,3 +101,12 @@
   background-color: rgba(158, 1, 255, 0.6); /* Purple with opacity for Coffee Panda */
   color: white;
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

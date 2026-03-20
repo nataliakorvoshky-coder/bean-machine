@@ -95,7 +95,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       .select("*")
       .eq("employee_id", id)        // Ensure it matches the employee's UUID
       .eq("id", terminationId)      // Match the termination history ID (which is an integer)
-      .single();                    // Fetch a single record to ensure uniqueness
+      .maybeSingle();                    // Fetch a single record to ensure uniqueness
 
     if (fetchError || !terminationHistory) {
       console.error("Termination history not found:", fetchError);

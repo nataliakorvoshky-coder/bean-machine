@@ -13,7 +13,7 @@ export default function Sidebar() {
   const [stockOpen, setStockOpen] = useState(true);
   const [employeeOpen, setEmployeeOpen] = useState(true);
   const [toolsOpen, setToolsOpen] = useState(true);
-  const [managerOpen, setManagerOpen] = useState(true);  // Add the missing state here
+  const [managerOpen, setManagerOpen] = useState(true); // Manage the opening/closing of Manager Panel
 
   async function logout() {
     await supabase.auth.signOut();
@@ -57,11 +57,11 @@ export default function Sidebar() {
           {adminOpen && (
             <div className="flex flex-col gap-1">
               <Link href="/admin" className={linkClass("/admin")}>Admin Dashboard</Link>
-              <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
               <Link href="/admin/roles" className={linkClass("/admin/roles")}>Roles & Permissions</Link>
               <Link href="/admin/stock-items" className={linkClass("/admin/stock-items")}>Stock Items</Link>
               <Link href="/admin/external-stock" className={linkClass("/admin/external-stock")}>External Stock</Link>
-              <Link href="/admin/add-employee" className={linkClass("/admin/add-employee")}>Create Employee</Link>
+              <Link href="/admin/activity-feeds" className={linkClass("/admin/activity-feeds")}>Activity Feeds</Link>
+              <Link href="/admin/hours-log" className={linkClass("/admin/hours-log")}>Hours Log</Link>
             </div>
           )}
         </div>
@@ -74,9 +74,10 @@ export default function Sidebar() {
 
           {managerOpen && (
             <div className="flex flex-col gap-1">
-<Link href="/dashboard/hours-log" className={linkClass("/dashboard/hours-log")}>
-  Hours Log
-</Link>
+              <Link href="/admin/add-employee" className={linkClass("/admin/add-employee")}>Create Employee</Link>  
+              <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
+              <Link href="/employee-analytics" className={linkClass("/employee-analytics")}>Employee Analytics</Link>
+             <Link href="/stock-analysis" className={linkClass("/stock-analysis")}>Stock Analysis</Link>
             </div>
           )}
         </div>
@@ -106,6 +107,7 @@ export default function Sidebar() {
               <Link href="/employees" className={linkClass("/employees")}>Employees</Link>
               <Link href="/past-employees" className={linkClass("/past-employees")}>Past Employees</Link>
               <Link href="/submit-hours" className={linkClass("/submit-hours")}>Submit Hours</Link>
+               <Link href="/application" className={linkClass("/application")}>Application</Link>
             </div>
           )}
         </div>
@@ -119,6 +121,9 @@ export default function Sidebar() {
           {toolsOpen && (
             <div className="flex flex-col gap-1">
               <Link href="/profile" className={linkClass("/profile")}>Profile</Link>
+              <Link href="/manager-handbook" className={linkClass("/manager-handbook")}>Manager Handbook</Link>
+              <Link href="/supervisor-handbook" className={linkClass("/supervisor-handbook")}>Supervisor Handbook</Link>
+              <Link href="/employee-handbook" className={linkClass("/employee-handbook")}>Employee Handbook</Link>
               <Link href="/settings" className={linkClass("/settings")}>Settings</Link>
             </div>
           )}

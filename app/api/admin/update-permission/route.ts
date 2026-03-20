@@ -17,7 +17,7 @@ const { data } = await supabase
 .select("*")
 .eq("role_id",roleId)
 .eq("page",page)
-.single()
+.maybeSingle()
 
 if(data){
 

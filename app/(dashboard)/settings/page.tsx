@@ -1,137 +1,95 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { usePermission } from "@/lib/usePermission"
+import { useState, useEffect } from "react"
 
 export default function SettingsPage(){
 
-const ready = usePermission("settings")
+  const [username,setUsername] = useState("")
+  const [loading,setLoading] = useState(false)
+  const [message,setMessage] = useState("")
 
-const [username,setUsername] = useState("")
-const [password,setPassword] = useState("")
+  useEffect(()=>{
+    loadProfile()
+  },[])
 
-/* load current username */
+  async function loadProfile(){
+    const res = await fetch("/api/profile/me")
+    const data = await res.json()
 
-useEffect(()=>{
+    if(data?.username){
+      setUsername(data.username)
+    }
+  }
 
-if(!ready) return
+  async function saveUsername(){
 
-async function load(){
+    setLoading(true)
+    setMessage("")
 
-const { data:userData } = await supabase.auth.getUser()
-const user = userData?.user
+    const res = await fetch("/api/user/update-username",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ username })
+    })
 
-if(!user) return
+    const data = await res.json()
 
-const { data } = await supabase
-.from("profiles")
-.select("username")
-.eq("id",user.id)
-.maybeSingle()
+    if(data.error){
+      setMessage(data.error)
+    } else {
+      setMessage("Username updated successfully")
+    }
 
-if(data?.username){
-setUsername(data.username)
-}
+    setLoading(false)
+  }
 
-}
+  return(
 
-load()
+    <div className="w-[600px]">
 
-},[ready])
+      <h1 className="text-3xl font-bold text-emerald-700 mb-10">
+        Settings
+      </h1>
 
-/* update username */
+      <div className="bg-white p-8 rounded-xl shadow">
 
-async function updateUsername(){
+        <h2 className="text-lg font-semibold text-emerald-700 mb-6">
+          Profile Settings
+        </h2>
 
-const { data:userData } = await supabase.auth.getUser()
+        <div className="flex flex-col gap-4">
 
-await supabase
-.from("profiles")
-.update({username})
-.eq("id",userData?.user?.id)
+          <div className="flex flex-col">
+            <label className="text-sm text-emerald-700 font-semibold mb-1">
+              Username
+            </label>
 
-}
+            <input
+              value={username}
+              onChange={(e)=>setUsername(e.target.value)}
+              className="border border-emerald-300 rounded px-3 py-2"
+              placeholder="Enter username"
+            />
+          </div>
 
-/* update password */
+          <button
+            onClick={saveUsername}
+            disabled={loading}
+            className="bg-emerald-600 text-white px-5 py-2 rounded w-fit"
+          >
+            {loading ? "Saving..." : "Save"}
+          </button>
 
-async function updatePassword(){
+          {message && (
+            <p className="text-sm text-gray-600">
+              {message}
+            </p>
+          )}
 
-await supabase.auth.updateUser({
-password
-})
+        </div>
 
-setPassword("")
+      </div>
 
-}
-
-/* wait for permission check */
-
-if(!ready){
-return null
-}
-
-return(
-
-<div className="w-[700px]">
-
-<h1 className="text-3xl font-bold text-emerald-700 mb-10">
-Settings
-</h1>
-
-<div className="bg-white p-8 rounded-xl shadow space-y-10">
-
-{/* USERNAME PANEL */}
-
-<div>
-
-<p className="font-semibold mb-2">
-Change Username
-</p>
-
-<input
-value={username}
-onChange={(e)=>setUsername(e.target.value)}
-className="w-full border border-emerald-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-/>
-
-<button
-onClick={updateUsername}
-className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded mt-3"
->
-Update Username
-</button>
-
-</div>
-
-{/* PASSWORD PANEL */}
-
-<div>
-
-<p className="font-semibold mb-2">
-Change Password
-</p>
-
-<input
-type="password"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-className="w-full border border-emerald-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-/>
-
-<button
-onClick={updatePassword}
-className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded mt-3"
->
-Update Password
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-)
-
+    </div>
+  )
 }

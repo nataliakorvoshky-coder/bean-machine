@@ -26,7 +26,7 @@ const { data:profile } = await supabase
 .from("profiles")
 .select("username")
 .eq("id",user.id)
-.single()
+.maybeSingle()
 
 if(profile?.username){
 

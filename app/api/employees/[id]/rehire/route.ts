@@ -16,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .from("employees")
       .select("*")
       .eq("id", id)
-      .single(); // Get a single employee record based on ID
+      .maybeSingle(); // Get a single employee record based on ID
 
     if (employeeError || !employee) {
       console.error("Employee not found:", employeeError);

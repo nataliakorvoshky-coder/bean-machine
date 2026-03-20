@@ -33,7 +33,7 @@ export async function POST(
       .from("employees")
       .select("strikes")
       .eq("id",id)
-      .single()
+      .maybeSingle()
 
 
     const newStrikeNumber = (employee?.strikes ?? 0) + 1

@@ -20,7 +20,7 @@ export async function POST(
       .from("employees")
       .select("rank_id")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (error || !employee) {
       console.error("EMPLOYEE FETCH ERROR:", error);

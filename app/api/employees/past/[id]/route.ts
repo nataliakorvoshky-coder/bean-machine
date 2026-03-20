@@ -76,7 +76,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       .eq("employee_id", id)
       .order("termination_date", { ascending: false })
       .limit(1)
-      .single(); // Get the most recent termination record
+      .maybeSingle(); // Get the most recent termination record
 
     if (fetchError || !latestTermination) {
       console.error("Termination history not found for update:", fetchError);
@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       .from("termination_history")
       .update({ rehire_status }) // Update the rehire status
       .eq("id", latestTermination.id) // Update only the most recent termination record
-      .single(); // Update single record
+      .maybeSingle(); // Update single record
 
     if (error) {
       console.error("Error updating rehire status:", error);

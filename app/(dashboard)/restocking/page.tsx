@@ -5,10 +5,10 @@ import { useEffect, useState } from "react"
 const API = "/api/inventory"
 
 type RestockItem = {
-  external_name:string
-  needed_external:number
-  stock_ids:string[]
-  needed_stock:number[]
+  external_name: string
+  needed_external: number
+  stock_ids: string[]
+  needed_stock: number[]
 }
 
 export default function RestockingPage(){
@@ -23,48 +23,58 @@ export default function RestockingPage(){
 
   async function loadRestock(){
 
-    const res = await fetch(API,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        action:"getRestockNeeded"
+    try{
+
+      const res = await fetch(API,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+          action:"getRestockNeeded"
+        })
       })
-    })
 
-    const data = await res.json()
+      const raw = await res.json()
 
-    if(!Array.isArray(data)){
-      setItems([])
-      setLoading(false)
-      return
-    }
+      const data = Array.isArray(raw)
+        ? raw
+        : raw?.data || raw?.items || []
 
-    const grouped:any = {}
+      const grouped:any = {}
 
-    data.forEach((row:any)=>{
+      data.forEach((row:any)=>{
 
-      if(!grouped[row.external_name]){
+        if(!row?.external_name) return
 
-        grouped[row.external_name] = {
-          external_name:row.external_name,
-          needed_external:row.needed_external,
-          stock_ids:[row.stock_id],
-          needed_stock:[row.needed_stock]
+        const neededExternal = Number(row.needed_external) || 0
+        const neededStock = Number(row.needed_stock) || 0
+
+        if(!grouped[row.external_name]){
+
+          grouped[row.external_name] = {
+            external_name: row.external_name,
+            needed_external: neededExternal,
+            stock_ids: [row.stock_id],
+            needed_stock: [neededStock]
+          }
+
+        }else{
+
+          grouped[row.external_name].needed_external += neededExternal
+          grouped[row.external_name].stock_ids.push(row.stock_id)
+          grouped[row.external_name].needed_stock.push(neededStock)
+
         }
 
-      }else{
+      })
 
-        grouped[row.external_name].needed_external += row.needed_external
-        grouped[row.external_name].stock_ids.push(row.stock_id)
-        grouped[row.external_name].needed_stock.push(row.needed_stock)
+      setItems(Object.values(grouped))
 
-      }
+    }catch(err){
+      console.error("Restock load error:", err)
+      setItems([])
+    }
 
-    })
-
-    setItems(Object.values(grouped))
     setLoading(false)
-
   }
 
   function updatePrice(name:string,value:number){
@@ -77,43 +87,44 @@ export default function RestockingPage(){
   }
 
   function rowTotal(item:RestockItem){
-
     const price = prices[item.external_name] ?? 0
-
     return price * item.needed_external
-
   }
 
   function totalCost(){
-
-    let total = 0
-
-    items.forEach(item=>{
-      total += rowTotal(item)
-    })
-
-    return total
-
+    return items.reduce((sum,item)=>{
+      return sum + rowTotal(item)
+    },0)
   }
+
+  const hasSelection = Object.values(prices).some(v => v > 0)
 
   async function submitRestock(){
 
     const payload:any[] = []
 
-    items.forEach(item=>{
+    items.forEach(item => {
 
-      if(!Array.isArray(item.stock_ids)) return
+      const price = prices[item.external_name]
+
+      // ✅ ONLY submit selected items
+      if (!price || price <= 0) return
 
       item.stock_ids.forEach((id,index)=>{
 
         payload.push({
           stock_id:id,
-          needed_stock:item.needed_stock?.[index] ?? 0
+          needed_stock:item.needed_stock[index] ?? 0
         })
 
       })
 
     })
+
+    if(payload.length === 0){
+      alert("Enter a price for at least one item")
+      return
+    }
 
     const res = await fetch(API,{
       method:"POST",
@@ -126,6 +137,7 @@ export default function RestockingPage(){
 
     if(res.ok){
 
+      setPrices({}) // ✅ clear only after submit
       loadRestock()
 
     }else{
@@ -137,13 +149,11 @@ export default function RestockingPage(){
   }
 
   if(loading){
-
     return(
       <div className="p-10 text-gray-500">
         Loading restock planner...
       </div>
     )
-
   }
 
   return(
@@ -157,13 +167,17 @@ export default function RestockingPage(){
       <div className="bg-white rounded-xl shadow overflow-hidden">
 
         <div className="grid grid-cols-4 px-6 py-4 text-sm font-semibold text-emerald-700 border-b">
-
           <div>Needed Item</div>
           <div className="text-center">Qty Needed</div>
           <div className="text-center">Price Each</div>
           <div className="text-right">Total</div>
-
         </div>
+
+        {items.length === 0 && (
+          <div className="p-6 text-gray-500 text-sm">
+            No items need restocking
+          </div>
+        )}
 
         {items.map(item=>(
 
@@ -181,7 +195,6 @@ export default function RestockingPage(){
             </div>
 
             <div className="flex justify-center">
-
               <input
                 type="number"
                 value={prices[item.external_name] ?? ""}
@@ -191,7 +204,6 @@ export default function RestockingPage(){
                 )}
                 className="border border-emerald-300 rounded px-2 py-1 w-20 text-center text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
-
             </div>
 
             <div className="text-right text-emerald-700 font-medium">
@@ -208,7 +220,12 @@ export default function RestockingPage(){
 
         <button
           onClick={submitRestock}
-          className="bg-emerald-600 text-white px-6 py-3 rounded hover:bg-emerald-700"
+          disabled={!hasSelection}
+          className={`px-6 py-3 rounded text-white ${
+            hasSelection
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
         >
           Submit Purchase & Update Inventory
         </button>

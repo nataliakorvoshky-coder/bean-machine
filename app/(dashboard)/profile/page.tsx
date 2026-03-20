@@ -1,67 +1,150 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { useAdminData } from "@/lib/AdminDataContext"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase"; // ✅ IMPORTANT
 
-export default function ProfilePage(){
+export default function ProfilePage() {
 
-const { username } = useAdminData()
+  const [employee, setEmployee] = useState<any>(null);
 
-const [name,setName] = useState(username)
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
-async function save(){
+  async function loadProfile() {
 
-const { data } = await supabase.auth.getUser()
+    // ✅ GET SESSION
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
 
-const user = data?.user
+    if (!token) {
+      console.error("No session found");
+      return;
+    }
 
-if(!user) return
+    // ✅ SEND TOKEN TO API
+    const res = await fetch("/api/user/profile/me", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
-await supabase
-.from("profiles")
-.update({ username:name })
-.eq("id",user.id)
+    const data = await res.json();
 
-alert("Profile updated")
+    if (data.error) {
+      console.error("API Error:", data.error);
+      return;
+    }
 
-}
+    setEmployee(data?.employee);
+  }
 
-return(
+  if (!employee) return <div className="px-10 py-8">Loading...</div>;
 
-<div className="w-[1100px]">
+  const isAdmin = employee.rank === "Coffee Panda";
 
-<h1 className="text-3xl font-bold text-emerald-700 mb-10">
-Profile
-</h1>
+  function statusBadge(status: string) {
+    if (status === "Active") return "bg-emerald-100 text-emerald-700";
+    if (status === "ROA" || status === "LOA") return "bg-yellow-100 text-yellow-700";
+    return "bg-gray-100 text-gray-600";
+  }
 
-<div className="bg-white p-8 rounded-xl shadow max-w-[500px]">
+  function rankBadgeColor(rank: string) {
+    switch (rank) {
+      case "Macchiato": return "bg-[var(--macchiato)] text-white";
+      case "Cappuccino": return "bg-[var(--cappuccino)] text-white";
+      case "Latte": return "bg-[var(--latte)] text-white";
+      case "Mocha": return "bg-[var(--mocha)] text-white";
+      case "Iced Coffee": return "bg-[var(--iced-coffee)] text-white";
+      case "Frappuccino": return "bg-[var(--frappuccino)] text-white";
+      case "Croissant": return "bg-[var(--croissant)] text-white";
+      case "Coffee Panda": return "bg-[var(--coffee-panda)] text-white";
+      case "Bean": return "bg-[var(--bean)] text-gray-700";
+      case "Coffee": return "bg-[var(--coffee)] text-white";
+      default: return "bg-gray-100 text-gray-600";
+    }
+  }
 
-<div className="flex flex-col gap-4">
+  function rowBorder(status: string, isAdmin: boolean) {
+    if (isAdmin) {
+      return "border-none shadow-[0px_0px_4px_2px_rgba(138,43,226,0.6)]";
+    }
+    if (status === "Active") return "border border-emerald-400";
+    if (status === "ROA" || status === "LOA") return "border border-yellow-400";
+    return "border border-gray-200";
+  }
 
-<label className="text-emerald-700">
-Username
-</label>
+  return (
+    <div className="w-full px-10 py-8">
 
-<input
-value={name}
-onChange={(e)=>setName(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2"
-/>
+      <h1 className="text-4xl font-bold text-emerald-700 mb-8">
+        My Profile
+      </h1>
 
-<button
-onClick={save}
-className="bg-emerald-600 text-white px-5 py-2 rounded w-fit"
->
-Save Changes
-</button>
+      <div className="grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] text-sm font-semibold text-emerald-700 px-6 mb-3">
+        <div>Name</div>
+        <div>Status</div>
+        <div>Rank</div>
+        <div>Wage</div>
+        <div>Hours</div>
+        <div>Earnings</div>
+        <div>Goal</div>
+      </div>
 
-</div>
+      <div
+        className={`grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] items-center bg-white shadow rounded-xl px-6 py-2 ${rowBorder(
+          employee.status,
+          isAdmin
+        )}`}
+      >
 
-</div>
+        <Link
+          href={`/employees/${employee.id}`}
+          className="text-emerald-700 font-medium hover:bg-emerald-50 px-2 py-[2px] rounded w-fit"
+        >
+          {employee.name}
+        </Link>
 
-</div>
+        <div>
+          <span className={`px-2 py-[2px] rounded-full text-xs ${statusBadge(employee.status)}`}>
+            {employee.status}
+          </span>
+        </div>
 
-)
+        <div>
+          <span className={`${rankBadgeColor(employee.rank)} px-2 py-[2px] rounded-full text-xs`}>
+            {isAdmin && <span className="mr-2">🐼</span>}
+            {employee.rank}
+          </span>
+        </div>
 
+        <div className="text-emerald-700 font-medium text-sm">
+          {isAdmin ? "∞" : `$${employee.wage}/hr`}
+        </div>
+
+        <div className="text-emerald-700 font-medium text-sm">
+          {employee.weekly_hours ?? 0}
+        </div>
+
+        <div className="text-emerald-700 font-semibold text-sm">
+          {isAdmin ? "∞" : `$${employee.weekly_earnings ?? 0}`}
+        </div>
+
+        <div
+          className={
+            isAdmin
+              ? "text-purple-500 font-semibold text-sm"
+              : employee.goal_met
+              ? "text-emerald-600"
+              : "text-red-500"
+          }
+        >
+          {isAdmin ? "Always" : employee.goal_met ? "Met" : "Not Met"}
+        </div>
+
+      </div>
+
+    </div>
+  );
 }

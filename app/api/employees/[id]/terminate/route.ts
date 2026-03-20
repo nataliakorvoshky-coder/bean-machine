@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .from("employees")
       .select("rank_id, status")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (employeeError || !employee) {
       console.error("Employee not found:", employeeError); 
@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .from("employee_ranks")
       .select("id")
       .eq("id", employee.rank_id)
-      .single();
+      .maybeSingle();
 
     if (rankError || !rankData) {
       console.error("Rank not found:", rankError); 
@@ -51,7 +51,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       })
       .eq("id", id)
       .select() // Fetch the updated employee data
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       console.error("Error during termination update:", error); 

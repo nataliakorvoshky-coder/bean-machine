@@ -1,30 +1,61 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase"
 
-const supabase = createClient(
- process.env.NEXT_PUBLIC_SUPABASE_URL!,
- process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export async function POST(req: Request) {
+  try {
+    const { username } = await req.json()
 
-export async function POST(req:Request){
+    if (!username || username.trim() === "") {
+      return NextResponse.json(
+        { error: "Username required" },
+        { status: 400 }
+      )
+    }
 
- const { userId, username } = await req.json()
+    // 🔐 get current user
+    const { data: { user } } = await supabase.auth.getUser()
 
- if(!userId || !username){
-  return NextResponse.json({error:"Missing data"})
- }
+    if (!user) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      )
+    }
 
- const { error } = await supabase
-  .from("profiles")
-  .upsert({
-   id:userId,
-   username
-  })
+    // 🔥 check duplicate (exclude current user)
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", username)
+      .neq("id", user.id)
+      .maybeSingle()
 
- if(error){
-  return NextResponse.json({error:error.message})
- }
+    if (existing) {
+      return NextResponse.json(
+        { error: "Username already taken" },
+        { status: 400 }
+      )
+    }
 
- return NextResponse.json({success:true})
+    // ✅ update
+    const { error } = await supabase
+      .from("profiles")
+      .update({ username })
+      .eq("id", user.id)
 
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true })
+
+  } catch {
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    )
+  }
 }

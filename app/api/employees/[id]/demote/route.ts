@@ -16,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .from("employees")
       .select("rank_id")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (error || !employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .from("employee_ranks")
       .select("rank_name, rank_level")
       .eq("id", employee.rank_id)
-      .single();
+      .maybeSingle();
 
     if (rank?.rank_name === "Coffee Panda") {
       return NextResponse.json({
@@ -46,7 +46,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .lt("rank_level", currentRankLevel)  // Get previous rank (lower rank_level)
       .order("rank_level", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!prevRank) {
       return NextResponse.json({ success: false, message: "Employee already at lowest rank" });

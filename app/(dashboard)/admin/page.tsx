@@ -1,135 +1,226 @@
 "use client"
 
-import { useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react"
 import { useAdminData } from "@/lib/AdminDataContext"
+import StyledDropdown from "@/components/StyledDropdown"
 import OnlineUsers from "@/components/OnlineUsers"
 
 export default function AdminPage(){
 
-const { users, load } = useAdminData()
+  const { load } = useAdminData()
 
-const [email,setEmail] = useState("")
-const [password,setPassword] = useState("")
+  const [email,setEmail] = useState("")
+  const [password,setPassword] = useState("")
+  const [employeeId,setEmployeeId] = useState("")
+  const [roleId,setRoleId] = useState("")
 
-async function createUser(){
+  const [employees,setEmployees] = useState<any[]>([])
+  const [roles,setRoles] = useState<any[]>([])
 
-const { error } = await supabase.auth.signUp({
-email,
-password
-})
+  const [loading,setLoading] = useState(false)
 
-if(error){
-alert(error.message)
-return
-}
+  useEffect(() => {
+    loadEmployees()
+    loadRoles()
+  }, [])
 
-setEmail("")
-setPassword("")
+  async function loadEmployees(){
+    try {
+      const res = await fetch("/api/employees")
+      const data = await res.json()
 
-await load()
+      setEmployees(
+        Array.isArray(data)
+          ? data
+          : data?.employees || []
+      )
 
-}
+    } catch (err) {
+      console.error("Failed to load employees:", err)
+      setEmployees([])
+    }
+  }
 
-async function toggleUser(user:any){
+  async function loadRoles(){
+    try {
+      const res = await fetch("/api/roles")
 
-await supabase
-.from("profiles")
-.update({ disabled: !user.disabled })
-.eq("id",user.id)
+      if (!res.ok) throw new Error("Failed to fetch roles")
 
-await load()
+      const data = await res.json()
 
-}
+      setRoles(
+        Array.isArray(data)
+          ? data
+          : data?.roles || []
+      )
 
-return(
+    } catch (err) {
+      console.error("Failed to load roles:", err)
+      setRoles([])
+    }
+  }
 
-<div className="w-[1100px]">
+  async function createUser(){
 
-<h1 className="text-3xl font-bold text-emerald-700 mb-10">
-Admin Dashboard
-</h1>
+    if(loading) return
 
-<div className="grid grid-cols-2 gap-8">
+    if(!email || !password){
+      alert("Email and password required")
+      return
+    }
 
-<OnlineUsers/>
+    if(!employeeId){
+      alert("Please select an employee")
+      return
+    }
 
-<div className="bg-white p-8 rounded-xl shadow">
+    if(!roleId){
+      alert("Please select a role")
+      return
+    }
 
-<h2 className="text-lg font-semibold text-emerald-700 mb-6">
-Create User
-</h2>
+    setLoading(true)
 
-<div className="flex flex-col gap-4">
+    try {
 
-<input
-placeholder="Email"
-value={email}
-onChange={(e)=>setEmail(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2"
-/>
+      const userRes = await fetch("/api/auth/me")
+      const userData = await userRes.json()
 
-<input
-type="password"
-placeholder="Password"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-className="border border-emerald-300 rounded px-3 py-2"
-/>
+      if(!userData?.user){
+        alert("Not authenticated")
+        setLoading(false)
+        return
+      }
 
-<button
-onClick={createUser}
-className="bg-emerald-600 text-white px-5 py-2 rounded w-fit"
->
-Create
-</button>
+      const res = await fetch("/api/admin/create-user",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          userId: userData.user.id,
+          employee_id: employeeId,
+          role_id: roleId
+        })
+      })
 
-</div>
+      const data = await res.json()
 
-</div>
+      if(data.error){
+        alert(data.error)
+        setLoading(false)
+        return
+      }
 
-</div>
+      setEmail("")
+      setPassword("")
+      setEmployeeId("")
+      setRoleId("")
 
-<div className="bg-white p-8 rounded-xl shadow mt-8">
+      await load()
 
-<h2 className="text-lg font-semibold text-emerald-700 mb-6">
-Current Users
-</h2>
+    } catch (err) {
+      console.error(err)
+      alert("Error creating user")
+    }
 
-<div className="space-y-3">
+    setLoading(false)
+  }
 
-{users.map((user:any)=>(
+  return(
 
-<div
-key={user.id}
-className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
->
+    <div className="w-[1100px]">
 
-<span>{user.username}</span>
+      <h1 className="text-3xl font-bold text-emerald-700 mb-10">
+        Admin Dashboard
+      </h1>
 
-<button
-onClick={()=>toggleUser(user)}
-className={`px-3 py-1 rounded text-white ${
-user.disabled
-? "bg-gray-500"
-: "bg-emerald-600"
-}`}
->
+      <div className="grid grid-cols-2 gap-8">
 
-{user.disabled ? "Enable" : "Disable"}
+        <OnlineUsers />
 
-</button>
+        <div className="bg-white p-8 rounded-xl shadow">
 
-</div>
+          <h2 className="text-lg font-semibold text-emerald-700 mb-6">
+            Create User
+          </h2>
 
-))}
+          <div className="flex flex-col gap-4">
 
-</div>
+            {/* EMAIL */}
+            <input
+              placeholder="Email"
+              value={email}
+              onChange={(e)=>setEmail(e.target.value)}
+              disabled={loading}
+              className="border border-emerald-300 rounded px-3 py-2 transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
 
-</div>
+            {/* PASSWORD */}
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e)=>setPassword(e.target.value)}
+              disabled={loading}
+              className="border border-emerald-300 rounded px-3 py-2 transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
 
-</div>
+            {/* EMPLOYEE + ROLE */}
+            <div className="grid grid-cols-2 gap-4">
 
-)
+              <div className="flex flex-col">
+                <label className="text-xs text-emerald-700 font-semibold mb-1">
+                  Employee
+                </label>
+                <StyledDropdown
+                  value={employeeId}
+                  onChange={setEmployeeId}
+                  placeholder="Select Employee"
+                  options={employees.map((e:any)=>({
+                    id: e.id,
+                    name: e.name
+                  }))}
+                />
+              </div>
 
+              <div className="flex flex-col">
+                <label className="text-xs text-emerald-700 font-semibold mb-1">
+                  Role
+                </label>
+                <StyledDropdown
+                  value={roleId}
+                  onChange={setRoleId}
+                  placeholder="Select Role"
+                  options={roles.map((r:any)=>({
+                    id: r.id,
+                    name: r.name
+                  }))}
+                />
+              </div>
+
+            </div>
+
+            <button
+              onClick={createUser}
+              disabled={loading}
+              className={`px-5 py-2 rounded w-fit text-white ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
+            >
+              {loading ? "Creating..." : "Create"}
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  )
 }

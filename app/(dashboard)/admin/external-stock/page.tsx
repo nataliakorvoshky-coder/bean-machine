@@ -7,7 +7,6 @@ const API = "/api/inventory";
 
 export default function ExternalStockPage() {
   const [name, setName] = useState("");
-  const [price, setPrice] = useState(0);
 
   const [items, setItems] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
@@ -19,14 +18,12 @@ export default function ExternalStockPage() {
   const [externalQuantity, setExternalQuantity] = useState(0);
   const [stockQuantity, setStockQuantity] = useState(0);
 
-  // Fetch initial data when the component mounts
   useEffect(() => {
     loadExternalStock();
     loadStockItems();
     loadConversions();
   }, []);
 
-  // Function to interact with the API
   async function api(action: string, payload: any = {}) {
     const res = await fetch(API, {
       method: "POST",
@@ -36,40 +33,32 @@ export default function ExternalStockPage() {
     return res.json();
   }
 
-  // Fetch external stock items
   async function loadExternalStock() {
     const data = await api("getExternalStock");
-    console.log("External Stock Data:", data); // Log data
     setItems(Array.isArray(data) ? data : []);
   }
 
-  // Fetch stock items
   async function loadStockItems() {
     const data = await api("getStockItems");
-    console.log("Stock Items Data:", data); // Log data
     setStockItems(Array.isArray(data) ? data : []);
   }
 
-  // Fetch conversion history
   async function loadConversions() {
     const data = await api("getConversions");
-    console.log("Conversion History:", data); // Log data
     setConversionHistory(Array.isArray(data) ? data : []);
   }
 
-  // Add a new external stock item
+  // ✅ ADD EXTERNAL STOCK (FIXED)
   async function addExternalStock(e: any) {
     e.preventDefault();
     if (!name) return;
 
-    await api("addExternalStock", { name, price });
+    await api("addExternalStock", { name });
 
     setName("");
-    setPrice(0);
-    loadExternalStock(); // Refresh the list after adding
+    loadExternalStock();
   }
 
-  // Convert external stock to stock items
   async function convertStock(e: any) {
     e.preventDefault();
 
@@ -84,26 +73,21 @@ export default function ExternalStockPage() {
 
     setExternalQuantity(0);
     setStockQuantity(0);
-    loadConversions(); // Refresh the conversion history after converting
+    loadConversions();
   }
 
-  // Delete an external stock item
   async function deleteExternal(id: string) {
     await api("deleteExternalStock", { id });
-    loadExternalStock(); // Refresh the list after deleting
+    loadExternalStock();
   }
 
-  // Delete a conversion
   async function deleteConversion(id: string) {
     await api("deleteConversion", { id });
-    loadConversions(); // Refresh the conversion history after deleting
+    loadConversions();
   }
 
   const inputStyle =
     "w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
-
-  const selectStyle =
-    "w-full appearance-none border border-emerald-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-4">
@@ -112,8 +96,10 @@ export default function ExternalStockPage() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
         {/* LEFT COLUMN */}
         <div className="space-y-6">
+          
           {/* ADD EXTERNAL STOCK */}
           <div className="bg-white rounded-xl shadow p-4">
             <h2 className="text-lg font-semibold text-emerald-700 mb-4">
@@ -121,7 +107,9 @@ export default function ExternalStockPage() {
             </h2>
 
             <form onSubmit={addExternalStock}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
+
+                {/* ONLY NAME INPUT */}
                 <input
                   type="text"
                   placeholder="Item name"
@@ -130,13 +118,6 @@ export default function ExternalStockPage() {
                   className={inputStyle}
                 />
 
-                <input
-                  type="number"
-                  placeholder="Price"
-                  value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
-                  className={inputStyle}
-                />
               </div>
 
               <button className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
@@ -180,6 +161,7 @@ export default function ExternalStockPage() {
 
         {/* RIGHT COLUMN */}
         <div className="space-y-6">
+          
           {/* CONVERT PANEL */}
           <div className="bg-white rounded-xl shadow p-4">
             <h2 className="text-lg font-semibold text-emerald-700 mb-4">
@@ -188,33 +170,27 @@ export default function ExternalStockPage() {
 
             <form onSubmit={convertStock}>
               <div className="grid grid-cols-2 gap-3">
-                {/* EXTERNAL ITEM DROPDOWN */}
+
                 <StyledDropdown
                   placeholder="External Item"
-                  options={items
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((i) => ({
-                      id: i.id,
-                      name: i.name,
-                    }))}
+                  options={items.map((i) => ({
+                    id: i.id,
+                    name: i.name,
+                  }))}
                   value={selectedExternalStock}
                   onChange={setSelectedExternalStock}
                 />
 
-                {/* STOCK ITEM DROPDOWN */}
                 <StyledDropdown
                   placeholder="Stock Item"
-                  options={stockItems
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((i) => ({
-                      id: i.id,
-                      name: i.name,
-                    }))}
+                  options={stockItems.map((i) => ({
+                    id: i.id,
+                    name: i.name,
+                  }))}
                   value={selectedStockItem}
                   onChange={setSelectedStockItem}
                 />
 
-                {/* QUANTITIES */}
                 <input
                   type="number"
                   placeholder="External Qty"
@@ -273,6 +249,7 @@ export default function ExternalStockPage() {
               </div>
             ))}
           </div>
+
         </div>
       </div>
     </div>

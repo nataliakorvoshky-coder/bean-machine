@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import StyledDatePicker from "@/components/StyledDatePicker";
 import StyledDropdown from "@/components/StyledDropdown";
 
@@ -22,6 +23,18 @@ export default function SubmitHoursPage() {
     loadEmployees();
   }, []);
 
+  // Get the current logged-in user
+ const getUser = async () => {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("Error getting user:", error);
+    return null;
+  }
+
+  return data.user;
+};
+
   // Submit hours
   async function submitHours(e: any) {
     e.preventDefault();
@@ -35,6 +48,13 @@ export default function SubmitHoursPage() {
     // If hours are empty, set hours to 0
     const submittedHours = hours === "" ? "0" : hours;
 
+    // Get the current logged-in user
+    const user = await getUser();
+    if (!user) {
+      alert("You must be logged in to submit hours.");
+      return;
+    }
+
     // Send the data to the server
     const res = await fetch("/api/hours/submit", {
       method: "POST",
@@ -44,6 +64,7 @@ export default function SubmitHoursPage() {
         work_date: date,
         hours: submittedHours,
         minutes,
+        submitted_by: user.id, // Send the logged-in user's ID
       }),
     });
 

@@ -3,170 +3,233 @@
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { useAdminData } from "@/lib/AdminDataContext"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 
 export default function OnlineUsers(){
 
-const pathname = usePathname()
+  const pathname = usePathname()
+  const [onlineUsers,setOnlineUsers] = useState<any[]>([])
 
-const { users, roles, userRoles } = useAdminData()
+  function pageName(path:string){
+    if(path.startsWith("/admin")) return "Admin Dashboard"
+    if(path.includes("dashboard")) return "Dashboard"
+    if(path.includes("employees")) return "Employees"
+    if(path.includes("submit-hours")) return "Submit Hours"
+    if(path.includes("inventory")) return "Stock Overview"
+    if(path.includes("restock")) return "Restocking"
+    if(path.includes("profile")) return "Profile"
+    if(path.includes("settings")) return "Settings"
+    return "Page"
+  }
 
-const [onlineUsers,setOnlineUsers] = useState<any[]>([])
+  // 🔥 TRACK USER (FIXED + DEBUGGED)
+  async function trackUser(channel:any, userId:string, pathname:string){
 
-function pageName(path:string){
+    const ACTIVITY_INTERVAL = 10000
 
-if(path.startsWith("/admin")) return "Admin Dashboard"
-if(path.includes("dashboard")) return "Dashboard"
-if(path.includes("employees")) return "Employees"
-if(path.includes("submit-hours")) return "Submit Hours"
-if(path.includes("inventory")) return "Stock Overview"
-if(path.includes("restock")) return "Restocking"
-if(path.includes("profile")) return "Profile"
-if(path.includes("settings")) return "Settings"
+    async function send(){
 
-return "Page"
+      // ✅ PROFILE
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("username, role_id, employee_id")
+        .eq("id", userId)
+        .maybeSingle()
 
-}
+      if (profileError || !profileData) {
+        console.error("PROFILE ERROR:", profileError)
+        return
+      }
 
-useEffect(()=>{
+      // ✅ EMPLOYEE
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .select("name")
+        .eq("id", profileData.employee_id)
+        .maybeSingle()
 
-let channel:RealtimeChannel
+      if (employeeError) {
+        console.error("EMPLOYEE ERROR:", employeeError)
+      }
 
-async function start(){
+      // ✅ ROLE
+      const { data: roleData, error: roleError } = await supabase
+        .from("roles")
+        .select("name")
+        .eq("id", profileData.role_id)
+        .maybeSingle()
 
-const { data } = await supabase.auth.getUser()
+      if (roleError) {
+        console.error("ROLE ERROR:", roleError)
+      }
 
-const user = data?.user
+      // 🔥 DEBUG (CHECK CONSOLE)
+      console.log("DEBUG ROLE:", {
+        role_id: profileData.role_id,
+        roleData
+      })
 
-if(!user) return
+      await channel.track({
+        user_id: userId,
+        page: pathname,
+        name: employeeData?.name || profileData.username || "User",
+        role: roleData?.name || "No Role",
+        last_active: Date.now()
+      })
+    }
 
-const userId = user.id
+    await send()
 
-channel = supabase.channel("online-users",{
-config:{ presence:{ key:userId } }
-})
+    const interval = setInterval(send, ACTIVITY_INTERVAL)
 
-channel.on("presence",{ event:"sync" },()=>{
+    return () => clearInterval(interval)
+  }
 
-const state = channel.presenceState()
+  useEffect(()=>{
 
-const list:any[] = []
+    let channel:RealtimeChannel
+    let cleanupActivity:any
 
-Object.values(state).forEach((entries:any)=>{
+    async function start(){
 
-entries.forEach((entry:any)=> list.push(entry))
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
 
-})
+      if(!user) return
 
-/* dedupe users */
+      const userId = user.id
 
-const unique:any = {}
+      // 🔥 RESET CHANNELS (prevents ghost users)
+      await supabase.removeAllChannels()
 
-list.forEach(u=>{
-unique[u.user_id] = u
-})
+      channel = supabase.channel("online-users",{
+        config:{
+          presence:{ key:userId },
+          broadcast:{ self:true }
+        }
+      })
 
-setOnlineUsers(Object.values(unique))
+      // ✅ LISTEN FOR USERS
+      channel.on("presence",{ event:"sync" },()=>{
 
-})
+        const state = channel.presenceState()
+        const list:any[] = []
 
-await channel.subscribe()
+        Object.values(state).forEach((entries:any)=>{
+          entries.forEach((entry:any)=> list.push(entry))
+        })
 
-await channel.track({
-user_id:userId,
-page:pathname
-})
+        // 🔥 DEDUPE
+        const unique:any = {}
+        list.forEach(u=>{
+          unique[u.user_id] = u
+        })
 
-}
+        setOnlineUsers(Object.values(unique))
+      })
 
-start()
+      // 🔥 CRITICAL: WAIT FOR SUBSCRIBE
+      channel.subscribe(async (status)=>{
 
-return ()=>{
+        if(status === "SUBSCRIBED"){
+          cleanupActivity = await trackUser(channel, userId, pathname)
+        }
 
-if(channel){
-supabase.removeChannel(channel)
-}
+      })
+    }
 
-}
+    start()
 
-},[pathname])
+    return ()=>{
+      if(channel){
+        supabase.removeChannel(channel)
+      }
+      cleanupActivity?.()
+    }
 
-return(
+  },[pathname])
 
-<div className="bg-white p-8 rounded-xl shadow min-h-[120px]">
+  // 🔥 REMOVE OFFLINE USERS (60s timeout)
+  const now = Date.now()
 
-<h2 className="text-lg font-semibold text-emerald-700 mb-6">
-Online Users
-</h2>
+  const filteredUsers = onlineUsers.filter(u=>{
+    const last = u.last_active || 0
+    return now - last < 60000
+  })
 
-{onlineUsers.length === 0 ?(
+  return(
 
-<p className="text-gray-500">
-No users online
-</p>
+    <div className="bg-white p-6 rounded-xl shadow h-[400px] flex flex-col">
 
-):( 
+      <h2 className="text-lg font-semibold text-emerald-700 mb-4">
+        Online Users
+      </h2>
 
-<div className="space-y-3">
+      {filteredUsers.length === 0 ?(
 
-{onlineUsers.map((u:any,index:number)=>{
+        <div className="text-gray-500 text-sm">
+          No users online
+        </div>
 
-const profile = users.find(
-x=>String(x.id) === String(u.user_id)
-)
+      ):( 
 
-const roleId = userRoles[u.user_id]
+        <div className="overflow-y-auto flex-1 pr-2 scrollbar-hide space-y-3">
 
-const role = roles.find(
-r=>String(r.id) === String(roleId)
-)
+          {filteredUsers.map((u:any,index:number)=>{
 
-/* stable unique key */
+            const displayName = u.name || "User"
+            const roleName = u.role || "No Role"
 
-const key = `${u.user_id}-${index}`
+            const idleSeconds = (Date.now() - (u.last_active || 0)) / 1000
+            const isIdle = idleSeconds > 20
 
-return(
+            const key = `${u.user_id}-${index}`
 
-<div
-key={key}
-className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
->
+            return(
 
-<div className="flex items-center gap-3">
+              <div
+                key={key}
+                className="flex justify-between items-center border border-emerald-300 p-3 rounded-lg"
+              >
 
-<div className="w-3 h-3 rounded-full bg-green-500"></div>
+                {/* LEFT */}
+                <div className="flex items-center gap-3">
 
-<span className="font-medium text-emerald-700">
-{profile?.username || "User"}
-</span>
+                  <div className={`w-2.5 h-2.5 rounded-full ${
+                    isIdle ? "bg-yellow-400" : "bg-green-500"
+                  }`}></div>
 
-</div>
+                  <span className="font-medium text-emerald-700">
+                    {displayName}
+                  </span>
 
-<div className="flex items-center gap-6 text-sm">
+                </div>
 
-<span className="text-emerald-700">
-{role?.name || "No Role"}
-</span>
+                {/* RIGHT */}
+                <div className="flex items-center gap-6 text-sm">
 
-<span className="text-emerald-700 italic">
-{pageName(u.page)}
-</span>
+                  <span className="text-emerald-700">
+                    {roleName}
+                  </span>
 
-</div>
+                  <span className="text-emerald-700 italic">
+                    {pageName(u.page)}
+                  </span>
 
-</div>
+                </div>
 
-)
+              </div>
 
-})}
+            )
 
-</div>
+          })}
 
-)}
+        </div>
 
-</div>
+      )}
 
-)
+    </div>
+
+  )
 
 }

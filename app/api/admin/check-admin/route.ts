@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       .from("admins")
       .select("user_id")
       .eq("user_id", userId)
-      .single()
+      .maybeSingle()
 
     if (error || !data) {
       return NextResponse.json({ admin:false })

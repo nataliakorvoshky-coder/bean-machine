@@ -28,7 +28,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       .from("profiles")
       .select("username")
       .eq("id",user.id)
-      .single()
+      .maybeSingle()
 
       if(profile?.username){
 
