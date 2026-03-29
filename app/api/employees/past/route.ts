@@ -1,109 +1,88 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase client with your URL and service key.
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function GET() {
   try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    );
+
     /* ======================
-    GET TERMINATED EMPLOYEES
+    GET TERMINATED EMPLOYEES + HISTORY
     ====================== */
-    const { data: employees, error: employeeError } = await supabase
+    const { data: employees, error } = await supabase
       .from("employees")
       .select(`
         id,
         name,
         hire_date,
-        rank_id
+        rank_id,
+        termination_history (
+          termination_date,
+          rehire_status
+        )
       `)
-      .eq("status", "Terminated") // You still fetch only terminated employees
+      .eq("status", "Terminated")
       .order("hire_date", { ascending: false });
 
-    if (employeeError) {
-      console.error("Error fetching employees:", employeeError);
-      throw employeeError;
-    }
+    if (error) throw error;
 
     if (!employees || employees.length === 0) {
-      console.log("No terminated employees found.");
-      return NextResponse.json([]); // Return an empty array if no terminated employees are found
+      return NextResponse.json([]);
     }
 
     /* ======================
-    GET MOST RECENT REHIRE STATUS FROM TERMINATION_HISTORY
+    GET STRIKES
     ====================== */
-    const { data: terminationHistory, error: terminationError } = await supabase
-      .from("termination_history")
-      .select("employee_id, rehire_status") // Select rehire status instead of termination date
-      .in("employee_id", employees.map((emp: any) => emp.id)) // Get termination history for all employees
-      .order("termination_date", { ascending: false });
-
-    if (terminationError) {
-      console.error("Error fetching termination history:", terminationError);
-      throw terminationError;
-    }
-
-    // Map the most recent rehire_status to each employee
-    const rehireStatusMap: Record<string, string> = {};
-    terminationHistory.forEach((termination: any) => {
-      rehireStatusMap[termination.employee_id] = termination.rehire_status || "N/A";
-    });
-
-    /* ======================
-    GET STRIKE COUNTS
-    ====================== */
-    const { data: strikes, error: strikeError } = await supabase
+    const { data: strikes } = await supabase
       .from("employee_strikes")
       .select("employee_id");
 
-    if (strikeError) {
-      console.error("Error fetching strikes:", strikeError);
-      throw strikeError;
-    }
-
-    // Map employee strikes count
     const strikeMap: Record<string, number> = {};
     strikes?.forEach((s: any) => {
       strikeMap[s.employee_id] = (strikeMap[s.employee_id] ?? 0) + 1;
     });
 
     /* ======================
-    GET RANK DETAILS
+    GET RANKS
     ====================== */
-    const { data: ranks, error: rankError } = await supabase
+    const { data: ranks } = await supabase
       .from("employee_ranks")
       .select("id, rank_name")
-      .in("id", employees.map((emp: any) => emp.rank_id));
+      .in("id", employees.map((e: any) => e.rank_id));
 
-    if (rankError) {
-      console.error("Error fetching ranks:", rankError);
-      throw rankError;
-    }
+    const rankMap: Record<string, string> = {};
+    ranks?.forEach((r: any) => {
+      rankMap[r.id] = r.rank_name;
+    });
 
-    const rankMap = ranks?.reduce((map: any, rank: any) => {
-      map[rank.id] = rank.rank_name;
-      return map;
-    }, {});
+    const formatted = employees.map((emp: any) => {
+      const latest = emp.termination_history
+        ?.sort(
+          (a: any, b: any) =>
+            new Date(b.termination_date).getTime() -
+            new Date(a.termination_date).getTime()
+        )[0];
 
-    /* ======================
-    FORMAT RESPONSE
-    ====================== */
-    const formatted = employees?.map((emp: any) => ({
-      id: emp.id,
-      name: emp.name,
-      rehire_status: rehireStatusMap[emp.id] ?? "N/A", // Get rehire status from the map
-      hire_date: emp.hire_date ? new Date(emp.hire_date).toLocaleDateString() : "N/A",
-      strikes: strikeMap[emp.id] ?? 0,
-      rank: rankMap[emp.rank_id] ?? "N/A",
-    }));
+      const eligible = latest?.rehire_status ?? false;
 
-    console.log("Formatted Employees:", formatted);
+      return {
+        id: emp.id,
+        name: emp.name,
+        hire_date: emp.hire_date
+          ? new Date(emp.hire_date).toLocaleDateString()
+          : "N/A",
+        rank: rankMap[emp.rank_id] ?? "N/A",
+        strikes: strikeMap[emp.id] ?? 0,
+        termination_date: latest?.termination_date ?? null,
+        rehire_eligible: eligible,
+        rehire_status: eligible ? "Eligible" : "Ineligible",
+      };
+    });
 
-    return NextResponse.json(formatted ?? []); // Return empty array if no data available
+    return NextResponse.json(formatted);
+
   } catch (err) {
     console.error("PAST EMPLOYEES ERROR:", err);
     return NextResponse.json(

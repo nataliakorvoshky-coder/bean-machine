@@ -8,8 +8,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     // Query termination history from the database
     const { data: terminationHistory, error } = await supabase
       .from("termination_history")
-      .select("*")
-      .eq("employee_id", id);  // Ensure employee_id matches the UUID
+  .select(`
+    id,
+    reason,
+    termination_date,
+    rehire_status,
+    rank_at_termination,
+    employee_ranks:rank_at_termination (
+      rank_name
+    )
+  `)
+  .eq("employee_id", id)
+  .order("termination_date", { ascending: false });
 
     if (error) {
       console.error("Error fetching termination history:", error);

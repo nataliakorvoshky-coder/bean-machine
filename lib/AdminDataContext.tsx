@@ -4,15 +4,17 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "./supabase"
 
 type ContextType = {
-  users:any[]
-  roles:any[]
-  permissions:any[]
-  username:string
-  loading:boolean
-  load:()=>Promise<void>
+  users: any[]
+  roles: any[]
+  permissions: any[]
+  requests: any[]                 // ✅ ADD
+  setRequests: React.Dispatch<React.SetStateAction<any[]>> // ✅ ADD
+  username: string
+  loading: boolean
+  load: () => Promise<void>
 }
 
-const AdminContext = createContext<ContextType | null>(null)
+export const AdminContext = createContext<ContextType | null>(null);
 
 export function AdminDataProvider({children}:{children:React.ReactNode}){
 
@@ -21,6 +23,7 @@ export function AdminDataProvider({children}:{children:React.ReactNode}){
   const [permissions,setPermissions] = useState<any[]>([])
   const [username,setUsername] = useState("")
   const [loading,setLoading] = useState(true)
+  const [requests, setRequests] = useState<any[]>([]) // ✅ ADD
 
   async function load(){
 
@@ -53,6 +56,14 @@ export function AdminDataProvider({children}:{children:React.ReactNode}){
         .select("*")
 
       setPermissions(permData || [])
+
+      // 🔥 REQUESTS
+const resReq = await fetch("/api/requests")
+
+if (resReq.ok) {
+  const reqData = await resReq.json()
+  setRequests(reqData || [])
+}
 
       // 🔐 username
       const { data:auth } = await supabase.auth.getUser()
@@ -101,14 +112,16 @@ export function AdminDataProvider({children}:{children:React.ReactNode}){
 
   return(
     <AdminContext.Provider
-      value={{
-        users,
-        roles,
-        permissions,
-        username,
-        loading,
-        load
-      }}
+value={{
+  users,
+  roles,
+  permissions,
+  requests,     // ✅ ADD
+  setRequests,  // ✅ ADD
+  username,
+  loading,
+  load
+}}
     >
       {children}
     </AdminContext.Provider>

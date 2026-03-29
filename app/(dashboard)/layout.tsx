@@ -1,6 +1,9 @@
+"use client"
+
 import { ReactNode } from "react"
 import Sidebar from "@/components/Sidebar"
-import { AdminDataProvider } from "@/lib/AdminDataContext"
+import { useAdminData, AdminDataProvider } from "@/lib/AdminDataContext"
+import GlobalSync from "@/components/GlobalSync";
 
 export default function DashboardLayout({
 children
@@ -9,6 +12,8 @@ children
 return(
 
 <AdminDataProvider>
+
+      <GlobalSync />
 
 <div className="flex min-h-screen">
 

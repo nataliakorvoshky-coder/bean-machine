@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(req: Request) {
   try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    )
 
     const { email, password, userId, employee_id, role_id } = await req.json()
 
     // ✅ VALIDATION
     if (!email || !password || !employee_id) {
-      return NextResponse.json({
-        error: "Email, password, and employee are required"
-      }, { status: 400 })
+      return NextResponse.json(
+        { error: "Email, password, and employee are required" },
+        { status: 400 }
+      )
     }
 
     // ✅ ADMIN CHECK
@@ -26,9 +26,10 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (!admin) {
-      return NextResponse.json({
-        error: "Unauthorized"
-      }, { status: 403 })
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      )
     }
 
     // 🔥 PREVENT duplicate employee accounts
@@ -39,12 +40,13 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (existing) {
-      return NextResponse.json({
-        error: "This employee already has an account"
-      }, { status: 400 })
+      return NextResponse.json(
+        { error: "This employee already has an account" },
+        { status: 400 }
+      )
     }
 
-    // ✅ GET DEFAULT ROLE (employee) if none provided
+    // ✅ GET DEFAULT ROLE
     let finalRoleId = role_id
 
     if (!finalRoleId) {
@@ -57,7 +59,7 @@ export async function POST(req: Request) {
       finalRoleId = defaultRole?.id
     }
 
-    // 🔥 OPTIONAL: Validate role exists
+    // 🔥 VALIDATE ROLE
     const { data: roleCheck } = await supabaseAdmin
       .from("roles")
       .select("id")
@@ -65,9 +67,10 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (!roleCheck) {
-      return NextResponse.json({
-        error: "Invalid role selected"
-      }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid role selected" },
+        { status: 400 }
+      )
     }
 
     // ✅ CREATE AUTH USER
@@ -78,15 +81,16 @@ export async function POST(req: Request) {
     })
 
     if (error) {
-      return NextResponse.json({
-        error: error.message
-      }, { status: 400 })
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      )
     }
 
     const newUser = data.user
     const username = email.split("@")[0]
 
-    // ✅ CREATE PROFILE (WITH ROLE + EMPLOYEE)
+    // ✅ CREATE PROFILE
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
@@ -97,9 +101,10 @@ export async function POST(req: Request) {
       })
 
     if (profileError) {
-      return NextResponse.json({
-        error: profileError.message
-      }, { status: 500 })
+      return NextResponse.json(
+        { error: profileError.message },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
@@ -108,8 +113,9 @@ export async function POST(req: Request) {
     })
 
   } catch (err) {
-    return NextResponse.json({
-      error: "Server error"
-    }, { status: 500 })
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    )
   }
 }

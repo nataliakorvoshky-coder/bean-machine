@@ -4,6 +4,7 @@ import "./globals.css"
 import { PresenceProvider } from "@/lib/PresenceContext"
 import { UserProvider } from "@/lib/UserContext"
 import { UserDataProvider } from "@/lib/UserDataContext"
+import GlobalSync from "@/components/GlobalSync";
 
 // RootLayout component is the root of your app
 export default function RootLayout({
@@ -18,6 +19,7 @@ export default function RootLayout({
         <PresenceProvider> {/* Provides context for real-time presence management */}
           <UserProvider> {/* Provides user authentication and data management */}
             <UserDataProvider> {/* Provides user-specific data management */}
+              <GlobalSync />
               {children} {/* The dynamic content (page content) will be inserted here */}
             </UserDataProvider>
           </UserProvider>

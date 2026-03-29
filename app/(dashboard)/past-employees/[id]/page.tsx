@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import StyledDropdown from "@/components/StyledDropdown";
+import { motion } from "framer-motion";
 
 const API = "/api/employees"; // Correct API path
 
@@ -15,6 +16,7 @@ export default function PastEmployeeProfilePage() {
   const [terminationReason, setTerminationReason] = useState<string>("");
   const [terminationHistory, setTerminationHistory] = useState<any[]>([]);
   const [rehireStatus, setRehireStatus] = useState<string>(""); // Default status is empty initially
+  const [isRehiring, setIsRehiring] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -137,57 +139,95 @@ export default function PastEmployeeProfilePage() {
   };
 
   // Rehire the employee
-  const handleRehire = async () => {
-    const res = await fetch(`/api/employees/${id}/rehire`, { // Correct endpoint for rehire
+const handleRehire = async () => {
+  try {
+    setIsRehiring(true); // 🔥 trigger animation
+
+    const res = await fetch(`/api/employees/${id}/rehire`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        status: "Active", // Set the employee's status to Active
-        rank_id: employee?.rank_id, // Set the employee's rank back to the original rank
+        status: "Active",
+        rank_id: employee?.rank_id,
       }),
     });
 
     const data = await res.json();
-    if (data.success) {
-      router.push("/past-employees"); // Redirect to past employees page
-    } else {
+
+    if (!res.ok || !data.success) {
+      setIsRehiring(false);
       console.error("Failed to rehire the employee.");
+      return;
     }
+
+    // ⏳ wait for animation to finish
+    setTimeout(() => {
+      router.push("/past-employees");
+    }, 500);
+
+  } catch (err) {
+    setIsRehiring(false);
+    console.error("Rehire error:", err);
+  }
+};
+
+    /* 🔥 PANEL STAGGER */
+  const container = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: 0.12,
+        delayChildren: 0.05,
+      },
+    },
   };
 
-  if (!employee) {
-    return <div className="p-10 text-gray-500">Loading employee...</div>;
-  }
+  const panel = {
+    hidden: { opacity: 0, y: 30 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.35 },
+    },
+  };
 
   return (
-    <div className="max-w-[1050px] mx-auto py-8">
-      <h1 className="text-3xl font-bold text-emerald-700 mb-6">Past Employee Profile</h1>
+        <motion.div
+      initial="hidden"
+      animate="show"
+      variants={container}
+      className={`max-w-[1050px] mx-auto py-8 transition-all duration-500 ${
+        isRehiring
+          ? "opacity-0 translate-y-6 scale-95"
+          : "opacity-100"
+      }`}
+    > 
+    
+      {/* HEADER */}
+      <motion.h1
+        variants={panel}
+        className="text-3xl font-bold text-emerald-700 mb-6"
+      >
+        Past Employee Profile
+      </motion.h1>
 
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <div className="text-xl font-bold text-emerald-700">{employee?.name}</div>
-          <div className="flex items-center gap-3 mt-1">
-            <span className={`rank-badge rank-${employee.rank?.toLowerCase()}`} >
-              {employee.rank}
-            </span>
-          </div>
-        </div>
+      {/* NAME */}
+<motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={
+    employee
+      ? { opacity: 1, y: 0 }
+      : { opacity: 0 }
+  }
+  transition={{ duration: 0.3 }}
+  className="text-xl font-bold text-emerald-700 min-h-[24px]"
+>
+  {employee?.name || ""}
+</motion.div>
 
-        {/* Rehire Status Dropdown */}
-        <StyledDropdown
-          placeholder="Rehire Status"
-          options={[
-            { id: "Eligible", name: "Eligible" },
-            { id: "Ineligible", name: "Ineligible" },
-          ]}
-          value={rehireStatus}
-          onChange={handleRehireStatusChange}
-          width="150px" // Adjust width here
-        />
-      </div>
+      {/* GRID */}
+      <motion.div variants={panel} className="grid grid-cols-2 gap-6">
 
-      {/* EMPLOYMENT & CONTACT */}
-      <div className="grid grid-cols-2 gap-6">
         {/* EMPLOYMENT */}
         <div className="bg-white rounded-xl shadow p-5">
           <h2 className="text-lg font-semibold text-emerald-700 mb-4">Employment</h2>
@@ -205,34 +245,34 @@ export default function PastEmployeeProfilePage() {
           <div className="space-y-4 text-sm">
             <div className="flex justify-between">
               <div className="text-emerald-700">Phone</div>
-              <div className="text-emerald-500">{employee?.phone || "N/A"}</div>
+              <div className="text-emerald-500">{employee?.phone ?? "N/A"}</div>
             </div>
             <div className="flex justify-between">
               <div className="text-emerald-700">CID</div>
-              <div className="text-emerald-500">{employee?.cid || "N/A"}</div>
+              <div className="text-emerald-500">{employee?.cid ?? "N/A"}</div>
             </div>
             <div className="flex justify-between">
               <div className="text-emerald-700">IBAN</div>
-              <div className="text-emerald-500">{employee?.iban || "N/A"}</div>
+              <div className="text-emerald-500">{employee?.iban ?? "N/A"}</div>
             </div>
           </div>
         </div>
-      </div>
-
+        </motion.div>
+      
       {/* HOURS & EARNINGS PANEL */}
-      <div className="bg-white rounded-xl shadow p-5 mt-6">
+<motion.div variants={panel} className="bg-white rounded-xl shadow p-5 mt-6">
         <h2 className="text-lg font-bold text-emerald-700 mb-4">Hours & Earnings</h2>
         <div className="grid grid-cols-4 gap-8 text-sm">
           <div>
             <div className="text-emerald-700 text-xs mb-1">Weekly Hours</div>
-            <div className="text-emerald-500 font-semibold text-lg">
-              {employee?.weekly_hours ?? 0}
-            </div>
+<div className="text-emerald-500 font-semibold text-lg">
+  {employee?.weekly_hours ?? 0}h {employee?.weekly_minutes ?? 0}m
+</div>
           </div>
           <div>
             <div className="text-emerald-700 text-xs mb-1">Lifetime Hours</div>
             <div className="text-emerald-500 font-semibold text-lg">
-              {employee?.lifetime_hours ?? 0}
+             {employee?.lifetime_hours ?? 0}h {employee?.lifetime_minutes ?? 0}m
             </div>
           </div>
           <div>
@@ -248,28 +288,22 @@ export default function PastEmployeeProfilePage() {
             </div>
           </div>
         </div>
-      </div>
+</motion.div>
+
+      <motion.div variants={panel} className="bg-white rounded-xl shadow p-5 mt-6">
+  <h2 className="text-lg font-bold text-yellow-600 mb-3">
+    Strikes
+  </h2>
+
+  <div className="text-2xl font-semibold text-yellow-700">
+    {employee?.strike_count ?? 0}
+  </div>
+</motion.div>
 
       {/* TERMINATION HISTORY PANEL */}
-      <div className="bg-white rounded-xl shadow p-5 mt-6">
+<motion.div variants={panel} className="bg-white rounded-xl shadow p-5 mt-6">
         <h2 className="text-lg font-bold text-emerald-700 mb-4">Termination History</h2>
-        <div className="flex gap-4 items-center mb-4">
-          {/* Termination Reason Input */}
-          <input
-            type="text"
-            value={terminationReason}
-            onChange={(e) => setTerminationReason(e.target.value)}
-            placeholder="Reason for termination"
-            className="flex-1 border border-emerald-300 rounded px-3 py-2 text-sm text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
-          />
-          {/* Update Button */}
-          <button
-            onClick={handleTerminationUpdate}
-            className="bg-emerald-600 text-white px-4 py-2 rounded text-sm hover:bg-emerald-700"
-          >
-            Update
-          </button>
-        </div>
+        
 
         <div className="space-y-2">
           {terminationHistory.map((termination, index) => (
@@ -277,10 +311,15 @@ export default function PastEmployeeProfilePage() {
               key={index}
               className="flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm"
             >
-              <div className="text-emerald-700">{termination.reason}</div>
-              <div className="text-emerald-600">
-                {new Date(termination.termination_date).toLocaleDateString()}
-              </div>
+<div className="flex flex-col">
+  <span className="text-emerald-700 font-medium">
+    {termination.reason}
+  </span>
+
+  <span className="text-xs text-gray-500">
+    {new Date(termination.termination_date).toLocaleDateString()}
+  </span>
+</div>
               {/* Delete Button */}
               <button
                 onClick={() => handleDeleteTermination(termination.id)}
@@ -291,17 +330,22 @@ export default function PastEmployeeProfilePage() {
             </div>
           ))}
         </div>
-      </div>
+</motion.div>
 
       {/* REHIRE BUTTON */}
-      <div className="mt-8">
-        <button
-          onClick={handleRehire}
-          className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
-        >
-          Rehire
-        </button>
-      </div>
-    </div>
+  <motion.div variants={panel} className="mt-8">
+<button
+  onClick={handleRehire}
+  disabled={isRehiring}
+  className={`bg-green-600 text-white px-6 py-2 rounded-md transition ${
+    isRehiring
+      ? "opacity-50 cursor-not-allowed"
+      : "hover:bg-green-700"
+  }`}
+>
+  {isRehiring ? "Rehiring..." : "Rehire"}
+</button>
+      </motion.div>
+    </motion.div>
   );
 }

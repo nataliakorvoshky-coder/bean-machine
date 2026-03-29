@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(req: Request) {
-
   try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    )
 
     const { userId } = await req.json()
 
     if (!userId) {
-      return NextResponse.json({ admin:false })
+      return NextResponse.json({ admin: false })
     }
 
     const { data, error } = await supabase
@@ -23,15 +21,12 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (error || !data) {
-      return NextResponse.json({ admin:false })
+      return NextResponse.json({ admin: false })
     }
 
-    return NextResponse.json({ admin:true })
+    return NextResponse.json({ admin: true })
 
   } catch (err) {
-
-    return NextResponse.json({ admin:false })
-
+    return NextResponse.json({ admin: false })
   }
-
 }

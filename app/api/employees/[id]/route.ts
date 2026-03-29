@@ -1,16 +1,20 @@
-import { supabase } from "@/lib/supabase"; // Ensure the correct import path
-import { NextResponse } from "next/server"; // Use NextResponse for Next.js API routes
+import { supabase } from "@/lib/supabase";
+import { NextResponse } from "next/server";
 
-// GET method to fetch basic employee details, calculate work hours and earnings dynamically
+/* ============================== */
+/* GET EMPLOYEE (WITH PAY LOGIC)  */
+/* ============================== */
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params;  // Unwrap params and get the employee ID
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: "Missing employee id" }, { status: 400 });
     }
 
-    // Fetch employee details from the employee table
+    /* ====================== 
+    GET EMPLOYEE
+    ====================== */
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select(`
@@ -26,101 +30,149 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         is_admin_employee
       `)
       .eq("id", id)
-      .maybeSingle(); // Fetch single employee data based on ID
+      .maybeSingle();
 
     if (employeeError || !employee) {
-      console.error("Employee not found:", employeeError);
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
     /* ====================== 
-    GET WORK HOURS FOR CALCULATIONS
+    GET ALL HOURS (LIFETIME)
     ====================== */
     const { data: hoursData, error: hoursError } = await supabase
       .from("work_hours")
-      .select("hours, minutes")
+      .select("hours, minutes, created_at")
       .eq("employee_id", id);
 
     if (hoursError) {
-      console.error("Error fetching work hours:", hoursError);
       return NextResponse.json({ error: "Error fetching work hours" }, { status: 500 });
     }
 
-    // Calculate total worked minutes, weekly hours, and lifetime hours
-    const totalMinutes = hoursData.reduce((acc, entry) => {
-      return acc + (entry.hours * 60) + entry.minutes;
+    /* ====================== 
+    🔥 LIFETIME MINUTES
+    ====================== */
+    const totalMinutes = (hoursData || []).reduce((acc, entry) => {
+      return acc + ((entry.hours || 0) * 60) + (entry.minutes || 0);
     }, 0);
 
-    const lifetimeHours = Math.floor(totalMinutes / 60);
-    const weeklyHours = Math.floor(totalMinutes / 60);  // Assuming all data from current week for simplicity
+    /* ====================== 
+    🔥 30-MIN RULE
+    ====================== */
+    const lifetimeBlocks = Math.floor(totalMinutes / 30);
+    const lifetimeHours = lifetimeBlocks * 0.5;
 
-    // Step 1: Fetch rank details using the rank_id from the employee table
+    /* ====================== 
+    🔥 WEEKLY CALCULATION
+    ====================== */
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const weeklyMinutes = (hoursData || []).reduce((acc, entry) => {
+      const entryDate = new Date(entry.created_at);
+
+      if (entryDate >= oneWeekAgo) {
+        return acc + ((entry.hours || 0) * 60) + (entry.minutes || 0);
+      }
+
+      return acc;
+    }, 0);
+
+    const weeklyBlocks = Math.floor(weeklyMinutes / 30);
+    const weeklyHours = weeklyBlocks * 0.5;
+
+    /* ====================== 
+    GET RANK
+    ====================== */
     const { data: rank, error: rankError } = await supabase
       .from("employee_ranks")
       .select("rank_name, wage")
       .eq("id", employee.rank_id)
-      .maybeSingle(); // Fetch single rank based on rank_id
+      .maybeSingle();
 
     if (rankError || !rank) {
-      console.error("Error fetching rank:", rankError);
       return NextResponse.json({ error: "Rank not found" }, { status: 404 });
     }
 
-    // Calculate weekly and lifetime earnings based on the wage
     const wage = rank?.wage ?? 0;
+
+    /* ====================== 
+    💰 EARNINGS
+    ====================== */
     const weeklyEarnings = weeklyHours * wage;
     const lifetimeEarnings = lifetimeHours * wage;
 
+    /* ========================= */
+/* GET STRIKE HISTORY        */
+/* ========================= */
+const { data: strikes } = await supabase
+  .from("employee_strikes")
+  .select(`
+    id,
+    reason,
+    number,
+    created_at
+  `)
+  .eq("employee_id", id)
+  .order("created_at", { ascending: false });
+
+/* ====================== 
+🔥 TERMINATION HISTORY (FIXED)
+====================== */
+const { data: terminationHistory } = await supabase
+  .from("termination_history")
+  .select(`
+    id,
+    termination_date,
+    reason,
+    rehire_status
+  `)
+  .eq("employee_id", id)
+  .order("termination_date", { ascending: false });
+
+const latest = terminationHistory?.[0];
+
+const termination_date = latest?.termination_date
+  ? new Date(latest.termination_date).toLocaleDateString()
+  : "N/A";
+
     /* ====================== 
-    GET TERMINATION DATE FROM TERMINATION_HISTORY
+    RESPONSE
     ====================== */
-    const { data: terminationHistory, error: terminationError } = await supabase
-      .from("termination_history")
-      .select("termination_date")
-      .eq("employee_id", id)
-      .order("termination_date", { ascending: false }) // Get the most recent termination date
-      .limit(1)
-      .maybeSingle(); // Fetch a single record
+return NextResponse.json({
+  ...employee,
 
-    let termination_date = "N/A"; // Default to "N/A" if no termination history is found
+  termination_date,
+  termination_history: terminationHistory ?? [], // 🔥 THIS IS WHY PANEL WAS EMPTY
 
-    if (terminationError) {
-      console.error("Error fetching termination history:", terminationError);
-    }
+  rank: rank?.rank_name ?? "Unassigned",
+  wage,
 
-    if (terminationHistory) {
-      termination_date = new Date(terminationHistory.termination_date).toLocaleDateString();
-    }
+  lifetime_hours: lifetimeHours,
+  weekly_hours: weeklyHours,
 
-    // Return combined data (employee details + rank details + termination date + earnings stats)
-    return NextResponse.json({
-      ...employee,
-      termination_date, // Add termination_date here
-      rank: rank?.rank_name ?? "Unassigned", // Default to "Unassigned" if rank is null
-      wage: rank?.wage ?? 0, // Default to 0 if wage is null
-      lifetime_hours: lifetimeHours,
-      weekly_hours: weeklyHours,
-      lifetime_earnings: lifetimeEarnings,
-      weekly_earnings: weeklyEarnings,
-    });
+  lifetime_earnings: lifetimeEarnings,
+  weekly_earnings: weeklyEarnings,
+
+  strike_history: strikes ?? [],
+});
   } catch (err) {
     console.error("Error fetching employee:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-// POST method to update employee status
+/* ============================== */
+/* UPDATE STATUS                  */
+/* ============================== */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
-    // Unwrap params to get the employee id
-    const { id } = params;
-    const { status } = await req.json(); // Get the new status from the request body
+    const { id } = await params;
+    const { status } = await req.json();
 
     if (!status) {
       return NextResponse.json({ error: "Missing status" }, { status: 400 });
     }
 
-    // Implement check to prevent updating for "Coffee Panda" rank
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("rank_id")
@@ -128,29 +180,29 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       .maybeSingle();
 
     if (employeeError || !employee) {
-      console.error("Error fetching employee:", employeeError);
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-    // Check if the employee's rank is "Coffee Panda" (id: 1)
-    if (employee.rank_id === 1) {  // Assuming 1 is "Coffee Panda"
-      return NextResponse.json({ error: "Cannot update status for Coffee Panda rank" }, { status: 400 });
+    if (employee.rank_id === 1) {
+      return NextResponse.json(
+        { error: "Cannot update status for Coffee Panda rank" },
+        { status: 400 }
+      );
     }
 
-    // Update the employee's status in the database
     const { data, error } = await supabase
       .from("employees")
       .update({ status })
       .eq("id", id)
-      .select() // Select the updated employee data
-      .maybeSingle(); // Fetch the updated employee data
+      .select()
+      .maybeSingle();
 
     if (error || !data) {
-      console.error("Error updating employee status:", error);
       return NextResponse.json({ error: "Error updating status" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, updated_employee: data });
+
   } catch (err) {
     console.error("POST EMPLOYEE STATUS ERROR:", err);
     return NextResponse.json({ error: "Server error updating status" }, { status: 500 });
