@@ -3,17 +3,20 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { initRealtime } from "@/lib/realtime";
+import { supabase } from "@/lib/supabase";
 
 export default function ManagerRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("Viewed");
+  const [filter, setFilter] = useState("All");
   const [note, setNote] = useState("");
   const [presence, setPresence] = useState<any[]>([]);
   const [typing, setTyping] = useState(false);
+  const [manager, setManager] = useState("");
 
-  const manager = "Manager A";
+
+
 
   /* ========================= */
   /* 🔥 LOAD DATA              */
@@ -47,6 +50,35 @@ async function loadRequests() {
     setRequests([]);
   }
 }
+
+
+useEffect(() => {
+  async function loadUser() {
+    const { data: auth } = await supabase.auth.getUser();
+    const user = auth?.user;
+
+    if (!user) return;
+
+const { data: profile } = await supabase
+  .from("profiles")
+  .select(`
+    employee_id,
+    employees (
+      name
+    )
+  `)
+  .eq("id", user.id)
+  .single();
+
+const employee = Array.isArray(profile?.employees)
+  ? profile.employees[0]
+  : profile?.employees;
+
+setManager(employee?.name || "Unknown");
+  }
+
+  loadUser();
+}, []);
 
   /* ========================= */
   /* 🔴 REALTIME               */
@@ -135,22 +167,21 @@ async function loadRequests() {
   /* ========================= */
   /* 🔐 ACTIONS                */
   /* ========================= */
-  async function claim(req: any) {
-    await fetch("/api/requests/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: req.id,
-        manager,
-        updates: {
-          status: "In Progress",
-          claimed_by: manager,
-          claimed_at: new Date().toISOString(),
-        },
-      }),
-    });
-  }
-
+async function claim(req: any) {
+  await fetch("/api/requests/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: req.id,
+      manager, // ✅ THIS IS NOW REAL
+      updates: {
+        status: "In Progress",
+        claimed_by: manager,
+        claimed_at: new Date().toISOString(),
+      },
+    }),
+  });
+}
   async function updateNote(reqId: string, value: string) {
     setNote(value);
     setTyping(true);

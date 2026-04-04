@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase"; // Ensure the path is correct
 import { useRouter } from "next/navigation";
 import StyledDropdown from "@/components/StyledDropdown"; // Adjust the path accordingly
+import { motion } from "framer-motion";
 
 const API = "/api/inventory";
 
@@ -176,13 +177,23 @@ export default function StockItemsPage() {
   }
 
   return (
-    <div className="max-w-[1050px]">
+    <motion.div
+  className="max-w-[1050px]"
+  initial={{ opacity: 0, y: 30 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.4, ease: "easeOut" }}
+>
       <h1 className="text-2xl font-bold text-emerald-700 mb-5">
         Manage Stock Items
       </h1>
 
       {/* ADD ITEM PANEL */}
-      <div className="bg-white p-3 rounded-xl shadow mb-5">
+      <motion.div
+  className="bg-white p-3 rounded-xl shadow mb-5"
+  initial={{ opacity: 0, x: -40 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.4 }}
+>
         <div className="grid grid-cols-4 gap-3">
           <div>
             <label className="text-[11px] font-semibold text-emerald-700">
@@ -239,10 +250,15 @@ export default function StockItemsPage() {
         >
           Add Item
         </button>
-      </div>
+      </motion.div>
 
       {/* TABLE */}
-      <div className="bg-white p-3 rounded-xl shadow">
+      <motion.div
+  className="bg-white p-3 rounded-xl shadow"
+  initial={{ opacity: 0, x: 40 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.4 }}
+>
         <div className="grid grid-cols-[2fr_1fr_1fr_1fr_0.6fr] text-[11px] font-semibold text-emerald-700 border-b pb-1">
           <div>Item</div>
           <div className="text-center">Section</div>
@@ -252,8 +268,11 @@ export default function StockItemsPage() {
         </div>
 
         {items.length > 0 ? (
-          items.map((item) => (
-            <div
+          items.map((item, index) => (
+            <motion.div
+            initial={{ opacity: 0, y: 10 }}
+animate={{ opacity: 1, y: 0 }}
+transition={{ duration: 0.25, delay: index * 0.03 }}
               key={item.id}
               className="grid grid-cols-[2fr_1fr_1fr_1fr_0.6fr] py-1.5 border-b border-emerald-100 items-center"
             >
@@ -289,12 +308,12 @@ export default function StockItemsPage() {
                   Delete
                 </button>
               </div>
-            </div>
+            </motion.div>
           ))
         ) : (
           <div className="text-center text-emerald-700">No stock items found</div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

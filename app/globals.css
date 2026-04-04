@@ -29,6 +29,50 @@
   overflow: hidden;                   /* Ensure nothing overflows the badge */
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeInUp 0.25s ease-out;
+}
+
+@keyframes pageChange {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pageChange {
+  animation: pageChange 0.35s ease;
+}
+
+@keyframes movingPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-moving {
+  animation: movingPulse 0.6s ease;
+}
+
 /* Styling for Panda emoji */
 .panda-emoji {
   font-size: 14px;                    /* Adjust the size of the emoji */
@@ -124,4 +168,45 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
+}
+
+#panda {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 180px;
+  height: 180px;
+  z-index: 9999;
+}
+
+.panda-frame {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  width: 100%;
+  height: auto;
+
+  display: block; /* 🔥 ensures visibility */
+}
+
+.panda-frame {
+  image-rendering: auto;
+  will-change: opacity;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+}
+
+#panda {
+  transform-origin: bottom center; /* 🔥 prevents scale wobble */
 }

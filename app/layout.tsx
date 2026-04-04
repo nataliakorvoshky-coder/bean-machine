@@ -1,10 +1,10 @@
-import "./globals.css"
-
-// Import global state providers
+// @ts-expect-error
+import "./globals.css";
 import { PresenceProvider } from "@/lib/PresenceContext"
 import { UserProvider } from "@/lib/UserContext"
 import { UserDataProvider } from "@/lib/UserDataContext"
 import GlobalSync from "@/components/GlobalSync";
+
 
 // RootLayout component is the root of your app
 export default function RootLayout({

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import StyledDropdown from "@/components/StyledDropdown";
 import StyledDatePicker from "@/components/StyledDatePicker";
+import { motion } from "framer-motion";
 
 export default function HoursLog() {
   const [hoursData, setHoursData] = useState<any[]>([]);
@@ -139,15 +140,25 @@ export default function HoursLog() {
 
   if (loading) return <div>Loading...</div>;
 
-  return (
-    <div className="w-full px-10 py-8">
+return (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.35 }}
+    className="w-full px-10 py-8"
+  >
 
       <h1 className="text-4xl font-bold text-emerald-700 mb-8">
         Hours Log
       </h1>
 
       {/* FILTERS */}
-      <div className="flex gap-4 mb-8 items-end">
+      <motion.div
+  className="flex gap-4 mb-8 items-end"
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.1 }}
+>
 
         <div className="w-[220px] flex flex-col">
           <label className="text-xs text-emerald-700 font-semibold mb-1">
@@ -199,25 +210,33 @@ export default function HoursLog() {
           />
         </div>
 
-      </div>
+      </motion.div>
 
       {/* TABLE */}
-      <div className="grid grid-cols-[4fr_2fr_2fr_2fr_1fr] text-sm font-semibold text-emerald-700 px-6 mb-3">
+      <motion.div
+  className="grid grid-cols-[4fr_2fr_2fr_2fr_1fr] text-sm font-semibold text-emerald-700 px-6 mb-3"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ delay: 0.15 }}
+>
         <div>Employee</div>
         <div>Time</div>
         <div>Work Date</div>
         <div>Submitted By</div>
         <div></div>
-      </div>
+      </motion.div>
 
       {filtered.length === 0 ? (
         <div className="text-gray-500">No records found</div>
       ) : (
-        filtered.map((entry) => (
-          <div
-            key={entry.id}
-            className="grid grid-cols-[4fr_2fr_2fr_2fr_1fr] items-center bg-white shadow rounded-xl px-6 py-2 mb-3 border border-emerald-300 text-emerald-700"
-          >
+       filtered.map((entry, i) => (
+  <motion.div
+    key={entry.id}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: i * 0.03 }}
+    className="grid grid-cols-[4fr_2fr_2fr_2fr_1fr] items-center bg-white shadow rounded-xl px-6 py-2 mb-3 border border-emerald-300 text-emerald-700"
+  >
             <div className="font-medium">
               {entry.employee_name}
             </div>
@@ -236,18 +255,20 @@ export default function HoursLog() {
               {entry.submitted_by_name}
             </div>
 
-            <button
-              className="bg-red-500 text-white px-3 py-1 rounded-md"
+           <motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  className="bg-red-500 text-white px-3 py-1 rounded-md"
               onClick={() =>
                 handleDelete(entry.id, entry.employee_id, entry.hours, entry.minutes)
               }
             >
               Delete
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         ))
       )}
 
-    </div>
+   </motion.div>
   );
 }

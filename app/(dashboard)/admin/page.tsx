@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useAdminData } from "@/lib/AdminDataContext"
 import StyledDropdown from "@/components/StyledDropdown"
 import OnlineUsers from "@/components/OnlineUsers"
+import { motion } from "framer-motion"
 
 export default function AdminPage(){
 
@@ -130,17 +131,45 @@ export default function AdminPage(){
 
   return(
 
-    <div className="w-[1100px]">
+    <motion.div
+  className="w-[1100px]"
+  initial={{ opacity: 0, y: 30 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.4, ease: "easeOut" }}
+>
 
       <h1 className="text-3xl font-bold text-emerald-700 mb-10">
         Admin Dashboard
       </h1>
 
-      <div className="grid grid-cols-2 gap-8">
+      <motion.div
+  className="grid grid-cols-2 gap-8"
+  initial="hidden"
+  animate="visible"
+  variants={{
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.12
+      }
+    }
+  }}
+>
 
-        <OnlineUsers />
+        <motion.div
+  initial={{ opacity: 0, x: -40 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.4 }}
+>
+  <OnlineUsers />
+</motion.div>
 
-        <div className="bg-white p-8 rounded-xl shadow">
+        <motion.div
+  className="bg-white p-8 rounded-xl shadow"
+  initial={{ opacity: 0, x: 40 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.4 }}
+>
 
           <h2 className="text-lg font-semibold text-emerald-700 mb-6">
             Create User
@@ -216,11 +245,11 @@ export default function AdminPage(){
 
           </div>
 
-        </div>
+        </motion.div>
 
-      </div>
+      </motion.div>
 
-    </div>
+    </motion.div>
 
   )
 }

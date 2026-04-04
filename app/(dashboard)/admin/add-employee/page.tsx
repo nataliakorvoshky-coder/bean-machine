@@ -28,8 +28,8 @@ export default function CreateEmployeePage() {
     setRanks(Array.isArray(data) ? data : []);
   }
 
-  async function createEmployee(e: any) {
-    e.preventDefault();
+  async function createEmployee(e?: any) {
+  if (e) e.preventDefault();
 
     const employeeData = {
       name,
@@ -80,7 +80,7 @@ export default function CreateEmployeePage() {
       <h1 className="text-3xl font-bold text-emerald-700 mb-8">Create Employee Profile</h1>
 
       <div className="bg-white rounded-xl shadow p-8">
-        <form onSubmit={createEmployee}>
+        <form onSubmit={(e) => e.preventDefault()}>
           <div className="grid grid-cols-2 gap-6">
             {/* Employee Name */}
             <div>
@@ -141,7 +141,8 @@ export default function CreateEmployeePage() {
           </div>
 
           <button
-            type="submit"
+  type="button"
+  onClick={createEmployee}
             className="mt-8 w-full bg-emerald-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-emerald-700 transition"
           >
             Create Employee

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import StyledDropdown from "@/components/StyledDropdown";
+import { motion } from "framer-motion";
+
 
 const API = "/api/inventory";
 
@@ -35,7 +37,13 @@ export default function ExternalStockPage() {
 
   async function loadExternalStock() {
     const data = await api("getExternalStock");
-    setItems(Array.isArray(data) ? data : []);
+    setItems(
+  Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+    ? data.data
+    : []
+);
   }
 
   async function loadStockItems() {
@@ -49,15 +57,30 @@ export default function ExternalStockPage() {
   }
 
   // ✅ ADD EXTERNAL STOCK (FIXED)
-  async function addExternalStock(e: any) {
-    e.preventDefault();
-    if (!name) return;
+async function addExternalStock(e: any) {
+  e.preventDefault();
 
-    await api("addExternalStock", { name });
+  if (!name) return;
 
-    setName("");
-    loadExternalStock();
-  }
+  const newItem = await api("addExternalStock", { name });
+
+  if (!newItem) return;
+
+  setItems((prev) => [
+    {
+      id: newItem?.id || crypto.randomUUID(),
+      name: newItem?.name || name,
+    },
+    ...prev,
+  ]);
+
+  setName("");
+
+  // ✅ SINGLE reload (correct place)
+  loadExternalStock();
+}
+
+console.log("SELECTED STOCK ITEM:", selectedStockItem);
 
   async function convertStock(e: any) {
     e.preventDefault();
@@ -90,18 +113,50 @@ export default function ExternalStockPage() {
     "w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 py-4">
+    <motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.4 }}
+  className="max-w-[1100px] mx-auto px-4 py-4"
+>
       <h1 className="text-2xl font-bold text-emerald-700 mb-6">
         External Stock Management
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <motion.div
+  className="grid grid-cols-1 md:grid-cols-2 gap-6"
+  initial="hidden"
+  animate="visible"
+  variants={{
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  }}
+>
         
         {/* LEFT COLUMN */}
-        <div className="space-y-6">
+<motion.div
+  className="space-y-6"
+  variants={{
+    hidden: {},
+    visible: {
+      transition: { staggerChildren: 0.1 },
+    },
+  }}
+>
           
           {/* ADD EXTERNAL STOCK */}
-          <div className="bg-white rounded-xl shadow p-4">
+          <motion.div
+  className="bg-white rounded-xl shadow p-4"
+  variants={{
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  }}
+  transition={{ duration: 0.35 }}
+>
             <h2 className="text-lg font-semibold text-emerald-700 mb-4">
               Add External Stock
             </h2>
@@ -119,15 +174,26 @@ export default function ExternalStockPage() {
                 />
 
               </div>
-
-              <button className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
+<motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.97 }}
+  className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
+>
                 Add Item
-              </button>
+             </motion.button>
             </form>
-          </div>
+          </motion.div>
+        
 
           {/* EXTERNAL STOCK LIST */}
-          <div className="bg-white rounded-xl shadow p-4">
+          <motion.div
+  className="bg-white rounded-xl shadow p-4"
+  variants={{
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  }}
+  transition={{ duration: 0.35 }}
+>
             <h2 className="text-lg font-semibold text-emerald-700 mb-4">
               External Stock List
             </h2>
@@ -137,33 +203,54 @@ export default function ExternalStockPage() {
               <div></div>
             </div>
 
-            {items
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="grid grid-cols-[5fr_1fr] text-xs text-emerald-700 py-2 border-b"
-                >
+{items
+  .sort((a, b) => (a?.name || "").localeCompare(b?.name || ""))
+  .map((item, i) => (
+    <motion.div
+      key={item.id}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ delay: i * 0.03 }}
+      className="grid grid-cols-[5fr_1fr] text-xs text-emerald-700 py-2 border-b"
+    >
                   <div>{item.name}</div>
 
                   <div className="text-right">
-                    <button
-                      onClick={() => deleteExternal(item.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
+                   <motion.button
+  whileHover={{ scale: 1.08 }}
+  whileTap={{ scale: 0.95 }}
+  onClick={() => deleteExternal(item.id)}
+  className="text-red-500 hover:text-red-700"
+>
                       Delete
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
               ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* RIGHT COLUMN */}
-        <div className="space-y-6">
+        <motion.div
+  className="space-y-6"
+  variants={{
+    hidden: {},
+    visible: {
+      transition: { staggerChildren: 0.1 },
+    },
+  }}
+>
           
           {/* CONVERT PANEL */}
-          <div className="bg-white rounded-xl shadow p-4">
+          <motion.div
+  className="bg-white rounded-xl shadow p-4"
+  variants={{
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  }}
+  transition={{ duration: 0.35 }}
+>
             <h2 className="text-lg font-semibold text-emerald-700 mb-4">
               Convert External Stock
             </h2>
@@ -208,14 +295,26 @@ export default function ExternalStockPage() {
                 />
               </div>
 
-              <button className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
+             <motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.97 }}
+  className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
+>
                 Convert
-              </button>
+             </motion.button>
             </form>
-          </div>
+          </motion.div>
+          
 
           {/* CONVERSION HISTORY */}
-          <div className="bg-white rounded-xl shadow p-4">
+          <motion.div
+  className="bg-white rounded-xl shadow p-4"
+  variants={{
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  }}
+  transition={{ duration: 0.35 }}
+>
             <h2 className="text-lg font-semibold text-emerald-700 mb-4">
               Conversion History
             </h2>
@@ -228,30 +327,35 @@ export default function ExternalStockPage() {
               <div></div>
             </div>
 
-            {conversionHistory.map((row) => (
-              <div
-                key={row.id}
-                className="grid grid-cols-[3fr_1fr_3fr_1fr_1fr] text-xs text-emerald-700 py-2 border-b"
-              >
+{conversionHistory.map((row, i) => (
+  <motion.div
+    key={row.id}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -8 }}
+    transition={{ delay: i * 0.03 }}
+    className="grid grid-cols-[3fr_1fr_3fr_1fr_1fr] text-xs text-emerald-700 py-2 border-b"
+  >
                 <div>{row.external_stock?.name}</div>
                 <div className="text-center">{row.external_quantity}</div>
                 <div>{row.stock_item?.name}</div>
                 <div className="text-center">{row.stock_quantity}</div>
 
                 <div className="text-right">
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => deleteConversion(row.id)}
                     className="text-red-500 hover:text-red-700"
                   >
                     Delete
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-
-        </div>
-      </div>
-    </div>
+            </motion.div>
+         </motion.div>
+</motion.div>
+        </motion.div>
   );
 }

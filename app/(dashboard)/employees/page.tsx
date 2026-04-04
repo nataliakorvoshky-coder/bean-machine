@@ -8,6 +8,7 @@ import "../../globals.css";
 import GlobalSync from "@/components/GlobalSync";
 import { motion, AnimatePresence } from "framer-motion";
 
+
 const API = "/api/employees";
 
 export default function EmployeesPage() {

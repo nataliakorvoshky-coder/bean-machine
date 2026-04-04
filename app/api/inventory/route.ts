@@ -79,21 +79,24 @@ export async function POST(req: Request) {
     /* ================================= */
     /* ADD EXTERNAL STOCK                */
     /* ================================= */
-    if (action === "addExternalStock") {
-      const { name, price } = body
+if (action === "addExternalStock") {
+  const { name} = body;
 
-      if (!name || price === undefined) {
-        return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
-      }
+  if (!name) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
 
-      const { error } = await supabase
-        .from("external_stock")
-        .insert([{ name, price }])
+  const { data, error } = await supabase
+    .from("external_stock")
+    .insert([{ name }])
+    .select()   // 🔥 THIS IS THE KEY FIX
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-      return NextResponse.json({ success: true })
-    }
+  return NextResponse.json(data[0]); // 🔥 RETURN NEW ITEM
+}
 
     /* ================================= */
     /* DELETE EXTERNAL STOCK             */
@@ -118,26 +121,29 @@ export async function POST(req: Request) {
     /* ================================= */
     /* ADD CONVERSION                    */
     /* ================================= */
-    if (action === "createConversion") {
-      const { externalStockId, stockItemId, externalQuantity, stockQuantity } = body
+if (action === "createConversion") {
+  const { externalStockId, stockItemId, externalQuantity, stockQuantity } = body;
 
-      if (!externalStockId || !stockItemId || externalQuantity === undefined || stockQuantity === undefined) {
-        return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
-      }
+  if (!externalStockId || !stockItemId || externalQuantity === undefined || stockQuantity === undefined) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
 
-      const { error } = await supabase
-        .from("item_conversion")
-        .insert([{
-          external_stock_item_id: externalStockId,
-          stock_item_id: stockItemId,
-          external_quantity: externalQuantity,
-          stock_quantity: stockQuantity
-        }])
+  const { data, error } = await supabase
+    .from("item_conversion")
+    .insert({
+      external_stock_item_id: externalStockId,
+      stock_item_id: stockItemId,
+      external_quantity: externalQuantity,
+      stock_quantity: stockQuantity
+    });
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error("❌ CONVERSION ERROR:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-      return NextResponse.json({ success: true })
-    }
+  return NextResponse.json({ success: true }); // 🚨 THIS FIXES EVERYTHING
+}
 
     /* ================================= */
     /* DELETE CONVERSION                 */
@@ -223,7 +229,7 @@ if (action === "getRestockNeeded") {
       const externalNeeded = Math.ceil(needed / ratio)
 
       result.push({
-        external_name: conv.external_stock?.name || stock.name,
+        external_name: conv.external_stock?.[0]?.name || stock.name,
         needed_external: externalNeeded,
         stock_id: stock.id,
         needed_stock: needed
@@ -347,4 +353,3 @@ if (action === "submitRestock") {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-
