@@ -51,9 +51,24 @@ export default function InventoryPage() {
 
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+useEffect(() => {
+
+  load()
+
+  // 🔥 LISTEN FOR RESTOCK UPDATES
+  const handle = (e: StorageEvent) => {
+    if (e.key === "inventory_refresh") {
+      load()
+    }
+  }
+
+  window.addEventListener("storage", handle)
+
+  return () => {
+    window.removeEventListener("storage", handle)
+  }
+
+}, [])
 
   function status(current: number, goal: number) {
 

@@ -1,11 +1,15 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabaseServer";
 import { NextResponse } from "next/server";
 
 /* ============================== */
-/* GET EMPLOYEE (WITH PAY LOGIC)  */
+/* GET EMPLOYEE                   */
 /* ============================== */
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const supabase = getSupabaseServer();
     const { id } = await params;
 
     if (!id) {
@@ -17,144 +21,141 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     ====================== */
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
-      .select(`
-        id,
-        name,
-        status,
-        rank_id,
-        hire_date,
-        phone,
-        cid,
-        iban,
-        last_promotion_date,
-        is_admin_employee
-      `)
-      .eq("id", id)
+.select(`
+  id,
+  name,
+  status,
+  rank_id,
+  hire_date,
+  phone,
+  cid,
+  iban,
+  last_promotion_date,
+  is_admin_employee,
+
+  weekly_hours,
+  weekly_minutes,
+  weekly_earnings,
+
+  lifetime_hours,
+  lifetime_earnings
+`)
+      .eq("id", id.trim())
       .maybeSingle();
+
+      console.log("=== API DEBUG ===");
+console.log("ID USED:", id);
+console.log("EMPLOYEE RESULT:", employee);
+console.log("EMPLOYEE ERROR:", employeeError);
+console.log("=================");
 
     if (employeeError || !employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
     /* ====================== 
-    GET ALL HOURS (LIFETIME)
-    ====================== */
-    const { data: hoursData, error: hoursError } = await supabase
-      .from("work_hours")
-      .select("hours, minutes, created_at")
-      .eq("employee_id", id);
-
-    if (hoursError) {
-      return NextResponse.json({ error: "Error fetching work hours" }, { status: 500 });
-    }
-
-    /* ====================== 
-    🔥 LIFETIME MINUTES
-    ====================== */
-    const totalMinutes = (hoursData || []).reduce((acc, entry) => {
-      return acc + ((entry.hours || 0) * 60) + (entry.minutes || 0);
-    }, 0);
-
-    /* ====================== 
-    🔥 30-MIN RULE
-    ====================== */
-    const lifetimeBlocks = Math.floor(totalMinutes / 30);
-    const lifetimeHours = lifetimeBlocks * 0.5;
-
-    /* ====================== 
-    🔥 WEEKLY CALCULATION
-    ====================== */
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    const weeklyMinutes = (hoursData || []).reduce((acc, entry) => {
-      const entryDate = new Date(entry.created_at);
-
-      if (entryDate >= oneWeekAgo) {
-        return acc + ((entry.hours || 0) * 60) + (entry.minutes || 0);
-      }
-
-      return acc;
-    }, 0);
-
-    const weeklyBlocks = Math.floor(weeklyMinutes / 30);
-    const weeklyHours = weeklyBlocks * 0.5;
-
-    /* ====================== 
     GET RANK
     ====================== */
-    const { data: rank, error: rankError } = await supabase
+    const { data: rank } = await supabase
       .from("employee_ranks")
       .select("rank_name, wage")
       .eq("id", employee.rank_id)
       .maybeSingle();
 
-    if (rankError || !rank) {
-      return NextResponse.json({ error: "Rank not found" }, { status: 404 });
-    }
-
     const wage = rank?.wage ?? 0;
 
     /* ====================== 
-    💰 EARNINGS
-    ====================== */
-    const weeklyEarnings = weeklyHours * wage;
-    const lifetimeEarnings = lifetimeHours * wage;
-
-    /* ========================= */
-/* GET STRIKE HISTORY        */
-/* ========================= */
-const { data: strikes } = await supabase
-  .from("employee_strikes")
-  .select(`
-    id,
-    reason,
-    number,
-    created_at
-  `)
-  .eq("employee_id", id)
-  .order("created_at", { ascending: false });
+✅ WEEKLY (FROM EMPLOYEE TABLE)
+====================== */
+const weeklyHours = employee.weekly_hours ?? 0;
+const weeklyMinutes = employee.weekly_minutes ?? 0;
+const weeklyEarnings = employee.weekly_earnings ?? 0;
 
 /* ====================== 
-🔥 TERMINATION HISTORY (FIXED)
+🔥 REBUILD LIFETIME FROM work_hours
 ====================== */
-const { data: terminationHistory } = await supabase
-  .from("termination_history")
-  .select(`
-    id,
-    termination_date,
-    reason,
-    rehire_status
-  `)
-  .eq("employee_id", id)
-  .order("termination_date", { ascending: false });
+const { data: workHours } = await supabase
+  .from("work_hours")
+  .select("hours, minutes")
+  .eq("employee_id", id);
 
-const latest = terminationHistory?.[0];
+const totalMinutes =
+  (workHours ?? []).reduce((sum, row) => {
+    return sum + (row.hours * 60 + row.minutes);
+  }, 0);
 
-const termination_date = latest?.termination_date
-  ? new Date(latest.termination_date).toLocaleDateString()
-  : "N/A";
+const lifetimeHours = Math.floor(totalMinutes / 60);
+const lifetimeMinutes = totalMinutes % 60;
+
+// 💰 earnings
+const lifetimeEarnings = lifetimeHours * wage;
+
+    /* ========================= */
+    /* STRIKES                   */
+    /* ========================= */
+    const { data: strikes } = await supabase
+      .from("employee_strikes")
+      .select(`
+        id,
+        reason,
+        number,
+        created_at
+      `)
+      .eq("employee_id", id)
+      .order("created_at", { ascending: false });
+
+    /* ========================= */
+    /* TERMINATION HISTORY       */
+    /* ========================= */
+    const { data: terminationHistory } = await supabase
+      .from("termination_history")
+      .select(`
+        id,
+        termination_date,
+        reason,
+        rehire_status
+      `)
+      .eq("employee_id", id)
+      .order("termination_date", { ascending: false });
+
+    const latest = terminationHistory?.[0];
+
+    const termination_date = latest?.termination_date
+      ? new Date(latest.termination_date).toLocaleDateString()
+      : "N/A";
 
     /* ====================== 
     RESPONSE
     ====================== */
-return NextResponse.json({
-  ...employee,
+    return NextResponse.json({
+      id: employee.id,
+      name: employee.name,
+      status: employee.status,
 
-  termination_date,
-  termination_history: terminationHistory ?? [], // 🔥 THIS IS WHY PANEL WAS EMPTY
+      hire_date: employee.hire_date,
+      phone: employee.phone,
+      cid: employee.cid,
+      iban: employee.iban,
 
-  rank: rank?.rank_name ?? "Unassigned",
-  wage,
+      last_promotion_date: employee.last_promotion_date ?? "N/A",
 
-  lifetime_hours: lifetimeHours,
-  weekly_hours: weeklyHours,
+      termination_date,
+      termination_history: terminationHistory ?? [],
 
-  lifetime_earnings: lifetimeEarnings,
-  weekly_earnings: weeklyEarnings,
+      rank: rank?.rank_name ?? "Unassigned",
+      wage,
 
-  strike_history: strikes ?? [],
-});
+      weekly_hours: weeklyHours,
+      weekly_minutes: weeklyMinutes,
+      weekly_earnings: weeklyEarnings,
+
+      lifetime_hours: lifetimeHours,
+      lifetime_minutes: lifetimeMinutes,
+      lifetime_earnings: lifetimeEarnings,
+
+      strike_history: strikes ?? [],
+    });
+
   } catch (err) {
     console.error("Error fetching employee:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -164,8 +165,9 @@ return NextResponse.json({
 /* ============================== */
 /* UPDATE STATUS                  */
 /* ============================== */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const supabase = getSupabaseServer();
     const { id } = await params;
     const { status } = await req.json();
 
@@ -173,13 +175,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: "Missing status" }, { status: 400 });
     }
 
-    const { data: employee, error: employeeError } = await supabase
+    const { data: employee } = await supabase
       .from("employees")
       .select("rank_id")
       .eq("id", id)
       .maybeSingle();
 
-    if (employeeError || !employee) {
+    if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
@@ -190,18 +192,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       );
     }
 
-    const { data, error } = await supabase
-      .from("employees")
-      .update({ status })
-      .eq("id", id)
-      .select()
-      .maybeSingle();
+const { error } = await supabase
+  .from("employees")
+  .update({ status })
+  .eq("id", id);
 
-    if (error || !data) {
-      return NextResponse.json({ error: "Error updating status" }, { status: 500 });
-    }
+if (error) {
+  return NextResponse.json({ error: "Error updating status" }, { status: 500 });
+}
 
-    return NextResponse.json({ success: true, updated_employee: data });
+return NextResponse.json({ success: true });
 
   } catch (err) {
     console.error("POST EMPLOYEE STATUS ERROR:", err);

@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 
+type Conversion = {
+  from_item_id: string
+  to_item_id: string
+  from_quantity: number
+  to_quantity: number
+  type: "craft" | "purchase"
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -129,13 +137,14 @@ if (action === "createConversion") {
   }
 
   const { data, error } = await supabase
-    .from("item_conversion")
-    .insert({
-      external_stock_item_id: externalStockId,
-      stock_item_id: stockItemId,
-      external_quantity: externalQuantity,
-      stock_quantity: stockQuantity
-    });
+    .from("item_conversions_v2")
+.insert({
+  from_item_id: externalStockId,
+  to_item_id: stockItemId,
+  from_quantity: externalQuantity,
+  to_quantity: stockQuantity,
+  type: "purchase" // or pass from frontend
+})
 
   if (error) {
     console.error("❌ CONVERSION ERROR:", error);
@@ -148,41 +157,42 @@ if (action === "createConversion") {
     /* ================================= */
     /* DELETE CONVERSION                 */
     /* ================================= */
-    if (action === "deleteConversion") {
-      const { id } = body
+if (action === "deleteConversion") {
+  const { id } = body;
 
-      if (!id) {
-        return NextResponse.json({ error: "Conversion ID is required" }, { status: 400 })
-      }
+  const { error } = await supabase
+    .from("item_conversions_v2")
+    .delete()
+    .eq("id", id);
 
-      const { error } = await supabase
-        .from("item_conversion")
-        .delete()
-        .eq("id", id)
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-      return NextResponse.json({ success: true })
-    }
+  return NextResponse.json({ success: true });
+}
 
     /* ================================= */
     /* GET CONVERSIONS                   */
     /* ================================= */
-    if (action === "getConversions") {
-      const { data, error } = await supabase
-        .from("item_conversion")
-        .select(`
-          id,
-          external_quantity,
-          stock_quantity,
-          external_stock:external_stock_item_id(name),
-          stock_item:stock_item_id(name)
-        `)
+if (action === "getConversions") {
+  const { data: conversions, error } = await supabase
+    .from("item_conversions_v2")
+    .select(`
+      id,
+      from_item_id,
+      to_item_id,
+      from_quantity,
+      to_quantity,
+      type
+    `)
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
-      return NextResponse.json(data ?? [])
-    }
+  return NextResponse.json(conversions ?? [])
+}
 
    /* ================================= */
 /* GET RESTOCK NEEDED (FIXED)        */
@@ -197,64 +207,166 @@ if (action === "getRestockNeeded") {
     return NextResponse.json({ error: stockError.message }, { status: 500 })
   }
 
-  const { data: conversions } = await supabase
-    .from("item_conversion")
-    .select(`
-      stock_item_id,
-      external_quantity,
-      stock_quantity,
-      external_stock:external_stock_item_id(name)
-    `)
+const { data: conversions } = await supabase
+  .from("item_conversions_v2")
+  .select(`
+    id,
+    from_item_id,
+    to_item_id,
+    from_quantity,
+    to_quantity,
+    type
+  `)
 
-  const result: any[] = []
+    // 🔥 STEP 2: BUILD CONVERSION MAP (KEY FIX)
+const conversionGraph = new Map<string, Conversion[]>()
 
-  stockItems?.forEach(stock => {
+conversions?.forEach(c => {
+if (!conversionGraph.has(c.to_item_id)) {
+  conversionGraph.set(c.to_item_id, [])
+}
 
-    const current = Number(stock.current_amount) || 0
-    const goal = Number(stock.goal_amount) || 0
+const list = conversionGraph.get(c.to_item_id)!
+list.push(c)
+})
 
-    const needed = goal - current
+const grouped: any = {}
 
-    // ✅ show ALL low items
-    if (needed <= 0) return
+stockItems?.forEach(stock => {
 
-    const conv = conversions?.find(c => c.stock_item_id === stock.id)
+  const current = Number(stock.current_amount) || 0
+  const goal = Number(stock.goal_amount) || 0
+  const needed = goal - current
 
-    // ✅ CASE 1: has conversion
-    if (conv) {
+  if (needed <= 0) return
+  const fullGoal = goal
 
-      const ratio =
-        (conv.stock_quantity || 1) / (conv.external_quantity || 1)
+  // 🔥 GROUP BY NAME (Milk from BOTH sections)
+if (!grouped[stock.name]) {
+  grouped[stock.name] = {
+    name: stock.name,
+    total_needed: 0,
+    stock_ids: [],
+    breakdown: [] // ✅ ADD
+  }
+}
 
-      const externalNeeded = Math.ceil(needed / ratio)
-
-      result.push({
-        external_name: conv.external_stock?.[0]?.name || stock.name,
-        needed_external: externalNeeded,
-        stock_id: stock.id,
-        needed_stock: needed
-      })
-
-    }
-
-    // ✅ CASE 2: NO conversion (🔥 THIS FIXES YOUR ISSUE)
-    else {
-
-      result.push({
-        external_name: stock.name,
-        needed_external: needed,
-        stock_id: stock.id,
-        needed_stock: needed
-      })
-
-    }
+  grouped[stock.name].total_needed += needed
+  grouped[stock.name].stock_ids.push(stock.id)
+grouped[stock.name].breakdown.push({
+  stock_id: stock.id,
+  needed
+})
 
   })
 
-  console.log("RESTOCK RESULT:", result)
+const buyList: any[] = []
+const craftMap = new Map()
 
-  return NextResponse.json(result)
+const { data: externalItems } = await supabase
+  .from("external_stock")
+  .select("id, name")
+
+const itemNameMap = new Map()
+
+stockItems?.forEach(i => {
+  itemNameMap.set(i.id, i.name)
+})
+
+externalItems?.forEach(i => {
+  itemNameMap.set(i.id, i.name)
+})
+
+Object.values(grouped).forEach((item: any) => {
+
+  // 🔥 SUM ALL STOCK IDS (they are same item type)
+  const itemId =
+  item.stock_ids.find((id: string) => conversionGraph.has(id)) ||
+  item.stock_ids[0]
+
+  const totalNeeded = item.total_needed
+const options = conversionGraph.get(itemId) || []
+
+const purchaseConv = options.find(c => c.type === "purchase")
+const craftConv = options.find(c => c.type === "craft")
+
+// 🛒 BUY ONLY FOR DIRECT STOCK GOAL
+if (purchaseConv) {
+  const ratio = purchaseConv.from_quantity / purchaseConv.to_quantity
+  const buyAmount = item.total_needed * ratio
+
+const buyName = itemNameMap.get(purchaseConv.from_item_id) || "Unknown"
+const amount = Math.ceil(buyAmount)
+
+const existing = buyList.find(b => b.name === buyName)
+
+if (existing) {
+  existing.amount += amount
+} else {
+buyList.push({
+  name: buyName,
+  amount,
+  breakdown: item.breakdown // ✅ ADD THIS
+})
 }
+}
+
+
+
+// 🛠 CRAFT ONLY FOR DIRECT GOAL (NO PROPAGATION)
+if (craftConv) {
+
+  const ratio = craftConv.from_quantity / craftConv.to_quantity
+
+  // 🔥 FIX: calculate FULL missing amount across ALL fridges
+  const stockRows = stockItems?.filter(s => s.name === item.name) || []
+
+  const totalGoal = stockRows.reduce((sum, s) => sum + (s.goal_amount || 0), 0)
+  const totalCurrent = stockRows.reduce((sum, s) => sum + (s.current_amount || 0), 0)
+
+  const fullNeeded = totalGoal - totalCurrent
+
+  const craftAmount = Math.ceil(fullNeeded * ratio)
+
+  const fromName = itemNameMap.get(craftConv.from_item_id)
+  const toName = itemNameMap.get(craftConv.to_item_id)
+
+  const key = `${fromName}→${toName}`
+
+  if (craftMap.has(key)) {
+    craftMap.get(key).amount += craftAmount
+  } else {
+    craftMap.set(key, {
+      from: fromName,
+      to: toName,
+      amount: craftAmount
+    })
+  }
+}
+})
+console.log("RESTOCK RESULT:", {
+  buyList,
+  craftList: Array.from(craftMap.values())
+})
+
+// ✅ SORT BUY
+buyList.sort((a, b) => a.name.localeCompare(b.name))
+
+// ✅ SORT CRAFT
+const craftList = Array.from(craftMap.values())
+
+craftList.sort((a, b) =>
+  a.to.localeCompare(b.to)
+)
+
+// ✅ RETURN SORTED DATA
+return NextResponse.json({
+  buy: buyList,
+  craft: craftList
+})
+} // ✅ CLOSE getRestockNeeded
+
+
 
 /* ================================= */
 /* 🔥 SUBMIT RESTOCK (FINAL FIX)     */
@@ -268,6 +380,9 @@ if (action === "submitRestock") {
   }
 
   for (const item of items) {
+
+  // 🔥 ONLY process if price entered
+  if (!item.price_each || Number(item.price_each) <= 0) continue
 
     const { stock_id, needed_stock } = item
 
@@ -301,8 +416,149 @@ if (action === "submitRestock") {
       .eq("id", stock_id)
   }
 
+  // 🔥 REFETCH UPDATED STOCK
+const { data: updatedStock } = await supabase
+  .from("stock_items")
+  .select("*")
+  .order("name")
+
+return NextResponse.json({
+  success: true,
+  updatedStock: updatedStock ?? []
+})
+}
+
+/* ================================= */
+/* 🔥 SUBMIT CRAFT                   */
+/* ================================= */
+if (action === "submitCraft") {
+
+  const { items } = body
+
+  if (!Array.isArray(items)) {
+    return NextResponse.json({ error: "Invalid items payload" }, { status: 400 })
+  }
+
+  for (const item of items) {
+
+    const { from, to, amount } = item
+
+    if (!from || !to || !amount) continue
+
+    // 🔹 FIND STOCK IDS BY NAME
+    const { data: fromStock } = await supabase
+      .from("stock_items")
+      .select("id, current_amount")
+      .eq("name", from)
+
+    const { data: toStock } = await supabase
+      .from("stock_items")
+      .select("id, current_amount")
+      .eq("name", to)
+
+    if (!fromStock?.length || !toStock?.length) continue
+
+    // 🔥 CALCULATE TOTAL NEEDED (LIKE BUY DOES)
+const { data: targets } = await supabase
+  .from("stock_items")
+  .select("id, current_amount, goal_amount")
+  .eq("name", to)
+
+if (!targets?.length) continue
+
+let totalNeeded = 0
+
+targets.forEach(t => {
+  const current = t.current_amount || 0
+  const goal = t.goal_amount || 0
+
+  if (current < goal) {
+    totalNeeded += (goal - current)
+  }
+})
+
+if (totalNeeded <= 0) continue
+
+// 🔥 GET CONVERSION RATIO
+const { data: conversions } = await supabase
+  .from("item_conversions_v2")
+  .select("*")
+
+// 🔥 MATCH BY STOCK NAMES DIRECTLY (SAFE + SIMPLE)
+const conversion = conversions?.find(c =>
+  c.from_item_id && c.to_item_id &&
+  c.from_item_id === fromStock?.[0]?.id &&
+  c.to_item_id === toStock?.[0]?.id
+)
+
+const ratio = conversion
+  ? conversion.from_quantity / conversion.to_quantity
+  : 1
+
+let remaining = Math.ceil(totalNeeded * ratio)
+
+
+// 🔹 SUBTRACT FROM SOURCE (ONLY WHAT EXISTS)
+for (const f of fromStock) {
+
+  if (remaining <= 0) break
+
+  const current = f.current_amount || 0
+
+  if (current <= 0) continue
+
+  const take = Math.min(current, remaining)
+
+  await supabase
+    .from("stock_items")
+    .update({
+      current_amount: current - take
+    })
+    .eq("id", f.id)
+
+  remaining -= take
+}
+
+
+
+// 🔹 ADD TO TARGET (FIXED)
+let remainingAdd = totalNeeded
+
+for (const t of toStock) {
+
+  if (remainingAdd <= 0) break
+
+  const current = t.current_amount || 0
+
+  const { data: stock } = await supabase
+    .from("stock_items")
+    .select("goal_amount")
+    .eq("id", t.id)
+    .single()
+
+  const goal = stock?.goal_amount || Infinity
+
+  const space = goal - current
+
+  if (space <= 0) continue
+
+  const add = Math.min(space, remainingAdd)
+
+  await supabase
+    .from("stock_items")
+    .update({
+      current_amount: current + add
+    })
+    .eq("id", t.id)
+
+  remainingAdd -= add
+}
+
+  }
+
   return NextResponse.json({ success: true })
 }
+
     /* ================================= */
     /* UPDATE STOCK CURRENT              */
     /* ================================= */

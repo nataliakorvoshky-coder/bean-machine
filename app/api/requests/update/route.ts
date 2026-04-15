@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabaseServer";
 
-const supabase = getSupabaseServer();
-
 export async function POST(req: Request) {
+  const supabase = getSupabaseServer();
+
   const { id, updates, manager } = await req.json();
 
-  /* 🔥 GET CURRENT REQUEST */
+  /* ========================= */
+  /* 🔥 GET CURRENT REQUEST    */
+  /* ========================= */
+
   const { data: existing, error: fetchError } = await supabase
     .from("requests")
     .select("*")
@@ -27,16 +30,18 @@ export async function POST(req: Request) {
   const isExpired =
     existing.claimed_at &&
     Date.now() - new Date(existing.claimed_at).getTime() >
-      2 * 60 * 1000; // 2 minutes
+      2 * 60 * 1000;
 
-  // 🔥 AUTO CLEAR EXPIRED CLAIM
-  if (isExpired) {
+  if (isExpired && existing.status === "In Progress") {
     await supabase
       .from("requests")
       .update({
         claimed_by: null,
         claimed_at: null,
-        status: "Viewed",
+        status:
+  existing.status === "In Progress"
+    ? "Viewed"
+    : existing.status,
       })
       .eq("id", id);
 
@@ -60,23 +65,75 @@ export async function POST(req: Request) {
   }
 
   /* ========================= */
-  /* 🔥 AUTO SET CLAIM TIME    */
+  /* 🔥 SAFE MERGE UPDATES     */
   /* ========================= */
 
-  const finalUpdates = { ...updates };
+/* ========================= */
+/* 🔥 SAFE FINAL UPDATE LOGIC */
+/* ========================= */
 
-  // If claiming → set timestamp
-  if (updates.claimed_by) {
-    finalUpdates.claimed_at = new Date().toISOString();
+const finalUpdates: any = {};
+
+// ✅ CHECK IF FINAL STATE
+const isFinal =
+  ["Approved", "Denied"].includes(existing.status) ||
+  ["Approved", "Denied"].includes(updates.status);
+
+/* ========================= */
+/* ✅ STATUS (TOP PRIORITY)   */
+/* ========================= */
+if (updates.status) {
+  finalUpdates.status = updates.status;
+}
+
+/* ========================= */
+/* ✅ CLAIM HANDLING          */
+/* ========================= */
+if (!isFinal) {
+  if (updates.claimed_by !== undefined) {
+    finalUpdates.claimed_by = updates.claimed_by;
   }
 
-  // If unclaiming → clear timestamp
-  if (updates.claimed_by === null) {
-    finalUpdates.claimed_at = null;
+  if (updates.claimed_at !== undefined) {
+    finalUpdates.claimed_at = updates.claimed_at;
   }
+}
+
+/* ========================= */
+/* ✅ ANSWER INFO             */
+/* ========================= */
+if (updates.answered_by) {
+  finalUpdates.answered_by = updates.answered_by;
+}
+
+if (updates.answered_at) {
+  finalUpdates.answered_at = updates.answered_at;
+}
+
+/* ========================= */
+/* ✅ NOTE FIELD              */
+/* ========================= */
+if (updates.note !== undefined) {
+  finalUpdates.note = updates.note;
+}
+
+/* ========================= */
+/* ✅ 🔥 SAFE NOTES MERGE     */
+/* ========================= */
+if (updates.notes_history) {
+  finalUpdates.notes_history = [
+    ...(existing.notes_history || []),
+    ...updates.notes_history,
+  ];
+}
+/* ========================= */
+/* 🔥 DEBUG (KEEP THIS)       */
+/* ========================= */
+console.log("FINAL UPDATE:", finalUpdates);
+
 
   /* ========================= */
-  /* 🔥 UPDATE                 */
+  /* 🔥 UPDATE (CRITICAL)      */
   /* ========================= */
 
   const { data, error } = await supabase
@@ -87,11 +144,16 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
+    console.error("UPDATE ERROR:", error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
     );
   }
+
+  /* ========================= */
+  /* 🔥 RETURN CLEAN ROW       */
+  /* ========================= */
 
   return NextResponse.json(data);
 }

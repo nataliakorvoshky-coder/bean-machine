@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import StyledDropdown from "@/components/StyledDropdown";
 import { supabase } from "@/lib/supabase";
-import "../../globals.css";
 import GlobalSync from "@/components/GlobalSync";
 import { motion, AnimatePresence } from "framer-motion";
+import { initRealtime } from "@/lib/realtime";
 
 
 const API = "/api/employees";
@@ -19,6 +19,9 @@ export default function EmployeesPage() {
   const [loaded, setLoaded] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
 
+  const [page, setPage] = useState(0);
+const PAGE_SIZE = 10;
+
   /* ============================== */
   /* ✅ INITIAL LOAD                */
   /* ============================== */
@@ -26,19 +29,53 @@ export default function EmployeesPage() {
     fetchEmployees();
   }, []);
 
+  useEffect(() => {
+  setPage(0);
+}, [search, filter]);
+
+useEffect(() => {
+  const cleanup = initRealtime({
+onEmployeeUpdate: () => {
+  fetchEmployees(); // 🔥 ALWAYS REFRESH
+},
+
+onWorkHoursUpdate: () => {
+  fetchEmployees(); // 🔥 THIS FIXES HOURS NOT UPDATING
+},
+
+    onStrikeUpdate: (payload) => {
+      const updated = payload.new;
+      if (!updated) return;
+
+      setEmployees((prev) =>
+        prev.map((emp) =>
+          emp.id === updated.employee_id
+            ? { ...emp, strikes: (emp.strikes ?? 0) + 1 }
+            : emp
+        )
+      );
+    },
+  });
+
+  return cleanup;
+}, []);
+
 async function fetchEmployees() {
-  const res = await fetch(API);
+const res = await fetch(API, { cache: "no-store" }); 
   const data = await res.json();
 
   
 
-  const formatted = (Array.isArray(data) ? data : []).map((e: any) => ({
-    ...e,
-    hours: e.hours ?? 0,
-    minutes: e.minutes ?? 0,
-    earnings: e.earnings ?? 0,
-    goal_met: e.goal_met ?? false,
-  }));
+const formatted = (Array.isArray(data) ? data : []).map((e: any) => ({
+  ...e,
+
+  // ✅ USE API VALUES (ALREADY CALCULATED)
+  hours: e.hours ?? 0,
+  minutes: e.minutes ?? 0,
+  earnings: e.earnings ?? 0,
+
+  goal_met: e.goal_met ?? false,
+}));
 
 setEmployees(formatted);
 
@@ -68,12 +105,19 @@ setEmployees(formatted);
       return 0;
     });
 
+    const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / PAGE_SIZE));
+
+const paginatedEmployees = filteredEmployees.slice(
+  page * PAGE_SIZE,
+  page * PAGE_SIZE + PAGE_SIZE
+);
+
   /* ============================== */
   /* 🧮 TOTAL HOURS FIX             */
   /* ============================== */
-  const totalMinutes = employees.reduce((acc, e) => {
-    return acc + (e.minutes ?? 0);
-  }, 0);
+const totalMinutes = employees.reduce((acc, e) => {
+  return acc + ((e.hours ?? 0) * 60 + (e.minutes ?? 0));
+}, 0);
 
   const totalHours = Math.floor(totalMinutes / 60);
   const remainingMinutes = totalMinutes % 60;
@@ -117,169 +161,155 @@ setEmployees(formatted);
   /* ============================== */
   /* 🚀 UI                          */
   /* ============================== */
-  return (
-    <div className="w-full px-10 py-8">
+return (
+  <div className="w-full px-10 py-8">
+    <div className="flex justify-between items-center mb-8">
+      <h1 className="text-4xl font-bold text-emerald-700">Employees</h1>
 
-<GlobalSync
-  onEmployeeUpdate={(payload) => {
-    const updated = payload.new;
-
-    if (!updated) return;
-
-    setEmployees((prev) => {
-      const exists = prev.some((e) => e.id === updated.id);
-
-      // 🔥 TERMINATED → REMOVE (triggers exit animation)
-      if (updated.status === "Terminated") {
-        return prev.filter((e) => e.id !== updated.id);
-      }
-
-      // 🔥 REHIRED → ADD BACK (smooth entry)
-      if (updated.status === "Active" && !exists) {
-        return [updated, ...prev];
-      }
-
-      // 🔥 NORMAL UPDATE → PATCH (no flicker)
-      return prev.map((emp) =>
-        emp.id === updated.id ? { ...emp, ...updated } : emp
-      );
-    });
-  }}
-
-  onStrikeUpdate={(payload) => {
-    const updated = payload.new;
-    if (!updated) return;
-
-    setEmployees((prev) =>
-      prev.map((emp) =>
-        emp.id === updated.employee_id
-          ? { ...emp, strikes: (emp.strikes ?? 0) + 1 }
-          : emp
-      )
-    );
-  }}
-/>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-emerald-700">Employees</h1>
-
-        <div className="bg-white shadow rounded-xl px-5 py-3 w-[200px] text-right">
-          <div className="text-xs text-gray-500">Total Employee Hours</div>
-          <div className="text-lg font-semibold text-emerald-700">
-            {totalHours}h {remainingMinutes}m
-          </div>
+      <div className="bg-white shadow rounded-xl px-5 py-3 w-[200px] text-right">
+        <div className="text-xs text-gray-500">Total Employee Hours</div>
+        <div className="text-lg font-semibold text-emerald-700">
+          {totalHours}h {remainingMinutes}m
         </div>
       </div>
-
-      {/* SEARCH + FILTER */}
-      <div className="mb-8 flex gap-4 items-center">
-        <input
-          placeholder="Search employees..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-         className="w-full max-w-[400px] text-sm px-4 py-2 border border-emerald-200 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-        />
-
-        <div className="w-[220px]">
-          <StyledDropdown
-            value={filter}
-            onChange={setFilter}
-            placeholder="Filter"
-            options={[
-              { id: "No Filter", name: "No Filter" },
-              { id: "Goal Met", name: "Goal Met" },
-              { id: "Goal Not Met", name: "Goal Not Met" },
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* HEADER */}
-      <div className="grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] text-sm font-semibold text-emerald-700 px-6 mb-3">
-        <div>Name</div>
-        <div>Status</div>
-        <div>Rank</div>
-        <div>Wage</div>
-        <div>Hours</div>
-        <div>Earnings</div>
-        <div>Goal</div>
-      </div>
-
-{/* ROWS */}
-<motion.div layout>
-  <AnimatePresence mode="popLayout">
-{filteredEmployees.map((emp, index) => {
-      const isAdmin = emp.rank === "Coffee Panda";
-
-      return (
-<motion.div
-  key={emp.id}
-  layout="position"
-
-  initial={{ opacity: 0, y: 16 }}
-  animate={{ opacity: 1, y: 0 }}
-
-  exit={{
-    opacity: 0,
-    x: 80,
-    scale: 0.95,
-    transition: { duration: 0.25 }
-  }}
-
-  transition={{
-    delay: index * 0.08,   // 🔥 REAL CASCADE
-    duration: 0.35,
-    ease: "easeOut",
-    layout: { duration: 0.4, ease: "easeInOut" }
-  }}
-
-className={`grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] items-center bg-white shadow rounded-xl px-6 py-3 mb-3 ${rowBorder(emp.status, isAdmin)}`}
->
-        <Link
-          href={`/employees/${emp.id}`}
-          className="text-emerald-700 font-medium hover:bg-emerald-50 px-2 py-[2px] rounded w-fit"
-        >
-          {emp.name}
-        </Link>
-
-        <span className={`inline-flex w-fit items-center px-3 py-[2px] rounded-full text-xs ${statusBadge(emp.status)}`}>
-          {emp.status}
-        </span>
-
-        <span className={`inline-flex w-fit items-center px-3 py-[2px] rounded-full text-xs ${rankBadgeColor(emp.rank)}`}>
-          {isAdmin && <span className="mr-2">🐼</span>}
-          {emp.rank}
-        </span>
-
-        <div className="text-emerald-700 font-medium text-sm">
-          {isAdmin ? "∞" : `$${emp.wage}/hr`}
-        </div>
-
-        <div className="text-emerald-700 font-medium text-sm">
-          {emp.minutes > 0
-            ? `${emp.hours}h ${emp.minutes % 60}m`
-            : `${emp.hours}h`}
-        </div>
-
-        <div className="text-emerald-700 font-semibold text-sm">
-          {isAdmin ? "∞" : `$${emp.earnings}`}
-        </div>
-
-        <div
-          className={
-            isAdmin
-              ? "text-purple-500 font-semibold text-sm"
-              : emp.goal_met
-              ? "text-emerald-600 font-medium"
-              : "text-red-500 font-medium"
-          }
-        >
-          {isAdmin ? "Always" : emp.goal_met ? "Met" : "Not Met"}
-        </div>
-      </motion.div>
-    );
-  })}
-</AnimatePresence>
-</motion.div> 
     </div>
-  );
+
+    {/* SEARCH + FILTER */}
+    <div className="mb-8 flex gap-4 items-center">
+      <input
+        placeholder="Search employees..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full max-w-[400px] text-sm px-4 py-2 border border-emerald-200 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+      />
+
+      <div className="w-[220px]">
+        <StyledDropdown
+          value={filter}
+          onChange={setFilter}
+          placeholder="Filter"
+          options={[
+            { id: "No Filter", name: "No Filter" },
+            { id: "Goal Met", name: "Goal Met" },
+            { id: "Goal Not Met", name: "Goal Not Met" },
+          ]}
+        />
+      </div>
+    </div>
+
+    {/* HEADER */}
+    <div className="grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] text-sm font-semibold text-emerald-700 px-6 mb-3">
+      <div>Name</div>
+      <div>Status</div>
+      <div>Rank</div>
+      <div>Wage</div>
+      <div>Hours</div>
+      <div>Earnings</div>
+      <div>Goal</div>
+    </div>
+
+    {/* ROWS */}
+    <AnimatePresence mode="popLayout">
+      <motion.div
+        key={page}
+        layout
+        initial={{ x: 80, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: -80, opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {paginatedEmployees.map((emp, index) => {
+          const isAdmin = emp.rank === "Coffee Panda";
+
+          return (
+            <motion.div
+              key={emp.id}
+              layout="position"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{
+                opacity: 0,
+                x: 80,
+                scale: 0.95,
+                transition: { duration: 0.25 },
+              }}
+              transition={{
+                delay: index * 0.08,
+                duration: 0.35,
+                ease: "easeOut",
+              }}
+              className={`grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] items-center bg-white shadow rounded-xl px-6 py-3 mb-3 ${rowBorder(emp.status, isAdmin)}`}
+            >
+              <Link
+                href={`/employees/${emp.id}`}
+                className="text-emerald-700 font-medium hover:bg-emerald-50 px-2 py-[2px] rounded w-fit"
+              >
+                {emp.name}
+              </Link>
+
+              <span className={`inline-flex w-fit items-center px-3 py-[2px] rounded-full text-xs ${statusBadge(emp.status)}`}>
+                {emp.status}
+              </span>
+
+              <span className={`inline-flex w-fit items-center px-3 py-[2px] rounded-full text-xs ${rankBadgeColor(emp.rank)}`}>
+                {isAdmin && <span className="mr-2">🐼</span>}
+                {emp.rank}
+              </span>
+
+              <div className="text-emerald-700 font-medium text-sm">
+                {isAdmin ? "∞" : `$${emp.wage}/hr`}
+              </div>
+
+              <div className="text-emerald-700 font-medium text-sm">
+                {emp.minutes > 0
+                  ? `${emp.hours}h ${emp.minutes}m`
+                  : `${emp.hours}h`}
+              </div>
+
+              <div className="text-emerald-700 font-semibold text-sm">
+                {isAdmin ? "∞" : `$${emp.earnings}`}
+              </div>
+
+              <div
+                className={
+                  isAdmin
+                    ? "text-purple-500 font-semibold text-sm"
+                    : emp.goal_met
+                    ? "text-emerald-600 font-medium"
+                    : "text-red-500 font-medium"
+                }
+              >
+                {isAdmin ? "Always" : emp.goal_met ? "Met" : "Not Met"}
+              </div>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </AnimatePresence>
+
+    {/* PAGINATION */}
+    <div className="flex justify-center items-center gap-4 mt-6">
+      <button
+        onClick={() => setPage((p) => Math.max(p - 1, 0))}
+        disabled={page === 0}
+        className="px-3 py-1 rounded bg-emerald-100 text-emerald-700 disabled:opacity-40"
+      >
+        Prev
+      </button>
+
+      <span className="text-sm text-emerald-700 font-semibold">
+        Page {page + 1} / {totalPages}
+      </span>
+
+      <button
+        onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+        disabled={page >= totalPages - 1}
+        className="px-3 py-1 rounded bg-emerald-100 text-emerald-700 disabled:opacity-40"
+      >
+        Next
+      </button>
+    </div>
+
+  </div>
+);
 }

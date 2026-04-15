@@ -12,19 +12,38 @@ export default function ExternalStockPage() {
 
   const [items, setItems] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
+  const allItems = [
+  ...items.map(i => ({ id: i.id, name: i.name })),
+  ...stockItems.map(i => ({ id: i.id, name: i.name }))
+]
   const [conversionHistory, setConversionHistory] = useState<any[]>([]);
+  const [itemMap, setItemMap] = useState(new Map<string,string>())
 
   const [selectedExternalStock, setSelectedExternalStock] = useState("");
   const [selectedStockItem, setSelectedStockItem] = useState("");
 
   const [externalQuantity, setExternalQuantity] = useState(0);
   const [stockQuantity, setStockQuantity] = useState(0);
+  const [conversionType, setConversionType] = useState("purchase");
 
-  useEffect(() => {
-    loadExternalStock();
-    loadStockItems();
-    loadConversions();
-  }, []);
+useEffect(() => {
+  async function loadAll() {
+    await loadExternalStock();
+    await loadStockItems();
+    await loadConversions();
+  }
+
+  loadAll();
+}, []);
+
+useEffect(() => {
+  const map = new Map<string,string>();
+
+  stockItems.forEach((i:any) => map.set(i.id, i.name));
+  items.forEach((i:any) => map.set(i.id, i.name));
+
+  setItemMap(map);
+}, [stockItems, items]);
 
   async function api(action: string, payload: any = {}) {
     const res = await fetch(API, {
@@ -46,15 +65,19 @@ export default function ExternalStockPage() {
 );
   }
 
-  async function loadStockItems() {
-    const data = await api("getStockItems");
-    setStockItems(Array.isArray(data) ? data : []);
-  }
+async function loadStockItems() {
+  const data = await api("getStockItems");
+  const stock = Array.isArray(data) ? data : [];
 
-  async function loadConversions() {
-    const data = await api("getConversions");
-    setConversionHistory(Array.isArray(data) ? data : []);
-  }
+  setStockItems(stock);
+} // ✅ CLOSE FUNCTION HERE
+
+
+async function loadConversions() {
+  const res = await fetch("/api/conversions");
+  const data = await res.json();
+  setConversionHistory(Array.isArray(data) ? data : []);
+}
 
   // ✅ ADD EXTERNAL STOCK (FIXED)
 async function addExternalStock(e: any) {
@@ -87,12 +110,17 @@ console.log("SELECTED STOCK ITEM:", selectedStockItem);
 
     if (!selectedExternalStock || !selectedStockItem) return;
 
-    await api("createConversion", {
-      externalStockId: selectedExternalStock,
-      stockItemId: selectedStockItem,
-      externalQuantity,
-      stockQuantity,
-    });
+await fetch("/api/conversions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+  from_item_id: selectedExternalStock,
+  to_item_id: selectedStockItem,
+  from_quantity: externalQuantity,
+  to_quantity: stockQuantity,
+  type: conversionType   // ✅ ADD THIS
+}),
+});
 
     setExternalQuantity(0);
     setStockQuantity(0);
@@ -251,32 +279,26 @@ console.log("SELECTED STOCK ITEM:", selectedStockItem);
   }}
   transition={{ duration: 0.35 }}
 >
-            <h2 className="text-lg font-semibold text-emerald-700 mb-4">
-              Convert External Stock
-            </h2>
+<h2 className="text-lg font-semibold text-emerald-700 mb-4">
+  Create Conversion
+</h2>
 
             <form onSubmit={convertStock}>
               <div className="grid grid-cols-2 gap-3">
 
-                <StyledDropdown
-                  placeholder="External Item"
-                  options={items.map((i) => ({
-                    id: i.id,
-                    name: i.name,
-                  }))}
-                  value={selectedExternalStock}
-                  onChange={setSelectedExternalStock}
-                />
+<StyledDropdown
+  placeholder="From Item"
+  options={allItems}
+  value={selectedExternalStock}
+  onChange={setSelectedExternalStock}
+/>
 
-                <StyledDropdown
-                  placeholder="Stock Item"
-                  options={stockItems.map((i) => ({
-                    id: i.id,
-                    name: i.name,
-                  }))}
-                  value={selectedStockItem}
-                  onChange={setSelectedStockItem}
-                />
+<StyledDropdown
+  placeholder="To Item"
+  options={allItems}
+  value={selectedStockItem}
+  onChange={setSelectedStockItem}
+/>
 
                 <input
                   type="number"
@@ -293,6 +315,17 @@ console.log("SELECTED STOCK ITEM:", selectedStockItem);
                   onChange={(e) => setStockQuantity(Number(e.target.value))}
                   className={inputStyle}
                 />
+
+<StyledDropdown
+  placeholder="Conversion Type"
+  options={[
+    { id: "purchase", name: "Purchase (Buy)" },
+    { id: "craft", name: "Craft (Internal)" }
+  ]}
+  value={conversionType}
+  onChange={setConversionType}
+/>
+
               </div>
 
              <motion.button
@@ -336,10 +369,22 @@ console.log("SELECTED STOCK ITEM:", selectedStockItem);
     transition={{ delay: i * 0.03 }}
     className="grid grid-cols-[3fr_1fr_3fr_1fr_1fr] text-xs text-emerald-700 py-2 border-b"
   >
-                <div>{row.external_stock?.name}</div>
-                <div className="text-center">{row.external_quantity}</div>
-                <div>{row.stock_item?.name}</div>
-                <div className="text-center">{row.stock_quantity}</div>
+<div>{itemMap.get(row.from_item_id) || "Unknown"}</div>
+<div className="text-center">{row.from_quantity}</div>
+<div className="flex items-center gap-2">
+  {itemMap.get(row.to_item_id) || "Unknown"}
+
+  <span
+    className={`text-[10px] px-2 py-[2px] rounded ${
+      row.type === "craft"
+        ? "bg-blue-100 text-blue-700"
+        : "bg-emerald-100 text-emerald-700"
+    }`}
+  >
+    {row.type === "craft" ? "Craft" : "Buy"}
+  </span>
+</div>
+<div className="text-center">{row.to_quantity}</div>
 
                 <div className="text-right">
                   <motion.button

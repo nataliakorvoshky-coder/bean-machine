@@ -47,41 +47,27 @@ export async function POST(req: Request) {
     }
 
     /* ============================== */
-    /* 🔥 REBUILD TOTALS              */
+    /* 🔥 ONLY USE NEW SHIFT          */
     /* ============================== */
-    const { data: allHours, error: hoursError } = await supabase
-      .from("work_hours")
-      .select("hours, minutes")
-      .eq("employee_id", employee_id);
+    const addedMinutes = (Number(hours) * 60) + Number(minutes);
 
-    if (hoursError) {
-      console.error("❌ HOURS FETCH ERROR:", hoursError);
-      return NextResponse.json(
-        { error: hoursError.message },
-        { status: 500 }
-      );
-    }
-
-    const totalMinutes = (allHours || []).reduce((acc, row) => {
-      return acc + (Number(row.hours) * 60 + Number(row.minutes));
-    }, 0);
-
-    console.log("🧠 TOTAL MINUTES:", totalMinutes);
-
-    /* ============================== */
-    /* 🔥 APPLY 30 MIN RULE           */
-    /* ============================== */
-    const paidMinutes = Math.floor(totalMinutes / 30) * 30;
-    const paidHours = paidMinutes / 60;
-
-    console.log("🧠 PAID:", { paidMinutes, paidHours });
+    console.log("🧠 ADDED MINUTES:", addedMinutes);
 
     /* ============================== */
     /* 💰 GET EMPLOYEE + RANK         */
     /* ============================== */
     const { data: employee, error: empError } = await supabase
       .from("employees")
-      .select("id, rank_id")
+      .select(`
+        id,
+        rank_id,
+        weekly_hours,
+        weekly_minutes,
+        weekly_earnings,
+        lifetime_hours,
+        lifetime_minutes,
+        lifetime_earnings
+      `)
       .eq("id", employee_id)
       .single();
 
@@ -110,31 +96,54 @@ export async function POST(req: Request) {
     const wage = Number(rank?.wage || 0);
 
     /* ============================== */
-    /* 💰 CALCULATE EARNINGS          */
+    /* 🔥 BUILD WEEKLY TOTALS         */
     /* ============================== */
+    const currentWeeklyMinutes =
+      (employee.weekly_hours ?? 0) * 60 +
+      (employee.weekly_minutes ?? 0);
+
+    const newWeeklyTotal = currentWeeklyMinutes + addedMinutes;
+
+    const paidMinutes = Math.floor(newWeeklyTotal / 30) * 30;
+    const paidHours = paidMinutes / 60;
+
+    const weeklyHours = Math.floor(newWeeklyTotal / 60);
+    const weeklyMinutes = newWeeklyTotal % 60;
+
     const earnings = paidHours * wage;
 
-    console.log("💰 EARNINGS:", earnings);
+    /* ============================== */
+    /* 🔥 BUILD LIFETIME TOTALS       */
+    /* ============================== */
+    const prevLifetimeMinutes =
+      (employee.lifetime_hours ?? 0) * 60 +
+      (employee.lifetime_minutes ?? 0);
+
+    const newLifetimeTotal = prevLifetimeMinutes + addedMinutes;
+
+    const newLifetimeHours = Math.floor(newLifetimeTotal / 60);
+    const newLifetimeMinutes = newLifetimeTotal % 60;
 
     /* ============================== */
-    /* 🔥 UPDATE EMPLOYEE (DEBUG)     */
+    /* 🔥 UPDATE EMPLOYEE             */
     /* ============================== */
     const { data: updatedRow, error: updateError } = await supabase
       .from("employees")
       .update({
-        worked_minutes: totalMinutes,
+        worked_minutes: newWeeklyTotal,
         paid_hours: paidHours,
 
-        weekly_hours: paidHours,
-        weekly_minutes: paidMinutes,
+        weekly_hours: weeklyHours,
+        weekly_minutes: weeklyMinutes,
         weekly_earnings: earnings,
 
-        lifetime_hours: paidHours,
-        lifetime_minutes: paidMinutes,
-        lifetime_earnings: earnings,
+        lifetime_hours: newLifetimeHours,
+        lifetime_minutes: newLifetimeMinutes,
+        lifetime_earnings:
+          (employee.lifetime_earnings ?? 0) + earnings,
       })
       .eq("id", employee_id)
-      .select(); // ✅ CRITICAL
+      .select();
 
     console.log("✅ UPDATED ROW:", updatedRow);
     console.log("❌ UPDATE ERROR:", updateError);
@@ -151,7 +160,7 @@ export async function POST(req: Request) {
     /* ============================== */
     return NextResponse.json({
       success: true,
-      totalMinutes,
+      weeklyMinutes: newWeeklyTotal,
       paidMinutes,
       paidHours,
       wage,

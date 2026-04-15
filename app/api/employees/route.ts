@@ -4,8 +4,15 @@ import { supabase } from "@/lib/supabase";
 /* ============================== */
 /* 📌 GET EMPLOYEES               */
 /* ============================== */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+
+    const url = new URL(req.url);
+
+    // 🚫 STOP /api/employees/[id] FROM HITTING THIS FILE
+    if (url.pathname !== "/api/employees") {
+      return NextResponse.json({ error: "Invalid route" }, { status: 400 });
+    }
     /* ============================== */
     /* 🔥 FETCH EMPLOYEES + RANK      */
     /* ============================== */
@@ -34,7 +41,7 @@ export async function GET() {
     }
 
     /* ============================== */
-    /* 🔥 FETCH ALL TERMINATIONS      */
+    /* 🔥 FETCH TERMINATIONS          */
     /* ============================== */
     const { data: termData, error: termError } = await supabase
       .from("termination_history")
@@ -45,7 +52,7 @@ export async function GET() {
     }
 
     /* ============================== */
-    /* 🔥 MAP LATEST TERMINATION      */
+    /* 🔥 MAP TERMINATIONS            */
     /* ============================== */
     const terminationMap: Record<string, string> = {};
 
@@ -61,7 +68,13 @@ export async function GET() {
     /* 🔥 FORMAT FOR FRONTEND         */
     /* ============================== */
     const formatted = (data || []).map((emp: any) => {
-      const weeklyHours = emp.weekly_hours ?? 0;
+
+      // ✅ USE STORED WEEKLY VALUES (THIS FIXES RESET)
+      const workedHours = emp.weekly_hours ?? 0;
+      const workedMinutes = emp.weekly_minutes ?? 0;
+      const earnings = emp.weekly_earnings ?? 0;
+
+      const wage = emp.employee_ranks?.wage ?? 0;
       const requiredHours = emp.employee_ranks?.hours_required ?? 0;
 
       return {
@@ -70,19 +83,16 @@ export async function GET() {
         status: emp.status,
 
         rank: emp.employee_ranks?.rank_name ?? "-",
-        wage: emp.employee_ranks?.wage ?? 0,
+        wage,
 
-        /* ✅ FIXED FIELDS */
-        hours: weeklyHours,
-        minutes: emp.weekly_minutes ?? 0,
-        earnings: emp.weekly_earnings ?? 0,
+        hours: workedHours,
+        minutes: workedMinutes,
+        earnings,
 
-        /* ✅ FIXED GOAL LOGIC */
-        goal_met: weeklyHours >= requiredHours,
+        goal_met: workedHours >= requiredHours,
 
         last_promotion_date: emp.last_promotion_date ?? "N/A",
 
-        /* ✅ FIXED TERMINATION PER EMPLOYEE */
         termination_date:
           emp.status === "Terminated" && terminationMap[emp.id]
             ? new Date(terminationMap[emp.id]).toLocaleDateString()

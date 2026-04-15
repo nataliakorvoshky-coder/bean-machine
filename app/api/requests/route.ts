@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         reason,
         start_date,
         end_date,
-        status: "Viewed",
+        status: "Pending",
         employee_id: employee.id,
         employee_name: employee.name,
       })

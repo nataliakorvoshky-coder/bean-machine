@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation"; // Importing useRouter for navigation
 import StyledDropdown from "@/components/StyledDropdown";
-import "../../../globals.css"; // Import the updated global styles
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Variants } from "framer-motion";
+
 
 
 const API = "/api/employees";
@@ -15,6 +15,7 @@ export default function EmployeeProfilePage() {
   const params = useParams();
   const router = useRouter(); // Initialize useRouter hook for navigation
   const id = params.id as string;
+  console.log("PARAMS:", useParams())
 
   const CACHE_KEY = `employee-${id}`;
 
@@ -32,47 +33,54 @@ const [isTerminating, setIsTerminating] = useState<boolean>(false);
 
 const [loaded, setLoaded] = useState(false);
 
-  /* ============================== */
-  /* 🔥 EMPLOYEE REALTIME           */
-  /* ============================== */
-useEffect(() => {
-  if (!id) return;
-
-  const cached = localStorage.getItem(CACHE_KEY);
-
-  if (cached) {
-    const parsed = JSON.parse(cached);
-    setEmployee(parsed);
-    setStatus(parsed.status);
-    setStrikeHistory(parsed.strike_history ?? []);
-    setTerminationHistory(parsed.termination_history ?? []);
-  }
-}, [id]);
 
   useEffect(() => {
   if (!id) return;
 
   loadEmployee();
 
-    const empChannel = supabase
-      .channel(`employee-${id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "employees",
-          filter: `id=eq.${id}`,
-        },
-        (payload) => {
-          setEmployee((prev: any) => {
-            const updated = { ...prev, ...payload.new };
-            localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
-            return updated;
-          });
-        }
-      )
-      .subscribe();
+  // 🌍 Auto-detect timezone
+const detectedTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+fetch(`/api/employees/${id}/timezone`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ timezone: detectedTZ }),
+});
+
+const empChannel = supabase
+  .channel(`employee-${id}`)
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "employees",
+      filter: `id=eq.${id}`,
+    },
+() => {
+  loadEmployee(); // ✅ ALWAYS FETCH FULL DATA
+}
+  )
+  .subscribe();
+
+
+// 🔥 ADD THIS BLOCK RIGHT HERE 👇
+const hoursChannel = supabase
+  .channel(`hours-${id}`)
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "work_hours",
+      filter: `employee_id=eq.${id}`,
+    },
+    () => {
+      loadEmployee(); // 🔥 force refresh when hours change
+    }
+  )
+  .subscribe();
 
   /* ============================== */
   /* 🔥 STRIKE REALTIME (FIXED)     */
@@ -166,22 +174,14 @@ useEffect(() => {
     supabase.removeChannel(empChannel);
     supabase.removeChannel(strikeChannel);
     supabase.removeChannel(termChannel);
+    supabase.removeChannel(hoursChannel);
   };
 
 }, [id]);
 
   async function loadEmployee() {
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
-
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        setEmployee(parsed);
-        setStatus(parsed.status);
-        setStrikeHistory(parsed.strike_history ?? []);
-        setTerminationHistory(parsed.termination_history ?? []);
-        setLoaded(true);
-      }
+      console.log("FETCH URL:", `${API}/${id}`);
 
       const res = await fetch(`${API}/${id}`);
       const data = await res.json();
@@ -535,8 +535,14 @@ return (
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
           {[
-            { label: "Weekly Hours", value: `${employee?.weekly_hours ?? 0}h` },
-            { label: "Lifetime Hours", value: `${employee?.lifetime_hours ?? 0}h` },
+{
+  label: "Weekly Hours",
+  value: `${employee?.weekly_hours ?? 0}h ${employee?.weekly_minutes ?? 0}m`,
+},
+{
+  label: "Lifetime Hours",
+  value: `${employee?.lifetime_hours ?? 0}h ${employee?.lifetime_minutes ?? 0}m`,
+},
             { label: "Weekly Earnings", value: `$${employee?.weekly_earnings ?? 0}` },
             { label: "Lifetime Earnings", value: `$${employee?.lifetime_earnings ?? 0}` },
           ].map((item, i) => (

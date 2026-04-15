@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import StyledDropdown from "@/components/StyledDropdown";
 import StyledDatePicker from "@/components/StyledDatePicker"; // Import StyledDatePicker
+import { motion } from "framer-motion";
 
 const API = "/api/employees";
 
@@ -75,11 +76,21 @@ export default function CreateEmployeePage() {
   const inputStyle =
     "w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
 
-  return (
-    <div className="max-w-[900px] mx-auto">
+return (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.35 }}
+    className="max-w-[900px] mx-auto"
+  >
       <h1 className="text-3xl font-bold text-emerald-700 mb-8">Create Employee Profile</h1>
 
-      <div className="bg-white rounded-xl shadow p-8">
+      <motion.div
+  className="bg-white rounded-xl shadow p-8"
+  initial={{ opacity: 0, scale: 0.98 }}
+  animate={{ opacity: 1, scale: 1 }}
+  transition={{ delay: 0.15 }}
+>
         <form onSubmit={(e) => e.preventDefault()}>
           <div className="grid grid-cols-2 gap-6">
             {/* Employee Name */}
@@ -140,15 +151,20 @@ export default function CreateEmployeePage() {
             </div>
           </div>
 
-          <button
+<motion.button
   type="button"
   onClick={createEmployee}
-            className="mt-8 w-full bg-emerald-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-emerald-700 transition"
-          >
+  whileHover={{ scale: 1.03 }}
+  whileTap={{ scale: 0.97 }}
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.25 }}
+  className="mt-8 w-full bg-emerald-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-emerald-700"
+>
             Create Employee
-          </button>
+          </motion.button>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
