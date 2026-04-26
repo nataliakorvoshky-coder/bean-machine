@@ -11,6 +11,7 @@ export default function EmployeeRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState("All");
 const [dateFilter, setDateFilter] = useState("All");
+const [typeFilter, setTypeFilter] = useState("All");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
   const [editType, setEditType] = useState<any>({});
@@ -106,48 +107,64 @@ async function updateRequest(id: string) {
 useEffect(() => {
   console.log("UPDATED REQUESTS STATE:", requests);
 }, [requests]);
+
+const gridStyle = {
+  gridTemplateColumns: "140px 220px 220px 120px 160px",
+};
   
   return (
-    <div className="max-w-[1050px] mx-auto pt-10 pb-8">
+    <div className="max-w-[1200px] mx-auto pt-10 pb-8">
 
       {/* HEADER */}
       <h1 className="text-3xl font-bold text-emerald-700 mb-6">
         My Requests
       </h1>
 
-      <div className="flex flex-wrap gap-3 mb-6">
+<div className="flex gap-4 mb-6">
 
-  {/* STATUS FILTER */}
-  {["All", "Pending", "Viewed", "In Progress", "Approved", "Denied"].map((s) => (
-    <button
-      key={s}
-      onClick={() => setStatusFilter(s)}
-      className={`px-3 py-1 rounded-md text-sm ${
-        statusFilter === s
-          ? "bg-emerald-600 text-white"
-          : "bg-white border text-emerald-700"
-      }`}
-    >
-      {s}
-    </button>
-  ))}
+  {/* STATUS */}
+  <StyledDropdown
+    placeholder="Status"
+    value={statusFilter}
+    onChange={setStatusFilter}
+    options={[
+      { id: "All", name: "All Statuses" },
+      { id: "Pending", name: "Pending" },
+      { id: "Viewed", name: "Viewed" },
+      { id: "In Progress", name: "In Progress" },
+      { id: "Approved", name: "Approved" },
+      { id: "Denied", name: "Denied" },
+    ]}
+    width="200px"
+  />
 
-  {/* DATE FILTER */}
-  {["All", "Today", "Last 7 Days", "Last 30 Days"].map((d) => (
-    <button
-      key={d}
-      onClick={() => setDateFilter(d)}
-      className={`px-3 py-1 rounded-md text-sm ${
-        dateFilter === d
-          ? "bg-blue-600 text-white"
-          : "bg-white border text-blue-600"
-      }`}
-    >
-      {d}
-    </button>
-  ))}
+  {/* TYPE */}
+  <StyledDropdown
+    placeholder="Type"
+    value={typeFilter}
+    onChange={setTypeFilter}
+    options={[
+      { id: "All", name: "All Types" },
+      { id: "LOA", name: "LOA" },
+      { id: "ROA", name: "ROA" },
+      { id: "HOURS_EXCEPTION", name: "Hours Exception" },
+    ]}
+    width="200px"
+  />
 
-
+  {/* TIME */}
+  <StyledDropdown
+    placeholder="Time"
+    value={dateFilter}
+    onChange={setDateFilter}
+    options={[
+      { id: "All", name: "All Time" },
+      { id: "Today", name: "Today" },
+      { id: "7", name: "Last 7 Days" },
+      { id: "30", name: "Last 30 Days" },
+    ]}
+    width="200px"
+  />
 
 </div>
 
@@ -179,7 +196,10 @@ useEffect(() => {
       </motion.div>
 
       {/* HEADERS */}
-      <div className="grid grid-cols-[1.2fr_2.2fr_2.2fr_1.2fr_1.6fr] gap-10 text-sm font-semibold text-emerald-700 px-6 mb-3 border-b border-emerald-100 pb-2">
+      <div
+  className="grid gap-4 text-sm font-semibold text-emerald-700 px-4 mb-3 border-b border-emerald-100 pb-2"
+  style={gridStyle}
+>
         <div>Type</div>
         <div className="text-center">Date Submitted</div>
         <div className="text-center">End Date</div>
@@ -201,7 +221,42 @@ useEffect(() => {
         }}
       >
         <AnimatePresence>
-          {requests.map((req) => {
+          {requests
+  .filter((req) => {
+
+    // STATUS
+    if (statusFilter !== "All" && req.status !== statusFilter) {
+      return false;
+    }
+
+    // TYPE
+    if (typeFilter !== "All" && req.type !== typeFilter) {
+      return false;
+    }
+
+    // DATE
+    if (dateFilter !== "All") {
+      const created = new Date(req.created_at);
+      const now = new Date();
+
+      if (dateFilter === "Today") {
+        if (created.toDateString() !== now.toDateString()) return false;
+      }
+
+      if (dateFilter === "7") {
+        const diff = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+        if (diff > 7) return false;
+      }
+
+      if (dateFilter === "30") {
+        const diff = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+        if (diff > 30) return false;
+      }
+    }
+
+    return true;
+  })
+  .map((req) => {
   console.log("REQ:", req); // ✅ ADD THIS
             const isOpen = expanded === req.id;
 
@@ -215,13 +270,16 @@ useEffect(() => {
                 }}
                 whileHover={{ scale: 1.01, y: -2 }}
                 transition={{ duration: 0.25 }}
-                className="bg-white shadow rounded-xl px-6 py-3 mb-3 cursor-pointer"
+                className="bg-white shadow rounded-xl py-3 mb-3 cursor-pointer w-full"
                 onClick={() => toggle(req.id)}
               >
                 {/* ROW */}
-                <div className="grid grid-cols-[1.2fr_2.2fr_2.2fr_1.2fr_1.6fr] gap-10 items-center">
+                <div
+  className="grid gap-4 items-center px-4 w-full"
+  style={gridStyle}
+>
                   
-                  <div className="text-emerald-700 font-medium">
+                  <div className="text-emerald-700 font-medium whitespace-nowrap flex items-center">
                     {req.type}
                   </div>
 
@@ -269,12 +327,12 @@ useEffect(() => {
                 {/* EXPANDED */}
                 <AnimatePresence>
                   {isOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-4 border-t border-emerald-200 pt-4 text-sm"
-                    >
+<motion.div
+  initial={{ opacity: 0, height: 0 }}
+  animate={{ opacity: 1, height: "auto" }}
+  exit={{ opacity: 0, height: 0 }}
+  className="mt-4 border-t border-emerald-200 pt-4 px-4 text-sm"
+>
 <div className="space-y-4">
 
   {/* REASON */}
@@ -395,7 +453,7 @@ useEffect(() => {
 {/* 🔥 UPDATE REQUEST (ONLY LOA / ROA) */}
 {(req.type === "LOA" || req.type === "ROA") && (
   <div
-    className="mt-4 border-t pt-4"
+    className="mt-4 border-t border-emerald-200 pt-4"
     onClick={(e) => e.stopPropagation()} // ✅ THIS LINE IS THE FIX
   >
 
@@ -548,6 +606,66 @@ useEffect(() => {
 </div>
   </div>
   
+)}
+
+{/* 🔥 HOURS EXCEPTION NOTES */}
+{req.type?.toLowerCase().includes("hour") && (
+  <div
+    className="mt-4 border-t border-emerald-200 pt-4"
+    onClick={(e) => e.stopPropagation()}
+  >
+
+    <div className="text-xs font-semibold text-blue-700 mb-2">
+      ADD NOTE
+    </div>
+
+    {/* ✅ MATCH LOA WRAPPER STYLE */}
+    <div className="flex flex-col gap-2">
+      <input
+        type="text"
+        placeholder="Add note..."
+        value={editData[req.id]?.note || ""}
+        className="
+          border border-emerald-300 rounded-lg px-3 py-2 text-sm
+          focus:outline-none focus:ring-2 focus:ring-emerald-500
+          focus:bg-white transition
+        "
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) =>
+          setEditData((prev: any) => ({
+            ...prev,
+            [req.id]: {
+              ...(prev[req.id] || {}),
+              note: e.target.value,
+              type: "Note",
+            },
+          }))
+        }
+      />
+
+      <div className="flex gap-2 mt-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+
+            if (!editData[req.id]?.note) return;
+
+            updateRequest(req.id);
+
+            setEditData((prev: any) => ({
+              ...prev,
+              [req.id]: {},
+            }));
+          }}
+          disabled={!editData[req.id]?.note}
+          className="bg-emerald-600 text-white text-xs px-3 py-1 rounded hover:bg-emerald-700 disabled:opacity-40"
+        >
+          Send Note
+        </button>
+      </div>
+
+    </div>
+  </div>
 )}
 
 </div>

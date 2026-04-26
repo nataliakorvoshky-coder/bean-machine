@@ -79,6 +79,11 @@ export default function SubmitHoursPage() {
       return;
     }
 
+if (hours.includes(".")) {
+  alert("Do not use decimals in hours. Use minutes instead.");
+  return;
+}
+
     const submittedHours = hours === "" ? "0" : hours;
 
     const user = await getUser();
@@ -86,6 +91,8 @@ export default function SubmitHoursPage() {
       alert("You must be logged in to submit hours.");
       return;
     }
+
+    console.log("EMPLOYEE ID:", employee);
 
     const res = await fetch("/api/hours/submit", {
       method: "POST",
@@ -105,9 +112,9 @@ export default function SubmitHoursPage() {
       setEmployee("");
       setDate("");
     } else {
-      alert("Failed to submit hours.");
     }
   }
+
 
   /* ========================= */
   /* UI                        */
@@ -172,6 +179,7 @@ export default function SubmitHoursPage() {
                 </label>
                 <input
                   type="number"
+step="1"
                   value={hours}
                   onChange={(e) => setHours(e.target.value)}
                   className="border-2 border-[#A8F4D7] rounded-md px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"

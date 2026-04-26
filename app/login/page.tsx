@@ -20,14 +20,41 @@ export default function HomePage() {
       password
     })
 
-    if(error){
-      alert(error.message)
-      return
-    }
+if (error) {
+  alert(error.message)
+  return
+}
 
-    document.cookie=`user_id=${data.user.id}; path=/`
+const userId = data.user.id
 
-    router.push("/admin")
+// 🌍 Detect timezone
+const detectedTZ = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+// 🔍 Get current employee data
+const res = await fetch(`/api/employees/${userId}`)
+const employee = await res.json()
+
+// ✅ ONLY update if different
+if (employee.timezone !== detectedTZ) {
+  await fetch(`/api/employees/${userId}/timezone`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ timezone: detectedTZ }),
+  })
+
+  console.log("🌍 Timezone updated:", detectedTZ)
+} else {
+  console.log("🌍 Timezone already correct")
+}
+
+console.log("🌍 Timezone detected:", detectedTZ)
+
+// continue login
+document.cookie = `user_id=${userId}; path=/`
+
+router.push("/admin")
   }
 
   return (

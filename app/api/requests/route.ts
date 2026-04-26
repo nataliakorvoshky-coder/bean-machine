@@ -22,22 +22,33 @@ export async function GET() {
 /* ========================= */
 /* ✅ POST (submit request)  */
 /* ========================= */
+console.log("🔥 REQUEST HIT");
+
 export async function POST(req: Request) {
   const supabase = getSupabaseServer(); // ✅ moved here
 
   try {
     const body = await req.json();
-    const { type, reason, start_date, end_date, user_id } = body;
+    const {
+  type,
+  reason,
+  start_date,
+  end_date,
+  week_start,
+  user_id,
+} = body;
 
-    if (!user_id) {
-      return NextResponse.json({ error: "Missing user" }, { status: 400 });
-    }
+const uid = user_id || body.employee_id;
+
+if (!uid) {
+  return NextResponse.json({ error: "Missing user" }, { status: 400 });
+}
 
     /* 👤 PROFILE */
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", user_id)
+      .eq("id", uid)
       .maybeSingle();
 
     if (!profile) {
@@ -58,15 +69,20 @@ export async function POST(req: Request) {
     /* 📝 INSERT */
     const { data, error } = await supabase
       .from("requests")
-      .insert({
-        type,
-        reason,
-        start_date,
-        end_date,
-        status: "Pending",
-        employee_id: employee.id,
-        employee_name: employee.name,
-      })
+.insert({
+  type,
+  reason,
+
+  // ✅ SUPPORT BOTH TYPES
+  start_date: start_date ?? null,
+  end_date: end_date ?? null,
+  week_start: week_start ?? null,
+
+  status: "Pending",
+
+  employee_id: employee.id,
+  employee_name: employee.name,
+})
       .select()
       .single();
 

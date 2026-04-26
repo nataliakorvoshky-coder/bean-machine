@@ -1,4 +1,3 @@
-// @ts-expect-error
 import "./globals.css";
 import { PresenceProvider } from "@/lib/PresenceContext"
 import { UserProvider } from "@/lib/UserContext"

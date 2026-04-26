@@ -93,29 +93,33 @@ useEffect(() => {
   /* ========================= */
 useEffect(() => {
   const cleanup = initRealtime({
-    onRequestUpdate: (payload) => {
-      if (!payload?.new) return;
+onRequestUpdate: (payload) => {
+  if (!payload?.new) return;
 
-      setRequests((prev) =>
-        prev.map((r) => {
-          if (r.id !== payload.new.id) return r;
+  setRequests((prev) =>
+    prev.map((r) => {
+      if (r.id !== payload.new.id) return r;
 
-          return {
-            ...r,
-            ...payload.new,
-            notes_history:
-              payload.new.notes_history ?? r.notes_history,
-          };
-        })
-      );
+      // 🚨 DO NOT OVERRIDE FINAL STATES
+      if (["Approved", "Denied"].includes(r.status)) {
+        return r;
+      }
 
-if (expanded === payload.new.id && !typing) {
-  // ❌ DO NOT OVERRIDE LOCAL INPUT AFTER SUBMIT
-  if (!payload.new.note) {
-    setNote("");
+      return {
+        ...r,
+        ...payload.new,
+        notes_history:
+          payload.new.notes_history ?? r.notes_history,
+      };
+    })
+  );
+
+  if (expanded === payload.new.id && !typing) {
+    if (!payload.new.note) {
+      setNote("");
+    }
   }
-}
-    },
+},
 
     onPresenceUpdate: (payload: any) => {
       setPresence((prev) => {

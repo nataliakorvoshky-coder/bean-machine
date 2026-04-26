@@ -93,7 +93,8 @@ const price = prices[item.name.trim()]
 payload.push({
   stock_id: b.stock_id,
   needed_stock: b.needed,
-  price_each: price // 🔥 THIS IS THE FIX
+  external_quantity: item.amount, // ✅ ADD THIS
+  price_each: price
 })
 
 })

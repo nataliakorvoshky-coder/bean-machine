@@ -75,10 +75,10 @@ export default function Sidebar() {
           {managerOpen && (
             <div className="flex flex-col gap-1">
               <Link href="/admin/add-employee" className={linkClass("/admin/add-employee")}>Create Employee</Link>  
-              <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
               <Link href="/request-approvals" className={linkClass("/request-approvals")}>Employee Requests</Link>
               <Link href="/employee-analytics" className={linkClass("/employee-analytics")}>Employee Analytics</Link>
-             <Link href="/stock-analysis" className={linkClass("/stock-analysis")}>Stock Analysis</Link>
+             <Link href="/stock-analytics" className={linkClass("/stock-analytics")}>Stock Analysis</Link>
+             <Link href="/stock/usage" className={linkClass("/stock/usage")}>Stock Usage</Link>
             </div>
           )}
         </div>
@@ -123,6 +123,7 @@ export default function Sidebar() {
             <div className="flex flex-col gap-1">
               <Link href="/profile" className={linkClass("/profile")}>Profile</Link>
                <Link href="/requests" className={linkClass("/requests")}>Requests</Link>
+               <Link href="/events" className={linkClass("/events")}>Calendar</Link>
               <Link href="/manager-handbook" className={linkClass("/manager-handbook")}>Manager Handbook</Link>
               <Link href="/supervisor-handbook" className={linkClass("/supervisor-handbook")}>Supervisor Handbook</Link>
               <Link href="/employee-handbook" className={linkClass("/employee-handbook")}>Employee Handbook</Link>

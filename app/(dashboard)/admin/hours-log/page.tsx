@@ -223,7 +223,7 @@ const paginated = filtered.slice(
           >
             <div className="font-medium">{entry.employee_name}</div>
             <div>{entry.hours}h {entry.minutes}m</div>
-            <div>{entry.work_date ? new Date(entry.work_date).toLocaleDateString() : "-"}</div>
+            <div>{entry.work_date || "-"}</div>
             <div>{entry.submitted_by_name}</div>
 
             <motion.button

@@ -22,6 +22,24 @@ export async function POST(req: Request) {
       );
     }
 
+    // 🔥 SAFE TIME CONVERSION (ADD THIS ABOVE INSERT)
+const parsedHours = Number(hours) || 0;
+
+const wholeHours = Math.floor(parsedHours);
+const extraMinutesFromHours = Math.round((parsedHours % 1) * 60);
+
+let finalMinutes = extraMinutesFromHours + Number(minutes);
+let finalHours = wholeHours;
+
+if (finalMinutes >= 60) {
+  finalHours += Math.floor(finalMinutes / 60);
+  finalMinutes = finalMinutes % 60;
+}
+
+const addedMinutes = (finalHours * 60) + finalMinutes;
+
+console.log("🧠 FINAL TIME:", { finalHours, finalMinutes });
+
     /* ============================== */
     /* 🧾 INSERT SHIFT                */
     /* ============================== */
@@ -30,8 +48,8 @@ export async function POST(req: Request) {
       .insert([
         {
           employee_id,
-          hours: Number(hours),
-          minutes: Number(minutes),
+hours: finalHours,
+minutes: finalMinutes,
           work_date,
           submitted_by,
           created_at: new Date().toISOString(),
@@ -46,28 +64,21 @@ export async function POST(req: Request) {
       );
     }
 
-    /* ============================== */
-    /* 🔥 ONLY USE NEW SHIFT          */
-    /* ============================== */
-    const addedMinutes = (Number(hours) * 60) + Number(minutes);
-
-    console.log("🧠 ADDED MINUTES:", addedMinutes);
 
     /* ============================== */
     /* 💰 GET EMPLOYEE + RANK         */
     /* ============================== */
     const { data: employee, error: empError } = await supabase
       .from("employees")
-      .select(`
-        id,
-        rank_id,
-        weekly_hours,
-        weekly_minutes,
-        weekly_earnings,
-        lifetime_hours,
-        lifetime_minutes,
-        lifetime_earnings
-      `)
+.select(`
+  id,
+  rank_id,
+  weekly_hours,
+  weekly_minutes,
+  weekly_earnings,
+  lifetime_hours,
+  lifetime_earnings
+`)
       .eq("id", employee_id)
       .single();
 
@@ -115,9 +126,8 @@ export async function POST(req: Request) {
     /* ============================== */
     /* 🔥 BUILD LIFETIME TOTALS       */
     /* ============================== */
-    const prevLifetimeMinutes =
-      (employee.lifetime_hours ?? 0) * 60 +
-      (employee.lifetime_minutes ?? 0);
+const prevLifetimeMinutes =
+  (employee.lifetime_hours ?? 0) * 60;
 
     const newLifetimeTotal = prevLifetimeMinutes + addedMinutes;
 
@@ -131,14 +141,13 @@ export async function POST(req: Request) {
       .from("employees")
       .update({
         worked_minutes: newWeeklyTotal,
-        paid_hours: paidHours,
+      paid_minutes: paidMinutes,
 
         weekly_hours: weeklyHours,
         weekly_minutes: weeklyMinutes,
         weekly_earnings: earnings,
 
         lifetime_hours: newLifetimeHours,
-        lifetime_minutes: newLifetimeMinutes,
         lifetime_earnings:
           (employee.lifetime_earnings ?? 0) + earnings,
       })

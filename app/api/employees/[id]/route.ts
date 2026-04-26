@@ -38,7 +38,9 @@ export async function GET(
   weekly_earnings,
 
   lifetime_hours,
-  lifetime_earnings
+  lifetime_earnings,
+
+  paid_minutes
 `)
       .eq("id", id.trim())
       .maybeSingle();
@@ -152,6 +154,8 @@ const lifetimeEarnings = lifetimeHours * wage;
       lifetime_hours: lifetimeHours,
       lifetime_minutes: lifetimeMinutes,
       lifetime_earnings: lifetimeEarnings,
+
+      paid_minutes: employee.paid_minutes ?? 0,
 
       strike_history: strikes ?? [],
     });

@@ -39,15 +39,6 @@ const [loaded, setLoaded] = useState(false);
 
   loadEmployee();
 
-  // 🌍 Auto-detect timezone
-const detectedTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-fetch(`/api/employees/${id}/timezone`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ timezone: detectedTZ }),
-});
-
 const empChannel = supabase
   .channel(`employee-${id}`)
   .on(
@@ -541,7 +532,7 @@ return (
 },
 {
   label: "Lifetime Hours",
-  value: `${employee?.lifetime_hours ?? 0}h ${employee?.lifetime_minutes ?? 0}m`,
+  value: `${employee?.lifetime_hours ?? 0}h`,
 },
             { label: "Weekly Earnings", value: `$${employee?.weekly_earnings ?? 0}` },
             { label: "Lifetime Earnings", value: `$${employee?.lifetime_earnings ?? 0}` },

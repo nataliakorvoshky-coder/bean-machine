@@ -43,6 +43,7 @@ export async function GET(req: Request) {
           name,
           status,
           weekly_hours,
+          weekly_minutes,
           weekly_earnings,
           lifetime_hours,
           lifetime_earnings,
@@ -60,9 +61,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (!data) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 })
-    }
+if (!data) {
+  return NextResponse.json({
+    id: user.id,
+    username: null,
+    role_id: null,
+    employee: null
+  })
+}
 
     const emp = Array.isArray(data.employees)
       ? data.employees[0] ?? null
@@ -95,6 +101,7 @@ export async function GET(req: Request) {
 
             // FROM EMPLOYEES
             weekly_hours: weeklyHours,
+            weekly_minutes: emp.weekly_minutes ?? 0,
             weekly_earnings: emp.weekly_earnings ?? 0,
             lifetime_hours: emp.lifetime_hours ?? 0,
             lifetime_earnings: emp.lifetime_earnings ?? 0,

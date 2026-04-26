@@ -84,6 +84,23 @@ const isFinal =
 /* ========================= */
 if (updates.status) {
   finalUpdates.status = updates.status;
+
+  // ✅ FORCE FINAL STATE DATA
+  if (["Approved", "Denied"].includes(updates.status)) {
+    finalUpdates.answered_by = manager;
+    finalUpdates.answered_at = new Date().toISOString();
+
+    // 🔓 clear claim when finished
+    finalUpdates.claimed_by = null;
+    finalUpdates.claimed_at = null;
+
+    // 👁️ mark as viewed
+    finalUpdates.viewed = true;
+
+    // 🔥🔥🔥 THIS IS THE FIX 🔥🔥🔥
+    finalUpdates.pending_updates = [];
+    finalUpdates.pending_update = null;
+  }
 }
 
 /* ========================= */
