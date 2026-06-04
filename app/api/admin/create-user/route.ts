@@ -8,7 +8,7 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SECRET_KEY!
     )
 
-    const { email, password, userId, employee_id, role_id } = await req.json()
+   const { email, password, userId, employee_id } = await req.json()
 
     // ✅ VALIDATION
     if (!email || !password || !employee_id) {
@@ -46,32 +46,45 @@ export async function POST(req: Request) {
       )
     }
 
-    // ✅ GET DEFAULT ROLE
-    let finalRoleId = role_id
+    // ✅ GET EMPLOYEE RANK LEVEL
+const { data: employee } = await supabaseAdmin
+  .from("employees")
+  .select("rank:rank_id (rank_level)")
+  .eq("id", employee_id)
+  .single()
 
-    if (!finalRoleId) {
-      const { data: defaultRole } = await supabaseAdmin
-        .from("roles")
-        .select("id")
-        .eq("name", "employee")
-        .maybeSingle()
+if (!employee) {
+  return NextResponse.json(
+    { error: "Employee not found" },
+    { status: 400 }
+  )
+}
 
-      finalRoleId = defaultRole?.id
-    }
+// ✅ MAP RANK → ROLE
+let roleName = "employee"
 
-    // 🔥 VALIDATE ROLE
-    const { data: roleCheck } = await supabaseAdmin
-      .from("roles")
-      .select("id")
-      .eq("id", finalRoleId)
-      .maybeSingle()
+if (employee.rank?.[0]?.rank_level === 999) {
+  roleName = "admin"
+} else if (employee.rank?.[0]?.rank_level >= 8) {
+  roleName = "manager"
+} else if (employee.rank?.[0]?.rank_level>= 7) {
+  roleName = "supervisor"
+}
 
-    if (!roleCheck) {
-      return NextResponse.json(
-        { error: "Invalid role selected" },
-        { status: 400 }
-      )
-    }
+// ✅ GET ROLE ID
+const { data: role } = await supabaseAdmin
+  .from("roles")
+  .select("id")
+  .eq("name", roleName)
+  .single()
+
+if (!role) {
+  return NextResponse.json(
+    { error: "Role not found" },
+    { status: 500 }
+  )
+}
+
 
     // ✅ CREATE AUTH USER
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
@@ -93,12 +106,12 @@ export async function POST(req: Request) {
     // ✅ CREATE PROFILE
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .insert({
-        id: newUser.id,
-        username,
-        employee_id,
-        role_id: finalRoleId
-      })
+.insert({
+  id: newUser.id,
+  username,
+  employee_id,
+  role_id: role.id
+})
 
     if (profileError) {
       return NextResponse.json(

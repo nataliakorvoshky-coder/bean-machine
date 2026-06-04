@@ -25,22 +25,29 @@ export default function InventoryPage() {
 
     try {
 
-      const res = await fetch("/api/inventory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "getStockItems"
-        })
-      })
+const res = await fetch(
+  "/api/stock/get",
+  {
+    cache: "no-store"
+  }
+)
 
-      const data = await res.json()
+const data = await res.json()
 
-      if (Array.isArray(data)) {
-        setItems(data)
-      } else {
-        console.error("Inventory API returned invalid data:", data)
-        setItems([])
-      }
+if (Array.isArray(data.items)) {
+
+  setItems([...(data.items || [])])
+
+} else {
+
+  console.error(
+    "Inventory API returned invalid data:",
+    data
+  )
+
+  setItems([])
+
+}
 
     } catch (err) {
 
@@ -55,18 +62,21 @@ useEffect(() => {
 
   load()
 
-  // 🔥 LISTEN FOR RESTOCK UPDATES
-  const handle = (e: StorageEvent) => {
-    if (e.key === "inventory_refresh") {
-      load()
-    }
-  }
+const handle = () => {
+  load()
+}
 
-  window.addEventListener("storage", handle)
+window.addEventListener(
+  "inventory-refresh",
+  handle
+)
 
-  return () => {
-    window.removeEventListener("storage", handle)
-  }
+return () => {
+  window.removeEventListener(
+    "inventory-refresh",
+    handle
+  )
+}
 
 }, [])
 
@@ -84,11 +94,48 @@ useEffect(() => {
 
   function renderSection(section: string) {
 
-    const list = Array.isArray(items)
-      ? items.filter(
-          i => i.section?.trim().toLowerCase() === section.toLowerCase()
-        )
-      : []
+const list = Array.isArray(items)
+  ? items.filter(
+      i =>
+        i.section?.trim().toLowerCase() ===
+        section.toLowerCase()
+    )
+  : []
+
+/*
+===================================
+GROUP DUPLICATE ITEMS
+===================================
+*/
+
+const grouped = Object.values(
+
+  list.reduce((acc, item) => {
+
+    const key =
+      item.name
+        ?.trim()
+        .toLowerCase()
+
+    if (!acc[key]) {
+
+      acc[key] = {
+        ...item
+      }
+
+    } else {
+
+      acc[key].current_amount +=
+        item.current_amount
+
+      acc[key].goal_amount +=
+        item.goal_amount
+    }
+
+    return acc
+
+  }, {} as Record<string, StockItem>)
+)
 
     return (
 
@@ -105,7 +152,7 @@ useEffect(() => {
           <div className="text-right">Status</div>
         </div>
 
-        {list.map(item => {
+        {grouped.map(item => {
 
           const percent =
             item.goal_amount > 0
@@ -138,9 +185,34 @@ useEffect(() => {
 
               </div>
 
-              <div className="text-right text-emerald-700 text-sm">
-                {item.current_amount.toLocaleString()}
-              </div>
+<div className="text-right">
+
+  <div className="text-emerald-700 text-sm">
+    {item.current_amount.toLocaleString()}
+  </div>
+
+  {item.current_amount >
+    item.goal_amount && (
+
+    <div
+      className="
+        text-blue-600
+        text-[11px]
+        font-semibold
+      "
+    >
+      +
+      {(
+        item.current_amount -
+        item.goal_amount
+      ).toLocaleString()}
+      {" "}
+      over
+    </div>
+
+  )}
+
+</div>
 
               <div className="text-right text-emerald-700 text-sm">
                 {item.goal_amount.toLocaleString()}

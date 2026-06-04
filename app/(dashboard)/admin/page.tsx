@@ -13,16 +13,13 @@ export default function AdminPage(){
   const [email,setEmail] = useState("")
   const [password,setPassword] = useState("")
   const [employeeId,setEmployeeId] = useState("")
-  const [roleId,setRoleId] = useState("")
 
   const [employees,setEmployees] = useState<any[]>([])
-  const [roles,setRoles] = useState<any[]>([])
 
   const [loading,setLoading] = useState(false)
 
   useEffect(() => {
     loadEmployees()
-    loadRoles()
   }, [])
 
   async function loadEmployees(){
@@ -42,26 +39,6 @@ export default function AdminPage(){
     }
   }
 
-  async function loadRoles(){
-    try {
-      const res = await fetch("/api/roles")
-
-      if (!res.ok) throw new Error("Failed to fetch roles")
-
-      const data = await res.json()
-
-      setRoles(
-        Array.isArray(data)
-          ? data
-          : data?.roles || []
-      )
-
-    } catch (err) {
-      console.error("Failed to load roles:", err)
-      setRoles([])
-    }
-  }
-
   async function createUser(){
 
     if(loading) return
@@ -76,10 +53,6 @@ export default function AdminPage(){
       return
     }
 
-    if(!roleId){
-      alert("Please select a role")
-      return
-    }
 
     setLoading(true)
 
@@ -102,7 +75,6 @@ export default function AdminPage(){
           password,
           userId: userData.user.id,
           employee_id: employeeId,
-          role_id: roleId
         })
       })
 
@@ -117,7 +89,6 @@ export default function AdminPage(){
       setEmail("")
       setPassword("")
       setEmployeeId("")
-      setRoleId("")
 
       await load()
 
@@ -210,21 +181,6 @@ export default function AdminPage(){
                   options={employees.map((e:any)=>({
                     id: e.id,
                     name: e.name
-                  }))}
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <label className="text-xs text-emerald-700 font-semibold mb-1">
-                  Role
-                </label>
-                <StyledDropdown
-                  value={roleId}
-                  onChange={setRoleId}
-                  placeholder="Select Role"
-                  options={roles.map((r:any)=>({
-                    id: r.id,
-                    name: r.name
                   }))}
                 />
               </div>

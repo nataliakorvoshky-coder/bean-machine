@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db"
 
 export async function POST(
   req: Request,
@@ -34,12 +35,17 @@ export async function POST(
     /* ============================== */
     /* 🔥 REHIRE (ONLY STATUS)        */
     /* ============================== */
-    const { error: updateError } = await supabase
-      .from("employees")
-      .update({
-        status: "Active", // ✅ ONLY THIS
-      })
-      .eq("id", id);
+const { error: updateError } = await db.update(
+  "employees",
+  {
+    status: "Active",
+  },
+  { id },
+  {
+    action: `Rehired employee ${id}`,
+    type: "employee"
+  }
+)
 
     if (updateError) {
       return NextResponse.json(

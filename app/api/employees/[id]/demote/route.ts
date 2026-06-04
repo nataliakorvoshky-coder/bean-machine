@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db"
 
 // Demote employee logic
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -53,13 +54,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     // Update employee's rank to previous rank
-    const { error: updateError } = await supabase
-      .from("employees")
-      .update({
-        rank_id: prevRank.id,
-        last_promotion_date: new Date().toISOString(),
-      })
-      .eq("id", id);
+const { error: updateError } = await db.update(
+  "employees",
+  {
+    rank_id: prevRank.id,
+    last_promotion_date: new Date().toISOString(),
+  },
+  { id },
+  {
+    action: `Demoted employee ${id} from ${rank?.rank_name} to ${prevRank.rank_name}`,
+    type: "employee"
+  }
+)
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });

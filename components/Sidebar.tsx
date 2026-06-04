@@ -9,11 +9,11 @@ import Username from "@/components/Username";
 export default function Sidebar() {
   const pathname = usePathname();
 
-  const [adminOpen, setAdminOpen] = useState(true);
-  const [stockOpen, setStockOpen] = useState(true);
-  const [employeeOpen, setEmployeeOpen] = useState(true);
-  const [toolsOpen, setToolsOpen] = useState(true);
-  const [managerOpen, setManagerOpen] = useState(true); // Manage the opening/closing of Manager Panel
+const [adminOpen, setAdminOpen] = useState(false);
+const [stockOpen, setStockOpen] = useState(false);
+const [employeeOpen, setEmployeeOpen] = useState(false);
+const [toolsOpen, setToolsOpen] = useState(false);
+const [managerOpen, setManagerOpen] = useState(false);
 
   async function logout() {
     await supabase.auth.signOut();
@@ -32,7 +32,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="w-[260px] bg-emerald-800 min-h-screen flex flex-col justify-between p-6">
+   <div className="w-[245px] min-w-[245px] bg-emerald-800 min-h-screen flex flex-col justify-between p-6 overflow-y-auto">
       <div>
         {/* LOGO */}
         <div className="flex items-center gap-3 mb-10">
@@ -75,7 +75,7 @@ export default function Sidebar() {
           {managerOpen && (
             <div className="flex flex-col gap-1">
               <Link href="/admin/add-employee" className={linkClass("/admin/add-employee")}>Create Employee</Link>  
-              <Link href="/request-approvals" className={linkClass("/request-approvals")}>Employee Requests</Link>
+              <Link href="/manager/requests" className={linkClass("/manager/requests")}>Employee Requests</Link>
               <Link href="/employee-analytics" className={linkClass("/employee-analytics")}>Employee Analytics</Link>
              <Link href="/stock-analytics" className={linkClass("/stock-analytics")}>Stock Analysis</Link>
              <Link href="/stock/usage" className={linkClass("/stock/usage")}>Stock Usage</Link>
@@ -122,7 +122,7 @@ export default function Sidebar() {
           {toolsOpen && (
             <div className="flex flex-col gap-1">
               <Link href="/profile" className={linkClass("/profile")}>Profile</Link>
-               <Link href="/requests" className={linkClass("/requests")}>Requests</Link>
+               <Link href="/employee/requests" className={linkClass("/employee/requests")}>Requests</Link>
                <Link href="/events" className={linkClass("/events")}>Calendar</Link>
               <Link href="/manager-handbook" className={linkClass("/manager-handbook")}>Manager Handbook</Link>
               <Link href="/supervisor-handbook" className={linkClass("/supervisor-handbook")}>Supervisor Handbook</Link>

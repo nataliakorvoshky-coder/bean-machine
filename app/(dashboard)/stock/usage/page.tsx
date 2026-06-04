@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase"
 
 const SECTIONS = [
   "Oven Fridge",
@@ -20,25 +21,71 @@ export default function StockUsagePage() {
   const [items, setItems] = useState<StockItem[]>([]);
   const [newStock, setNewStock] = useState<{ [key: string]: number | "" }>({});
   const [loading, setLoading] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState("")
+const [currentEmployeeName, setCurrentEmployeeName] = useState("")
 
   const HIDDEN_ITEMS = ["Batter", "Espresso", "Milk Foam"];
 
-  useEffect(() => {
-    loadItems();
-  }, []);
+useEffect(() => {
+  loadItems();
+  loadCurrentUser();
+}, []);
 
-  async function loadItems() {
-const res = await fetch("/api/inventory", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ action: "getAnalytics" }),
-});
-const data = await res.json();
+async function loadCurrentUser(){
 
-setItems(data.items || []);
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+
+  if(!user) return
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(`
+      username,
+      employee_id,
+      employees(name)
+    `)
+    .eq("id", user.id)
+    .maybeSingle()
+
+  if(profile?.username){
+    setCurrentUsername(profile.username)
   }
+
+  const employeeName =
+    (profile as any)?.employees?.name || ""
+
+  setCurrentEmployeeName(employeeName)
+}
+
+async function loadItems() {
+
+  try {
+
+    const res = await fetch(
+      "/api/usage/get",
+      {
+        cache: "no-store"
+      }
+    )
+
+    const data =
+      await res.json()
+
+    setItems(
+      Array.isArray(data?.items)
+        ? data.items
+        : []
+    )
+
+  } catch (err) {
+
+    console.error(err)
+
+    setItems([])
+  }
+}
 
 function updateStock(id: string, value: string) {
   setNewStock((prev) => ({
@@ -53,6 +100,7 @@ function updateStock(id: string, value: string) {
     try {
       const calculatedUsage: Record<string, number> = {};
       const cleanedNewStock: Record<string, number> = {};
+      const usageNames: Record<string, string> = {};
 
 items.forEach((item) => {
   const rawVal = newStock[item.id];
@@ -71,9 +119,12 @@ items.forEach((item) => {
 
   const used = currentVal - newVal;
 
-  if (used > 0) {
-    calculatedUsage[item.id] = used;
-  }
+if (used > 0) {
+
+  calculatedUsage[item.id] = used;
+
+  usageNames[item.id] = item.name;
+}
 
   // ✅ ALWAYS update stock if changed
   cleanedNewStock[item.id] = newVal;
@@ -85,13 +136,14 @@ items.forEach((item) => {
         return;
       }
 
-      const res = await fetch("/api/inventory", {
+      const res = await fetch(
+  "/api/usage/submit",
+  {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          action: "submitUsage",
           usage: calculatedUsage,
           newStock: cleanedNewStock,
         }),
@@ -101,6 +153,43 @@ items.forEach((item) => {
 
       console.log("USAGE SUBMITTED:", data);
 
+const usageDetails = Object.entries(
+  calculatedUsage
+).map(([stockId, amount]) => ({
+
+  name:
+    usageNames[stockId],
+
+  amount
+}))
+
+await fetch("/api/activity", {
+
+  method: "POST",
+
+  headers: {
+    "Content-Type":
+      "application/json",
+  },
+
+  body: JSON.stringify({
+
+    action:
+      `Used ${usageDetails.length} stock items`,
+
+    type:
+      "inventory_usage",
+
+    username:
+      currentUsername,
+
+    employeeName:
+      currentEmployeeName,
+
+    details:
+      usageDetails
+  }),
+})
     
 
       // 🔄 refresh data

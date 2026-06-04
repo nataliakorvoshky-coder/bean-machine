@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 
+
 type Option = {
   id: string
   name: string
@@ -69,13 +70,18 @@ export default function StyledDropdown({
 
       {/* MENU */}
       {open && (
-        <div
-          className="
-          absolute z-50 w-full mt-1
-          bg-white border border-emerald-200 rounded-lg
-          shadow-lg max-h-60 overflow-y-auto
-          "
-        >
+<div
+  className="
+    absolute z-50 w-full mt-1
+    bg-white border border-emerald-200 rounded-lg
+    shadow-lg max-h-60 overflow-y-auto
+    [&::-webkit-scrollbar]:hidden
+  "
+  style={{
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+  }}
+>
           {options.map(opt => (
             <div
               key={opt.id}

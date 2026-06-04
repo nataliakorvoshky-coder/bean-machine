@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db"
 
 export async function DELETE(req: Request) {
   try {
@@ -10,10 +11,14 @@ export async function DELETE(req: Request) {
     }
 
     // Delete the specific entry from the work_hours table
-    const { error: deleteError } = await supabase
-      .from("work_hours")
-      .delete()
-      .eq("id", id);
+const { error: deleteError } = await db.delete(
+  "work_hours",
+  { id },
+  {
+    action: `Removed ${hours}h ${minutes}m for employee ${employee_id}`,
+    type: "hours"
+  }
+)
 
     if (deleteError) {
       console.error("Error deleting hours log entry:", deleteError);

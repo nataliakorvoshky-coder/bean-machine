@@ -26,6 +26,7 @@ export async function GET(req: Request) {
         weekly_hours,
         weekly_minutes,
         weekly_earnings,
+        goal_exempt,
         last_promotion_date,
         employee_ranks:rank_id (
           rank_name,
@@ -87,9 +88,13 @@ export async function GET(req: Request) {
 
         hours: workedHours,
         minutes: workedMinutes,
-        earnings,
+earnings,
 
-        goal_met: workedHours >= requiredHours,
+goal_exempt:
+  emp.goal_exempt ?? false,
+
+goal_met:
+  workedHours >= requiredHours,
 
         last_promotion_date: emp.last_promotion_date ?? "N/A",
 

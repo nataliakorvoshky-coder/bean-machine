@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db"
 
 export async function POST(
   req: Request,
@@ -42,12 +43,17 @@ console.log("📦 BODY:", body);
     /* ============================== */
     /* 🔥 UPDATE EMPLOYEE             */
     /* ============================== */
-    const { error: updateError } = await supabase
-      .from("employees")
-      .update({
-        status: "Terminated",
-      })
-      .eq("id", id);
+const { error: updateError } = await db.update(
+  "employees",
+  {
+    status: "Terminated",
+  },
+  { id },
+  {
+    action: `Terminated employee ${id}`,
+    type: "employee"
+  }
+)
 
     if (updateError) {
       console.error("Update error:", updateError);
@@ -62,21 +68,18 @@ console.log("📦 BODY:", body);
     /* ============================== */
     console.log("📦 inserting termination history...");
 
-const { data: insertData, error: insertError } = await supabase
-  .from("termination_history")
-.insert([
+const { error: insertError } = await db.insert(
+  "termination_history",
   {
     employee_id: id,
     termination_date,
-    rehire_status, // ✅ CORRECT PLACE
+    rehire_status,
     reason,
     rank_at_termination: employee.rank_id,
     created_at: new Date().toISOString(),
-  },
-])
-  .select();
-
-    console.log("INSERT DATA:", insertData);
+  }
+)
+   
     console.log("INSERT ERROR:", insertError);
 
     if (insertError) {
@@ -92,7 +95,12 @@ const { data: insertData, error: insertError } = await supabase
     return NextResponse.json({
       success: true,
       message: "Employee terminated + history saved",
-      termination: insertData,
+      termination: {
+  employee_id: id,
+  termination_date,
+  rehire_status,
+  reason
+}
     });
 
   } catch (err) {

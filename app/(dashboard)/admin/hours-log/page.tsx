@@ -19,6 +19,13 @@ export default function HoursLog() {
   const [page, setPage] = useState(0);
 const PAGE_SIZE = 10;
 
+function clearFilters() {
+  setFilterEmployee("");
+  setFilterWorkDate("");
+  setFilterSubmissionDate("");
+  setFilterHours("");
+}
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -38,23 +45,33 @@ const PAGE_SIZE = 10;
 
       const { data: empData } = await supabase
         .from("employees")
-        .select("id, name");
+        .select("id, name")
+  .in("status", ["Active", "LOA", "ROA"]);
 
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, employee_id");
+const { data: profiles } = await supabase
+  .from("profiles")
+  .select("id, employee_id, username");
 
       const empMap: any = {};
       empData?.forEach((e) => (empMap[e.id] = e.name));
 
-      const profileToEmployee: any = {};
-      profiles?.forEach((p) => (profileToEmployee[p.id] = p.employee_id));
+const profileMap: any = {};
+
+profiles?.forEach((p) => {
+  profileMap[p.id] = {
+    employee_id: p.employee_id,
+    username: p.username,
+  };
+});
 
       const formatted = (hours || []).map((entry) => ({
         ...entry,
         employee_name: empMap[entry.employee_id] || "Unknown",
-        submitted_by_name:
-          empMap[profileToEmployee[entry.submitted_by]] || "Unknown",
+submitted_by_name:
+  empMap[profileMap[entry.submitted_by]?.employee_id] || "Unknown",
+
+submitted_by_username:
+  profileMap[entry.submitted_by]?.username || "Unknown",
       }));
 
       setHoursData(formatted);
@@ -65,11 +82,43 @@ const PAGE_SIZE = 10;
     }
   }
 
-  async function handleDelete(id: string, employee_id: string, hours: number, minutes: number) {
-    await supabase.from("work_hours").delete().eq("id", id);
-    setHoursData((prev) => prev.filter((e) => e.id !== id));
-    await updateEmployeeData(employee_id, hours, minutes);
-  }
+async function handleDelete(
+  id: string,
+  employee_id: string,
+  hours: number,
+  minutes: number,
+  employee_name: string,
+  submitted_by_name: string,
+submitted_by_username: string,
+) {
+
+  // delete row
+  await supabase
+    .from("work_hours")
+    .delete()
+    .eq("id", id)
+
+  // remove locally
+  setHoursData((prev) => prev.filter((e) => e.id !== id))
+
+  // update employee totals
+  await updateEmployeeData(employee_id, hours, minutes)
+
+  // 🔥 LOG ACTIVITY
+  await fetch("/api/activity", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action: `Removed ${hours}h ${minutes}m for ${employee_name}`,
+      type: "hours_removed",
+      userId: null,
+      employeeName: employee_name,
+      username: submitted_by_username,
+    }),
+  })
+}
 
   async function updateEmployeeData(employee_id: string, hours: number, minutes: number) {
     const { data: emp } = await supabase
@@ -155,38 +204,99 @@ const paginated = filtered.slice(
           transition={{ delay: 0.1 }}
         >
 
-          <div className="w-[220px] flex flex-col">
-            <label className="text-xs text-emerald-700 font-semibold mb-1">Employee</label>
-            <StyledDropdown
-              value={filterEmployee}
-              onChange={setFilterEmployee}
-              placeholder="Select employee"
-              options={employees.map(e => ({ id: e.id, name: e.name }))}
-            />
-          </div>
+<div className="w-[220px] flex flex-col relative">
+  <label className="text-xs text-emerald-700 font-semibold mb-1">Employee</label>
 
-          <div className="w-[220px] flex flex-col">
-            <label className="text-xs text-emerald-700 font-semibold mb-1">Work Date</label>
-            <StyledDatePicker value={filterWorkDate} onChange={setFilterWorkDate} />
-          </div>
+  {filterEmployee && (
+    <button
+      onClick={() => setFilterEmployee("")}
+className="
+  absolute top-[38px] right-16
+  text-emerald-500 hover:text-emerald-700
+  text-sm leading-none
+  z-50
+"
+    >
+      ✕
+    </button>
+  )}
 
-          <div className="w-[220px] flex flex-col">
-            <label className="text-xs text-emerald-700 font-semibold mb-1">Submission Date</label>
-            <StyledDatePicker value={filterSubmissionDate} onChange={setFilterSubmissionDate} />
-          </div>
+  <StyledDropdown
+    value={filterEmployee}
+    onChange={setFilterEmployee}
+    placeholder="Select employee"
+    options={employees.map(e => ({ id: e.id, name: e.name }))}
+  />
+</div>
 
-          <div className="w-[200px] flex flex-col">
-            <label className="text-xs text-emerald-700 font-semibold mb-1">Sort Time</label>
-            <StyledDropdown
-              value={filterHours}
-              onChange={setFilterHours}
-              placeholder="Sort"
-              options={[
-                { id: "asc", name: "Lowest Time" },
-                { id: "desc", name: "Highest Time" },
-              ]}
-            />
-          </div>
+<div className="w-[220px] flex flex-col relative">
+  <label className="text-xs text-emerald-700 font-semibold mb-1">Work Date</label>
+
+  {filterWorkDate && (
+    <button
+      onClick={() => setFilterWorkDate("")}
+className="
+  absolute top-[38px] right-6
+  text-emerald-500 hover:text-emerald-700
+  text-sm leading-none
+  z-50
+"
+    >
+      ✕
+    </button>
+  )}
+
+  <StyledDatePicker value={filterWorkDate} onChange={setFilterWorkDate} />
+</div>
+
+<div className="w-[220px] flex flex-col relative">
+  <label className="text-xs text-emerald-700 font-semibold mb-1">Submission Date</label>
+
+  {filterSubmissionDate && (
+    <button
+      onClick={() => setFilterSubmissionDate("")}
+className="
+  absolute top-[38px] right-6
+  text-emerald-500 hover:text-emerald-700
+  text-sm leading-none
+  z-50
+"
+    >
+      ✕
+    </button>
+  )}
+
+  <StyledDatePicker value={filterSubmissionDate} onChange={setFilterSubmissionDate} />
+</div>
+
+<div className="w-[200px] flex flex-col relative">
+  <label className="text-xs text-emerald-700 font-semibold mb-1">Sort Time</label>
+
+  {filterHours && (
+    <button
+      onClick={() => setFilterHours("")}
+className="
+  absolute top-[38px] right-10
+  text-emerald-500 hover:text-emerald-700
+  text-sm leading-none
+  z-50
+"
+    >
+      ✕
+    </button>
+  )}
+
+  <StyledDropdown
+    value={filterHours}
+    onChange={setFilterHours}
+    placeholder="Sort"
+    options={[
+      { id: "asc", name: "Lowest Time" },
+      { id: "desc", name: "Highest Time" },
+    ]}
+  />
+</div>
+
 
         </motion.div>
 
@@ -230,9 +340,17 @@ const paginated = filtered.slice(
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-red-500 text-white px-3 py-1 rounded-md"
-              onClick={() =>
-                handleDelete(entry.id, entry.employee_id, entry.hours, entry.minutes)
-              }
+onClick={() =>
+  handleDelete(
+    entry.id,
+    entry.employee_id,
+    entry.hours,
+    entry.minutes,
+    entry.employee_name,
+    entry.submitted_by_name,
+    entry.submitted_by_username,
+  )
+}
             >
               Delete
             </motion.button>

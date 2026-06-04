@@ -6,6 +6,30 @@ module.exports = {
   ],
   theme: {
     extend: {
+
+      keyframes: {
+
+  softPulse: {
+
+    '0%, 100%': {
+
+      boxShadow:
+        '0 0 0 rgba(16,185,129,0)'
+    },
+
+    '50%': {
+
+      boxShadow:
+        '0 0 18px rgba(16,185,129,0.12)'
+    },
+  },
+},
+
+animation: {
+
+  'soft-pulse':
+    'softPulse 2.5s ease-in-out infinite',
+},
       colors: {
         platinum: "#E5E4E2", // Bean - Platinum
         sapphire: "#0F52BA", // Coffee - Sapphire

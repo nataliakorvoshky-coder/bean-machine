@@ -13,6 +13,7 @@ const API = "/api/employees";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("");
 
@@ -25,9 +26,31 @@ const PAGE_SIZE = 10;
   /* ============================== */
   /* ✅ INITIAL LOAD                */
   /* ============================== */
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
+useEffect(() => {
+  fetchEmployees();
+  fetchAnalytics();
+}, []);
+
+async function fetchAnalytics() {
+
+  try {
+
+    const res = await fetch(
+      "/api/employee-analytics",
+      { cache: "no-store" }
+    );
+
+    const data = await res.json();
+
+    setAnalytics(data);
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+
+}
 
   useEffect(() => {
   setPage(0);
@@ -147,14 +170,183 @@ const totalMinutes = employees.reduce((acc, e) => {
     }
   }
 
-  function rowBorder(status: string, isAdmin: boolean) {
-    if (isAdmin) {
-      return "border-none shadow-[0px_0px_4px_2px_rgba(138,43,226,0.6)] hover:shadow-[0px_0px_8px_3px_rgba(138,43,226,0.8)]";
+function rowBorder(emp: any) {
+
+  const badges = employeeBadges(emp);
+
+  // 🔥 ADMIN
+if (emp.rank === "Coffee Panda") {
+
+  return `
+    border border-violet-300
+    relative overflow-hidden
+    admin-galaxy
+  `;
+
+}
+
+  // 🔥 NO BADGES
+  if (badges.length === 0) {
+
+    if (emp.status === "Active") {
+      return "border border-emerald-400";
     }
-    if (status === "Active") return "border border-emerald-400";
-    if (status === "ROA" || status === "LOA") return "border border-yellow-400";
+
+    if (
+      emp.status === "ROA" ||
+      emp.status === "LOA"
+    ) {
+      return "border border-yellow-400";
+    }
+
     return "border border-gray-200";
+
   }
+
+  // 🔥 SINGLE BADGE
+  if (badges.length === 1) {
+
+    const badge = badges[0].label;
+
+    if (badge.includes("Lifetime")) {
+      return `
+        border border-yellow-300
+        shadow-[0_0_10px_rgba(250,204,21,0.45)]
+      `;
+    }
+
+    if (badge.includes("Weekly")) {
+      return `
+        border border-emerald-400
+        shadow-[0_0_10px_rgba(16,185,129,0.45)]
+      `;
+    }
+
+    if (badge.includes("Monthly")) {
+      return `
+        border border-cyan-400
+        shadow-[0_0_10px_rgba(6,182,212,0.45)]
+      `;
+    }
+
+    if (badge.includes("Yearly")) {
+      return `
+        border border-fuchsia-400
+        shadow-[0_0_10px_rgba(217,70,239,0.45)]
+      `;
+    }
+
+  }
+
+  // 🔥 MULTI BADGE
+  return `
+    border border-transparent
+    animate-rainbowBorder
+  `;
+
+}
+
+function employeeBadges(emp: any) {
+
+  if (!analytics) return [];
+
+  const badges = [];
+
+  // 🔥 SAFE NAMES
+  const weeklyName =
+    analytics.weekly?.[0]?.employee_name ||
+    analytics.weekly?.[0]?.name;
+
+  const monthlyName =
+    analytics.monthly?.[0]?.employee_name ||
+    analytics.monthly?.[0]?.name;
+
+  const yearlyName =
+    analytics.yearly?.[0]?.employee_name ||
+    analytics.yearly?.[0]?.name;
+
+  const lifetimeName =
+    analytics.topEmployees?.[0]?.name ||
+    analytics.topEmployees?.[0]?.employee_name;
+
+  // 🔥 CHECKS
+  const isWeekly =
+    weeklyName === emp.name;
+
+  const isMonthly =
+    monthlyName === emp.name;
+
+  const isYearly =
+    yearlyName === emp.name;
+
+  const isLifetime =
+    lifetimeName === emp.name;
+
+  // 🔥 LIFETIME
+  if (isLifetime) {
+    badges.push({
+      label: "✨ Lifetime",
+      className:
+        "bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-400 text-amber-900 border border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.5)]"
+    });
+  }
+
+  // 🔥 WEEKLY
+  if (isWeekly) {
+    badges.push({
+      label: "⚡ Weekly",
+      className:
+        "bg-gradient-to-r from-emerald-300 to-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.45)]"
+    });
+  }
+
+  // 🔥 MONTHLY
+  if (isMonthly) {
+    badges.push({
+      label: "🌊 Monthly",
+      className:
+        "bg-gradient-to-r from-sky-300 to-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.45)]"
+    });
+  }
+
+  // 🔥 YEARLY
+  if (isYearly) {
+    badges.push({
+      label: "👑 Yearly",
+      className:
+        "bg-gradient-to-r from-violet-300 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(217,70,239,0.45)]"
+    });
+  }
+
+  return badges;
+
+}
+
+  async function handleWeeklyReset() {
+  const confirmReset = confirm("Are you sure you want to reset ALL weekly stats?");
+
+  if (!confirmReset) return;
+
+  try {
+    const res = await fetch("/api/cron/weekly-reset?force=true");
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Reset failed");
+      return;
+    }
+
+    alert(`✅ Reset ${data.resetCount || 0} employees`);
+
+    // 🔥 refresh UI
+    fetchEmployees();
+
+  } catch (err) {
+    console.error("Reset error:", err);
+    alert("Server error during reset");
+  }
+}
 
 
   
@@ -164,16 +356,29 @@ const totalMinutes = employees.reduce((acc, e) => {
 return (
   <div className="w-full px-10 py-8">
     <div className="flex justify-between items-center mb-8">
-      <h1 className="text-4xl font-bold text-emerald-700">Employees</h1>
 
-      <div className="bg-white shadow rounded-xl px-5 py-3 w-[200px] text-right">
-        <div className="text-xs text-gray-500">Total Employee Hours</div>
-        <div className="text-lg font-semibold text-emerald-700">
-          {totalHours}h {remainingMinutes}m
-        </div>
+  <h1 className="text-4xl font-bold text-emerald-700">Employees</h1>
+
+  <div className="flex items-center gap-3">
+
+    {/* 🔥 MANUAL RESET BUTTON */}
+    <button
+      onClick={handleWeeklyReset}
+      className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition"
+    >
+      Reset Weekly Stats
+    </button>
+
+    <div className="bg-white shadow rounded-xl px-5 py-3 w-[200px] text-right">
+      <div className="text-xs text-gray-500">Total Employee Hours</div>
+      <div className="text-lg font-semibold text-emerald-700">
+        {totalHours}h {remainingMinutes}m
       </div>
     </div>
 
+  </div>
+</div>
+    
     {/* SEARCH + FILTER */}
     <div className="mb-8 flex gap-4 items-center">
       <input
@@ -198,9 +403,10 @@ return (
     </div>
 
     {/* HEADER */}
-    <div className="grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] text-sm font-semibold text-emerald-700 px-6 mb-3">
-      <div>Name</div>
-      <div>Status</div>
+    <div className="grid grid-cols-[3fr_2fr_1.3fr_2fr_1.2fr_1.2fr_1.2fr_1.2fr] text-sm font-semibold text-emerald-700 px-6 mb-3">
+<div>Name</div>
+<div>Badges</div>
+<div>Status</div>
       <div>Rank</div>
       <div>Wage</div>
       <div>Hours</div>
@@ -238,23 +444,126 @@ return (
                 duration: 0.35,
                 ease: "easeOut",
               }}
-              className={`grid grid-cols-[5fr_2fr_2fr_2fr_1.5fr_2fr_1.5fr] items-center bg-white shadow rounded-xl px-6 py-3 mb-3 ${rowBorder(emp.status, isAdmin)}`}
+              className={`
+  grid grid-cols-[3fr_2fr_1.3fr_2fr_1.2fr_1.2fr_1.2fr_1.2fr]
+  items-center
+  shadow rounded-xl px-6 py-3 mb-3
+ ${
+  isAdmin
+    ? "bg-gradient-to-br from-violet-950/90 via-fuchsia-950/75 to-slate-950/90 backdrop-blur-sm"
+    : "bg-white"
+}
+  ${rowBorder(emp)}
+`}
             >
-              <Link
-                href={`/employees/${emp.id}`}
-                className="text-emerald-700 font-medium hover:bg-emerald-50 px-2 py-[2px] rounded w-fit"
-              >
-                {emp.name}
-              </Link>
+
+{isAdmin && (
+  <>
+    <div
+      className="shooting-star"
+      style={{
+        top: "8%",
+        left: "12%",
+        animationDelay: "0s",
+      }}
+    />
+
+    <div
+      className="shooting-star"
+      style={{
+        top: "22%",
+        left: "38%",
+        animationDelay: "3s",
+      }}
+    />
+
+    <div
+      className="shooting-star"
+      style={{
+        top: "14%",
+        left: "64%",
+        animationDelay: "6s",
+      }}
+    />
+
+    <div
+      className="shooting-star"
+      style={{
+        top: "30%",
+        left: "82%",
+        animationDelay: "9s",
+      }}
+    />
+  </>
+)}
+
+<Link
+  href={`/employees/${emp.id}`}
+  className="
+    text-emerald-700 font-medium
+    hover:bg-emerald-50
+    px-2 py-[2px]
+    rounded w-fit
+  "
+>
+  {emp.name}
+</Link>
+
+<div
+className="
+    flex flex-col items-start
+    h-[26px]
+    overflow-y-auto
+    overflow-x-hidden
+    scrollbar-hide
+    pr-1
+"
+>
+
+  {employeeBadges(emp).map(
+    (badge: any, i: number) => (
+
+    <div
+      key={i}
+className={`
+        inline-flex w-fit
+        whitespace-nowrap
+        px-2 py-[3px]
+        rounded-full
+        text-[10px]
+        font-medium
+        shadow-sm
+        ${badge.className}
+      `}
+    >
+      {badge.label}
+    </div>
+
+  ))}
+
+</div>
 
               <span className={`inline-flex w-fit items-center px-3 py-[2px] rounded-full text-xs ${statusBadge(emp.status)}`}>
                 {emp.status}
               </span>
 
-              <span className={`inline-flex w-fit items-center px-3 py-[2px] rounded-full text-xs ${rankBadgeColor(emp.rank)}`}>
-                {isAdmin && <span className="mr-2">🐼</span>}
-                {emp.rank}
-              </span>
+<span
+  className={`
+    inline-flex w-fit items-center gap-2
+    whitespace-nowrap
+    px-3 py-[2px]
+    rounded-full text-xs
+    ${rankBadgeColor(emp.rank)}
+  `}
+>
+  {isAdmin && (
+    <span className="animate-pandaFloat">
+      🐼
+    </span>
+  )}
+
+  {emp.rank}
+</span>
 
               <div className="text-emerald-700 font-medium text-sm">
                 {isAdmin ? "∞" : `$${emp.wage}/hr`}
@@ -270,17 +579,35 @@ return (
                 {isAdmin ? "∞" : `$${emp.earnings}`}
               </div>
 
-              <div
-                className={
-                  isAdmin
-                    ? "text-purple-500 font-semibold text-sm"
-                    : emp.goal_met
-                    ? "text-emerald-600 font-medium"
-                    : "text-red-500 font-medium"
-                }
-              >
-                {isAdmin ? "Always" : emp.goal_met ? "Met" : "Not Met"}
-              </div>
+<div
+  className={
+    isAdmin
+      ? "text-purple-500 font-semibold text-sm"
+
+      : emp.goal_exempt
+      ? "text-sky-500 font-semibold"
+
+      : emp.goal_met
+      ? "text-emerald-600 font-medium"
+
+      : "text-red-500 font-medium"
+  }
+>
+  {isAdmin
+
+    ? "Always"
+
+    : emp.goal_exempt
+
+    ? "Exempt"
+
+    : emp.goal_met
+
+    ? "Met"
+
+    : "Not Met"}
+</div>
+
             </motion.div>
           );
         })}

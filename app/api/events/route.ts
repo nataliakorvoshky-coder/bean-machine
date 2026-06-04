@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { db } from "@/lib/db"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,19 +44,30 @@ export async function POST(req: Request){
       recurrence
     } = body
 
-    const { data: event, error } = await supabase
-      .from("events")
-.insert({
-  title,
-  description,
-   flyer_url,
-  start_time,
-  end_time,
-  is_recurring,
-  allow_signup: body.allow_signup || false
-})
-      .select()
-      .single()
+const { data: event, error } = await supabase
+  .from("events")
+  .insert({
+    title,
+    description,
+    flyer_url,
+    start_time,
+    end_time,
+    is_recurring,
+    allow_signup: body.allow_signup || false
+  })
+  .select()
+  .single()
+
+// ✅ LOG AFTER SUCCESS
+if (!error && event) {
+  await db.insert(
+    "activity_log",
+    {
+      action: `Created event: ${title}`,
+      type: "event"
+    }
+  )
+}
 
     if(error){
       console.error("EVENT ERROR:", error)
@@ -100,19 +112,23 @@ if(body.type === "update_event"){
     allow_signup
   } = body
 
-  const { error } = await supabase
-    .from("events")
-    .update({
-      title,
-      description,
-       flyer_url,
-      start_time,
-      end_time,
-      is_recurring,
-      allow_signup
-    })
-    .eq("id", event_id)
-
+const { error } = await db.update(
+  "events",
+  {
+    title,
+    description,
+    flyer_url,
+    start_time,
+    end_time,
+    is_recurring,
+    allow_signup
+  },
+  { id: event_id },
+  {
+    action: `Updated event: ${title}`,
+    type: "event"
+  }
+)
   if(error){
     console.error("UPDATE ERROR:", error)
     return NextResponse.json({ error })
@@ -127,16 +143,16 @@ if(body.type === "delete_event"){
   const { event_id } = body
 
   // delete signups first (avoid foreign key issues)
-  await supabase
-    .from("event_signups")
-    .delete()
-    .eq("event_id", event_id)
+await db.delete("event_signups", { event_id })
 
-  const { error } = await supabase
-    .from("events")
-    .delete()
-    .eq("id", event_id)
-
+const { error } = await db.delete(
+  "events",
+  { id: event_id },
+  {
+    action: `Deleted event ${event_id}`,
+    type: "event"
+  }
+)
   if(error){
     console.error("DELETE ERROR:", error)
     return NextResponse.json({ error })
@@ -149,14 +165,19 @@ if(body.type === "signup"){
 
   const { event_id, employee_id, employee_name, occurrence_date } = body
 
-  const { error } = await supabase
-    .from("event_signups")
-    .insert({
-      event_id,
-      employee_id,
-      employee_name,
-      occurrence_date
-    })
+const { error } = await db.insert(
+  "event_signups",
+  {
+    event_id,
+    employee_id,
+    employee_name,
+    occurrence_date
+  },
+  {
+    action: `${employee_name} signed up for event ${event_id}`,
+    type: "event"
+  }
+)
 
   if(error){
     console.error("SIGNUP ERROR:", error)

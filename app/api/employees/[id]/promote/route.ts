@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db"
 
 export async function POST(
   req: Request,
@@ -62,13 +63,18 @@ export async function POST(
     const today = new Date().toISOString();
 
     // Step 4: Update employee's rank to the next rank
-    const { error: updateError } = await supabase
-      .from("employees")
-      .update({
-        rank_id: nextRank.id,
-        last_promotion_date: today,
-      })
-      .eq("id", id);
+const { error: updateError } = await db.update(
+  "employees",
+  {
+    rank_id: nextRank.id,
+    last_promotion_date: today,
+  },
+  { id },
+  {
+    action: `Promoted employee ${id} to ${nextRank.rank_name}`,
+    type: "employee"
+  }
+)
 
     if (updateError) {
       console.error("UPDATE ERROR:", updateError);

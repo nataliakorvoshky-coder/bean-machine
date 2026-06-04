@@ -32,6 +32,7 @@ const [rehireStatus, setRehireStatus] = useState<boolean | null>(null);
 const [isTerminating, setIsTerminating] = useState<boolean>(false);
 
 const [loaded, setLoaded] = useState(false);
+const [currentUsername, setCurrentUsername] = useState("");
 
 
   useEffect(() => {
@@ -177,15 +178,37 @@ const hoursChannel = supabase
       const res = await fetch(`${API}/${id}`);
       const data = await res.json();
 
-      if (data) {
-        setEmployee(data);
-        setStatus(data.status);
-        setStrikeHistory(data.strike_history ?? []);
-        setTerminationHistory(data.termination_history ?? []);
+if (data) {
 
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-        setLoaded(true);
-      }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let username = "system";
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.username) {
+      username = profile.username;
+    }
+  }
+
+  setCurrentUsername(username);
+
+  setEmployee(data);
+  setStatus(data.status);
+  setStrikeHistory(data.strike_history ?? []);
+  setTerminationHistory(data.termination_history ?? []);
+
+  localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  setLoaded(true);
+}
+
     } catch (err) {
       console.error(err);
     }
@@ -242,6 +265,20 @@ const hoursChannel = supabase
     const data = await res.json();
 
     if (data.success) {
+
+      await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    action: `Added strike to ${employee.name}`,
+    type: "strike_added",
+    username: currentUsername,
+    employeeName: employee.name,
+  }),
+});
+
       setStrikeReason("");
       setEmployee((prev: any) => ({
         ...prev,
@@ -276,6 +313,19 @@ const hoursChannel = supabase
 
     const data = await res.json();
     if (data.success) {
+      await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    action: `Promoted ${employee.name} to ${data.rank}`,
+    type: "promotion",
+    username: currentUsername,
+    employeeName: employee.name,
+  }),
+});
+
       const updatedRank = data.rank;
       setEmployee((prev: any) => ({
         ...prev,
@@ -295,6 +345,20 @@ const hoursChannel = supabase
 
     const data = await res.json();
     if (data.success) {
+
+      await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    action: `Demoted ${employee.name} to ${data.rank}`,
+    type: "demotion",
+    username: currentUsername,
+    employeeName: employee.name,
+  }),
+});
+
       const updatedRank = data.rank;
       setEmployee((prev: any) => ({
         ...prev,
@@ -334,6 +398,19 @@ const handleTermination = async () => {
       console.error(data.error);
       return;
     }
+
+    await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    action: `Terminated ${employee.name}`,
+    type: "termination",
+    username: currentUsername,
+    employeeName: employee.name,
+  }),
+});
 
     // 🔥 animation + modal close
     setIsTerminating(true);

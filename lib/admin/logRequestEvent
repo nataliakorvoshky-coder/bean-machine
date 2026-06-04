@@ -1,0 +1,45 @@
+import { supabase }
+  from "../supabase";
+
+export async function logRequestEvent({
+
+  requestTable,
+  requestId,
+
+  eventType,
+
+  actorId,
+  actorName,
+
+  metadata = {},
+
+}: any) {
+
+  return supabase
+
+    .from("request_events")
+
+    .insert({
+
+      request_table:
+        requestTable,
+
+      request_id:
+        requestId,
+
+      event_type:
+        eventType,
+
+      actor_id:
+        actorId,
+
+      actor_name:
+        actorName,
+
+      metadata,
+
+      created_at:
+        new Date()
+          .toISOString(),
+    });
+}

@@ -5,8 +5,6 @@ import StyledDropdown from "@/components/StyledDropdown";
 import { motion } from "framer-motion";
 
 
-const API = "/api/inventory";
-
 export default function ExternalStockPage() {
   const [name, setName] = useState("");
 
@@ -45,38 +43,80 @@ useEffect(() => {
   setItemMap(map);
 }, [stockItems, items]);
 
-  async function api(action: string, payload: any = {}) {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, ...payload }),
-    });
-    return res.json();
-  }
+ 
 
-  async function loadExternalStock() {
-    const data = await api("getExternalStock");
+async function loadExternalStock() {
+
+  try {
+
+    const res = await fetch(
+      "/api/external-stock/get",
+      {
+        cache: "no-store"
+      }
+    )
+
+    const data =
+      await res.json()
+
     setItems(
-  Array.isArray(data)
-    ? data
-    : Array.isArray(data?.data)
-    ? data.data
-    : []
-);
+      Array.isArray(data?.items)
+        ? data.items
+        : []
+    )
+
+  } catch (err) {
+
+    console.error(err)
+
+    setItems([])
   }
+}
 
 async function loadStockItems() {
-  const data = await api("getStockItems");
-  const stock = Array.isArray(data) ? data : [];
 
-  setStockItems(stock);
-} // ✅ CLOSE FUNCTION HERE
+  try {
+
+    const res = await fetch(
+      "/api/stock/get",
+      {
+        cache: "no-store"
+      }
+    )
+
+    const data =
+      await res.json()
+
+    setStockItems(
+      Array.isArray(data?.items)
+        ? data.items
+        : []
+    )
+
+  } catch (err) {
+
+    console.error(err)
+
+    setStockItems([])
+  }
+}
 
 
 async function loadConversions() {
-  const res = await fetch("/api/conversions");
+  const res = await fetch(
+  "/api/conversions/get",
+  {
+    cache: "no-store"
+  }
+);
   const data = await res.json();
-  setConversionHistory(Array.isArray(data) ? data : []);
+  setConversionHistory(
+  Array.isArray(
+    data?.conversions
+  )
+    ? data.conversions
+    : []
+);
 }
 
   // ✅ ADD EXTERNAL STOCK (FIXED)
@@ -85,7 +125,25 @@ async function addExternalStock(e: any) {
 
   if (!name) return;
 
-  const newItem = await api("addExternalStock", { name });
+ const res = await fetch(
+  "/api/external-stock/create",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type":
+        "application/json"
+    },
+    body: JSON.stringify({
+      name
+    })
+  }
+)
+
+const data =
+  await res.json()
+
+const newItem =
+  data.item
 
   if (!newItem) return;
 
@@ -101,6 +159,32 @@ async function addExternalStock(e: any) {
 
   // ✅ SINGLE reload (correct place)
   loadExternalStock();
+
+  await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Added external stock item "${newItem.name}"`,
+
+    type:
+      "external_stock",
+
+    username:
+      localStorage.getItem("username"),
+
+    employeeName:
+      localStorage.getItem("employee_name"),
+
+    userId:
+      localStorage.getItem("user_id"),
+  })
+})
+
 }
 
 console.log("SELECTED STOCK ITEM:", selectedStockItem);
@@ -110,7 +194,9 @@ console.log("SELECTED STOCK ITEM:", selectedStockItem);
 
     if (!selectedExternalStock || !selectedStockItem) return;
 
-await fetch("/api/conversions", {
+await fetch(
+  "/api/conversions/create",
+  {
   method: "POST",
   headers: { "Content-Type": "application/json" },
 body: JSON.stringify({
@@ -122,20 +208,139 @@ body: JSON.stringify({
 }),
 });
 
-    setExternalQuantity(0);
-    setStockQuantity(0);
-    loadConversions();
+await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Created ${conversionType} conversion from "${itemMap.get(selectedExternalStock)}" to "${itemMap.get(selectedStockItem)}"`,
+
+    type:
+      "conversion",
+
+    username:
+      localStorage.getItem("username"),
+
+    employeeName:
+      localStorage.getItem("employee_name"),
+
+    userId:
+      localStorage.getItem("user_id"),
+  })
+})
+
+setExternalQuantity(0);
+setStockQuantity(0);
+
+loadConversions();
+
   }
 
-  async function deleteExternal(id: string) {
-    await api("deleteExternalStock", { id });
-    loadExternalStock();
-  }
+async function deleteExternal(
+  id: string
+) {
 
-  async function deleteConversion(id: string) {
-    await api("deleteConversion", { id });
-    loadConversions();
-  }
+  await fetch(
+    "/api/external-stock/delete",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
+        id
+      })
+    }
+  )
+
+  const deletedItem =
+  items.find(
+    i => i.id === id
+  )
+
+await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Deleted external stock "${deletedItem?.name}"`,
+
+    type:
+      "external_stock",
+
+    username:
+      localStorage.getItem("username"),
+
+    employeeName:
+      localStorage.getItem("employee_name"),
+
+    userId:
+      localStorage.getItem("user_id"),
+  })
+})
+
+  loadExternalStock()
+}
+
+async function deleteConversion(
+  id: string
+) {
+
+  await fetch(
+    "/api/conversions/delete",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
+        id
+      })
+    }
+  )
+
+  const conversion =
+  conversionHistory.find(
+    c => c.id === id
+  )
+
+await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Deleted conversion from "${itemMap.get(conversion?.from_item_id)}" to "${itemMap.get(conversion?.to_item_id)}"`,
+
+    type:
+      "conversion",
+
+    username:
+      localStorage.getItem("username"),
+
+    employeeName:
+      localStorage.getItem("employee_name"),
+
+    userId:
+      localStorage.getItem("user_id"),
+  })
+})
+
+  loadConversions()
+}
 
   const inputStyle =
     "w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
@@ -360,7 +565,27 @@ body: JSON.stringify({
               <div></div>
             </div>
 
-{conversionHistory.map((row, i) => (
+{conversionHistory
+
+  .sort((a, b) => {
+
+    const aName =
+      itemMap.get(
+        a.from_item_id
+      ) || ""
+
+    const bName =
+      itemMap.get(
+        b.from_item_id
+      ) || ""
+
+    return aName.localeCompare(
+      bName
+    )
+  })
+
+  .map((row, i) => (
+
   <motion.div
     key={row.id}
     initial={{ opacity: 0, y: 8 }}

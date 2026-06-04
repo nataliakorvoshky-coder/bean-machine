@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react"
 
-const API = "/api/inventory"
-
 const HIDDEN_ITEMS = [
   "Macchiato",
   "Coffee",
@@ -24,6 +22,13 @@ type StockItem = {
   goal_amount: number
 }
 
+type GroupedItem = {
+  name: string
+  ids: string[]
+  goal_amount: number
+  current_amount: number
+}
+
 export default function StockAnalytics(){
 
   const [items,setItems] = useState<StockItem[]>([])
@@ -38,26 +43,49 @@ export default function StockAnalytics(){
 async function loadData(){
   try{
 
-    const res = await fetch(API,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ action:"getAnalytics" })
-    })
-
+const res = await fetch(
+  "/api/analytics/overview",
+  {
+    cache:"no-store"
+  }
+)
     const data = await res.json()
 
-    setItems(data.items || [])
-    setUsageData(data.usage || [])
+setItems(
+  Array.isArray(data?.items)
+    ? data.items
+    : []
+)
 
-    const restockRes = await fetch(API,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ action:"getRestockHistory" })
-    })
+setUsageData(
+  Array.isArray(data?.usage)
+    ? data.usage
+    : []
+)
+
+const restockRes = await fetch(
+  "/api/analytics/restocks",
+  {
+    cache:"no-store"
+  }
+)
 
     const restockData = await restockRes.json()
-    setRestocks(Array.isArray(restockData) ? restockData : [])
-    setPriceHistory(Array.isArray(restockData) ? restockData : [])
+setRestocks(
+  Array.isArray(
+    restockData?.restocks
+  )
+    ? restockData.restocks
+    : []
+)
+
+setPriceHistory(
+  Array.isArray(
+    restockData?.restocks
+  )
+    ? restockData.restocks
+    : []
+)
 
   }catch(err){
     console.error(err)
@@ -88,7 +116,18 @@ async function loadData(){
 
     return restocks
       .filter(r => new Date(r.created_at) >= weekAgo)
-      .reduce((s,r)=> s + r.total_cost,0)
+      .reduce(
+
+  (s,r)=>
+
+    s +
+
+    Number(
+      r.total_cost || 0
+    ),
+
+  0
+)
   }
 
   function getMonthlySpend(){
@@ -97,14 +136,36 @@ async function loadData(){
       const d = new Date(r.created_at)
       return d.getMonth()===now.getMonth() &&
              d.getFullYear()===now.getFullYear()
-    }).reduce((s,r)=> s + r.total_cost,0)
+    }).reduce(
+
+  (s,r)=>
+
+    s +
+
+    Number(
+      r.total_cost || 0
+    ),
+
+  0
+)
   }
 
   function getYearlySpend(){
     const now = new Date()
     return restocks
       .filter(r => new Date(r.created_at).getFullYear()===now.getFullYear())
-      .reduce((s,r)=> s + r.total_cost,0)
+      .reduce(
+
+  (s,r)=>
+
+    s +
+
+    Number(
+      r.total_cost || 0
+    ),
+
+  0
+)
   }
 
   function getDailySpend(){
@@ -112,7 +173,18 @@ async function loadData(){
 
   return restocks
     .filter(r => r.created_at.startsWith(today))
-    .reduce((sum,r)=> sum + r.total_cost,0)
+    .reduce(
+
+  (sum,r)=>
+
+    sum +
+
+    Number(
+      r.total_cost || 0
+    ),
+
+  0
+)
 }
 
 // ===== PRICE =====
@@ -122,7 +194,18 @@ function avgPrice(id:string){
   if (!list.length) return 0
 
   return (
-    list.reduce((s,p)=> s + p.price_each,0) / list.length
+    list.reduce(
+
+  (s,p)=>
+
+    s +
+
+    Number(
+      p.price_each || 0
+    ),
+
+  0
+) / list.length
   )
 }
 
@@ -134,7 +217,18 @@ function dailyItemSpend(id:string){
       p.stock_item_id === id &&
       p.created_at.startsWith(today)
     )
-    .reduce((s,p)=> s + p.total_cost,0)
+    .reduce(
+
+  (s,p)=>
+
+    s +
+
+    Number(
+      p.total_cost || 0
+    ),
+
+  0
+)
 }
 
 function priceTrend(id:string){
@@ -154,7 +248,18 @@ function priceTrend(id:string){
   })
 
   const avg = (arr:any[]) =>
-    arr.length ? arr.reduce((s,p)=>s+p.price_each,0)/arr.length : 0
+    arr.length ? arr.reduce(
+
+  (s,p)=>
+
+    s +
+
+    Number(
+      p.price_each || 0
+    ),
+
+  0
+)/arr.length : 0
 
   return avg(last7) - avg(prev7)
 }
@@ -191,15 +296,18 @@ function avgDailyUsage(id:string){
   )
 }
 
-  function monthlyUsage(id:string){
-    const now = new Date()
-    return usageData.filter(u=>{
+function monthlyUsage(id: string) {
+  const now = new Date()
+  const monthAgo = new Date()
+  monthAgo.setDate(now.getDate() - 30)
+
+  return usageData
+    .filter(u => {
       const d = new Date(u.created_at)
-      return u.item_id===id &&
-        d.getMonth()===now.getMonth() &&
-        d.getFullYear()===now.getFullYear()
-    }).reduce((s,u)=> s + u.amount_used,0)
-  }
+      return u.item_id === id && d >= monthAgo
+    })
+    .reduce((s, u) => s + u.amount_used, 0)
+}
 
   function usageTrend(id:string){
     const now = new Date()
@@ -222,10 +330,6 @@ function avgDailyUsage(id:string){
     const weekly = weeklyUsage(id)
     if(weekly===0) return 0
     return Math.ceil(weekly * 1.25)
-  }
-
-  function goalDelta(item:StockItem){
-    return suggestedGoal(item.id) - item.goal_amount
   }
 
   function updateGoals(){
@@ -267,7 +371,35 @@ function avgDailyUsage(id:string){
     return <div className="p-10 text-gray-500">Loading...</div>
   }
 
-  const topUsage = Math.max(...items.map(i=>weeklyUsage(i.id)))
+  // 🔥 GROUP ITEMS BY NAME (MERGE MILK, ETC)
+const groupedItems: GroupedItem[] = Object.values(
+  items.reduce<Record<string, GroupedItem>>((acc, item) => {
+    const key = item.name.trim().toLowerCase()
+
+    if (!acc[key]) {
+      acc[key] = {
+        name: item.name,
+        ids: [],
+        goal_amount: 0,
+        current_amount: 0
+      }
+    }
+
+    acc[key].ids.push(item.id)
+    acc[key].goal_amount += item.goal_amount
+    acc[key].current_amount += item.current_amount
+
+    return acc
+  }, {})
+)
+
+// 🔥 USE GROUPED DATA FOR MAX
+const topUsage = Math.max(
+  ...groupedItems.map((g: any) =>
+    g.ids.reduce((sum: number, id: string) => sum + weeklyUsage(id), 0)
+  ),
+  1
+)
 
 function totalPlannerCost(){
   if (!restocks.length) return 0
@@ -285,7 +417,18 @@ function totalPlannerCost(){
     return Math.abs(firstTime - t) < 10000 // 🔥 10s window (safe)
   })
 
-  return batch.reduce((sum,r)=> sum + r.total_cost,0)
+  return batch.reduce(
+
+  (sum,r)=>
+
+    sum +
+
+    Number(
+      r.total_cost || 0
+    ),
+
+  0
+)
 }
 
 function currentItemSpend(id: string){
@@ -305,7 +448,18 @@ function currentItemSpend(id: string){
         Math.abs(firstTime - t) < 10000
       )
     })
-    .reduce((sum,r)=> sum + r.total_cost,0)
+    .reduce(
+
+  (sum,r)=>
+
+    sum +
+
+    Number(
+      r.total_cost || 0
+    ),
+
+  0
+)
 }
 
   return(
@@ -323,10 +477,29 @@ function currentItemSpend(id: string){
         <Card title="Low Stock" value={lowStock().length} red />
         <Card title="Total Units" value={totalUnits()} />
 
-<Card title="Daily Spend" value={`$${totalPlannerCost().toFixed(2)}`} red />
-<Card title="Weekly Spend" value={`$${totalPlannerCost().toFixed(2)}`} red />
-<Card title="Monthly Spend" value={`$${totalPlannerCost().toFixed(2)}`} red />
-<Card title="Yearly Spend" value={`$${totalPlannerCost().toFixed(2)}`} red />
+<Card
+  title="Daily Spend"
+  value={`$${getDailySpend().toFixed(2)}`}
+  red
+/>
+
+<Card
+  title="Weekly Spend"
+  value={`$${getWeeklySpend().toFixed(2)}`}
+  red
+/>
+
+<Card
+  title="Monthly Spend"
+  value={`$${getMonthlySpend().toFixed(2)}`}
+  red
+/>
+
+<Card
+  title="Yearly Spend"
+  value={`$${getYearlySpend().toFixed(2)}`}
+  red
+/>
 
       </div>
 
@@ -362,37 +535,68 @@ style={{
 <div>Suggested</div>
         </div>
 
-        {items
-  .filter(item =>
+        {groupedItems
+ .filter((item: GroupedItem) =>
     !HIDDEN_ITEMS.some(h =>
       h.toLowerCase().trim() === item.name.toLowerCase().trim()
     )
   )
-  .map(item => {
+  .map((item: GroupedItem) => {
 
-const todayValue = dailyUsage(item.id)
-const avgDaily = avgDailyUsage(item.id)
+const todayValue = item.ids.reduce(
+  (s: number, id: string) => s + dailyUsage(id),
+  0
+)
 
-const daily = expanded === item.id ? avgDaily : todayValue
-          const weekly = weeklyUsage(item.id)
-          const monthly = monthlyUsage(item.id)
-          const trend = usageTrend(item.id)
-          const usageRatio = weekly / (topUsage || 1)
+const avgDaily =
+  item.ids.reduce((s: number, id: string) => s + avgDailyUsage(id), 0) /
+  (item.ids.length || 1)
+
+const daily = expanded === item.name ? avgDaily : todayValue
+
+const weekly = item.ids.reduce(
+  (s: number, id: string) => s + weeklyUsage(id),
+  0
+)
+
+const monthly = item.ids.reduce(
+  (s: number, id: string) => s + monthlyUsage(id),
+  0
+)
+
+const trend = item.ids.reduce(
+  (s: number, id: string) => s + usageTrend(id),
+  0
+)
+
+const avg =
+  item.ids.reduce((s: number, id: string) => s + avgPrice(id), 0) /
+  (item.ids.length || 1)
+
+const spend = item.ids.reduce(
+  (s: number, id: string) => s + currentItemSpend(id),
+  0
+)
+
+const priceT = item.ids.reduce(
+  (s: number, id: string) => s + priceTrend(id),
+  0
+)
+
+const usageRatio = weekly / (topUsage || 1)
 
 const isHigh = usageRatio > 0.75
 const isMedium = usageRatio > 0.4 && usageRatio <= 0.75
-          const avg = avgPrice(item.id)
-const spend = currentItemSpend(item.id)
-const priceT = priceTrend(item.id)
+
 const weeklySpend = spend
 const monthlySpend = spend
 const yearlySpend = spend
 
           return(
       
-<div key={item.id} className="space-y-1">
+<div key={item.name} className="space-y-1">
 <div
-  onClick={() => setExpanded(expanded === item.id ? null : item.id)}
+  onClick={() => setExpanded(expanded === item.name ? null : item.name)}
   style={{
     display: "grid",
     gridTemplateColumns: "4fr 1.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr"
@@ -402,7 +606,7 @@ rounded-xl shadow px-6 py-3 items-center cursor-pointer transition
 
 hover:shadow-md hover:-translate-y-[1px]
 
-${expanded === item.id ? "ring-2 ring-emerald-400" : ""}
+${expanded === item.name ? "ring-2 ring-emerald-400" : ""}
 
 ${
   isHigh
@@ -423,8 +627,8 @@ ${
 <div className="font-semibold">
   {daily ? (
     <span className="text-red-500">
-      -{expanded === item.id ? daily.toFixed(1) : daily}
-      {expanded === item.id && (
+      -{expanded === item.name ? daily.toFixed(1) : daily}
+      {expanded === item.name && (
         <span className="text-xs text-gray-400 ml-1">(avg)</span>
       )}
     </span>
@@ -460,14 +664,20 @@ ${
               
 
               <div className={`font-semibold ${
-                goalDelta(item) > 0 ? "text-red-500" : "text-emerald-600"
+                (
+  Math.ceil(
+    item.ids.reduce((s: number, id: string) => s + weeklyUsage(id), 0) * 1.25
+  ) - item.goal_amount
+) > 0 ? "text-red-500" : "text-emerald-600"
               }`}>
-                {suggestedGoal(item.id)}
+                {Math.ceil(
+  item.ids.reduce((s: number, id: string) => s + weeklyUsage(id), 0) * 1.25
+)}
               </div>
 
 </div>
 
-{expanded === item.id && (
+{expanded === item.name && (
   <div className="bg-white mx-2 mb-2 rounded-xl shadow-inner px-6 py-4 border border-emerald-200">
 
     {/* ===== USAGE ===== */}
@@ -538,7 +748,17 @@ ${
 
     {/* CHART */}
     <div className="mt-4">
-      <Sparkline data={getSparklineData(item.id)} />
+      <Sparkline
+data={
+  item.ids.length
+    ? item.ids
+        .map((id: string) => getSparklineData(id))
+        .reduce((acc: number[], curr: number[]) =>
+          acc.map((v, i) => v + (curr[i] || 0))
+        )
+    : []
+}
+/>
     </div>
 
   </div>

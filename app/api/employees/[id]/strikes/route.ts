@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { db } from "@/lib/db"
 
 
 
@@ -42,14 +43,19 @@ export async function POST(
 
     /* INSERT STRIKE HISTORY */
 
-    const { error: insertError } = await supabase
-      .from("employee_strikes")
-      .insert({
-        employee_id:id,
-        number:newStrikeNumber,
-        reason:reason,
-        created_at:new Date().toISOString()
-      })
+const { error: insertError } = await db.insert(
+  "employee_strikes",
+  {
+    employee_id: id,
+    number: newStrikeNumber,
+    reason: reason,
+    created_at: new Date().toISOString()
+  },
+  {
+    action: `Strike #${newStrikeNumber} issued to employee ${id}: ${reason}`,
+    type: "employee"
+  }
+)
 
 
     if(insertError){
@@ -121,10 +127,14 @@ export async function DELETE(
     const strikeId = body.strike_id
 
 
-    await supabase
-      .from("employee_strikes")
-      .delete()
-      .eq("id",strikeId)
+await db.delete(
+  "employee_strikes",
+  { id: strikeId },
+  {
+    action: `Removed strike from employee ${id}`,
+    type: "employee"
+  }
+)
 
 
 

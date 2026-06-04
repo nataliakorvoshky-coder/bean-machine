@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import StyledDropdown from "@/components/StyledDropdown"; // Adjust the path accordingly
 import { motion } from "framer-motion";
 
-const API = "/api/inventory";
 
 const SECTIONS = [
   "Oven Fridge",
@@ -47,38 +46,43 @@ export default function StockItemsPage() {
     checkSession();
   }, []);
 
-  // API function with error handling
-  async function api(action: string, payload: any = {}) {
-    try {
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...payload }),
-      });
 
-      if (!res.ok) {
-        throw new Error(`API error: ${res.statusText}`);
-      }
 
-      const data = await res.json();
-      console.log("API Response Data:", data); // Log the response data
-      return data;
-    } catch (error) {
-      console.error("API error:", error);
-      return null;
-    }
-  }
 
   // Load stock items
-  const load = async () => {
-    const data = await api("getStockItems");
-    console.log("Loaded Stock Items:", data); // Log the response
-    if (Array.isArray(data)) {
-      setItems(data);
+const load = async () => {
+
+  try {
+
+    const res = await fetch(
+      "/api/stock/get",
+      {
+        cache: "no-store"
+      }
+    )
+
+    const data =
+      await res.json()
+
+    if (
+      Array.isArray(data?.items)
+    ) {
+
+      setItems(data.items)
+
     } else {
-      console.error("Failed to load stock items:", data);
+
+      setItems([])
+
     }
-  };
+
+  } catch (err) {
+
+    console.error(err)
+
+    setItems([])
+  }
+}
 
   // Add item function
   async function addItem() {
@@ -91,12 +95,45 @@ export default function StockItemsPage() {
       goal_amount: goal,
     }); // Log data before sending
 
-    await api("addStockItem", {
+    await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Added stock item "${name}"`,
+
+    type:
+      "stock",
+
+    username:
+      localStorage.getItem(
+        "username"
+      ),
+  })
+})
+
+await fetch(
+  "/api/stock/create",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type":
+        "application/json"
+    },
+    body: JSON.stringify({
       name,
       section,
-      current_amount: current,
-      goal_amount: goal,
-    });
+      current_amount:
+        current,
+      goal_amount:
+        goal
+    })
+  }
+)
 
     console.log("Item added successfully"); // Log success
     setName("");
@@ -108,16 +145,17 @@ export default function StockItemsPage() {
   // Update current stock
   async function updateCurrent(id: string, value: number) {
     try {
-      const res = await fetch(API, {
+      const res = await fetch("/api/stock/update",{
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          action: "updateStockCurrent",
-          id: id,
-          current_amount: value,
-        }),
+body: JSON.stringify({
+  id: id,
+  updates: {
+    current_amount: value
+  }
+}),
       });
 
       if (!res.ok) {
@@ -127,7 +165,37 @@ export default function StockItemsPage() {
       const data = await res.json();
       console.log("Stock item updated:", data);
 
+      const item =
+  items.find(
+    i => i.id === id
+  )
+
+await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Updated current stock of "${item?.name}" to ${value}`,
+
+    type:
+      "stock",
+
+    username:
+      localStorage.getItem(
+        "username"
+      ),
+  })
+})
+
       load(); // Refresh stock list after updating current amount
+
+      window.dispatchEvent(
+  new Event("inventory-refresh")
+)
     } catch (err) {
       console.error("Error updating stock item:", err);
     }
@@ -136,16 +204,19 @@ export default function StockItemsPage() {
   // Update goal stock
   async function updateGoal(id: string, value: number) {
     try {
-      const res = await fetch(API, {
+      const res = await fetch(
+  "/api/stock/update",
+  {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          action: "updateStockGoal",
-          id: id,
-          goal_amount: value,
-        }),
+body: JSON.stringify({
+  id: id,
+  updates: {
+    goal_amount: value
+  }
+}),
       });
 
       if (!res.ok) {
@@ -155,26 +226,112 @@ export default function StockItemsPage() {
       const data = await res.json();
       console.log("Stock goal updated:", data);
 
+      const item =
+  items.find(
+    i => i.id === id
+  )
+
+await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Updated goal stock of "${item?.name}" to ${value}`,
+
+    type:
+      "stock",
+
+    username:
+      localStorage.getItem(
+        "username"
+      ),
+  })
+})
+
       load(); // Refresh stock list after updating goal amount
+
+      window.dispatchEvent(
+  new Event("inventory-refresh")
+)
     } catch (err) {
       console.error("Error updating stock goal:", err);
     }
   }
 
-  // Delete stock item
-  async function deleteItem(id: string) {
-    // Directly call the API to delete the stock item
-    const { data, error } = await api("deleteStockItem", { id });
+async function deleteItem(
+  id: string
+) {
 
-    if (error) {
-      console.error("Error deleting stock item:", error);
-      return;
-    }
+  try {
 
-    console.log("Stock item deleted:", data);
+    const item =
+  items.find(
+    i => i.id === id
+  )
 
-    load(); // Refresh stock list after deletion
+    const res = await fetch(
+      "/api/stock/delete",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+        body: JSON.stringify({
+          id
+        })
+      }
+    )
+
+    const data =
+      await res.json()
+
+    console.log(
+      "Deleted:",
+      data
+    )
+
+    await fetch("/api/activity", {
+  method: "POST",
+  headers: {
+    "Content-Type":
+      "application/json"
+  },
+  body: JSON.stringify({
+
+    action:
+      `Deleted stock item "${item?.name}"`,
+
+    type:
+      "stock",
+
+    username:
+      localStorage.getItem(
+        "username"
+      ),
+  })
+})
+
+    load()
+
+    window.dispatchEvent(
+      new Event(
+        "inventory-refresh"
+      )
+    )
+
+  } catch (err) {
+
+    console.error(
+      "Delete failed:",
+      err
+    )
   }
+}
 
   return (
     <motion.div

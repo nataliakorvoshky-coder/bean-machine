@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db"
+import { logActivity } from "@/lib/logActivity"
 
 export async function POST(req: Request) {
   try {
@@ -43,18 +45,17 @@ console.log("🧠 FINAL TIME:", { finalHours, finalMinutes });
     /* ============================== */
     /* 🧾 INSERT SHIFT                */
     /* ============================== */
-    const { error: insertError } = await supabase
-      .from("work_hours")
-      .insert([
-        {
-          employee_id,
-hours: finalHours,
-minutes: finalMinutes,
-          work_date,
-          submitted_by,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+const { error: insertError } = await db.insert(
+  "work_hours",
+  {
+    employee_id,
+    hours: finalHours,
+    minutes: finalMinutes,
+    work_date,
+    submitted_by,
+    created_at: new Date().toISOString(),
+  }
+)
 
     if (insertError) {
       console.error("❌ INSERT ERROR:", insertError);
@@ -72,6 +73,7 @@ minutes: finalMinutes,
       .from("employees")
 .select(`
   id,
+  name,
   rank_id,
   weekly_hours,
   weekly_minutes,
@@ -89,6 +91,29 @@ minutes: finalMinutes,
         { status: 404 }
       );
     }
+
+const { data: profile } = await supabase
+  .from("profiles")
+  .select(`
+    username,
+    employee_id,
+    employees(name)
+  `)
+  .eq("id", submitted_by)
+  .maybeSingle()
+
+await logActivity({
+  action: `Logged ${finalHours}h ${finalMinutes}m for ${employee.name}`,
+  type: "hours",
+
+  userId: submitted_by,
+
+  username:
+    profile?.username || "Unknown",
+
+  employeeName:
+    (profile as any)?.employees?.name || null,
+})
 
     const { data: rank, error: rankError } = await supabase
       .from("employee_ranks")

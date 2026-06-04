@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { db } from "@/lib/db"
 
 export async function POST(req: Request) {
   try {
@@ -17,10 +18,14 @@ export async function POST(req: Request) {
     /* ============================== */
     /* 🗑 DELETE FROM SUPABASE        */
     /* ============================== */
-    const { error } = await supabase
-      .from("applications")
-      .delete()
-      .eq("id", id)
+const { error } = await db.delete(
+  "applications",
+  { id },
+  {
+    action: `Deleted application ${id}`,
+    type: "application"
+  }
+)
 
     if (error) {
       console.error("❌ SUPABASE DELETE ERROR:", error)
