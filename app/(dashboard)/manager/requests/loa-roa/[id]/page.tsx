@@ -72,6 +72,28 @@ useEffect(() => {
 setLoading(false);
   }
 
+  async function refreshTicket() {
+
+      console.log(
+    "REFRESH TICKET"
+  );
+
+  const { data } =
+    await supabase
+
+      .from("loa_requests")
+
+      .select("*")
+
+      .eq("id", ticketId)
+
+      .maybeSingle();
+
+  if (data) {
+    setTicket(data);
+  }
+}
+
 
   async function approveTicket() {
 
@@ -181,7 +203,7 @@ approved_by_name:
   
     }));
 
-    await loadTicket();
+   // await loadTicket();
 
   } catch (err) {
 
@@ -322,7 +344,7 @@ denied_by_name:
 
     }));
 
-    await loadTicket();
+    // await loadTicket();
 
   } catch (err) {
 
@@ -436,7 +458,7 @@ claimed_by_name:
   
     }));
 
-    await loadTicket();
+    // await loadTicket();
 
   } catch (err) {
 
@@ -549,7 +571,7 @@ async function completeTicket() {
           .toISOString(),
     }));
 
-    await loadTicket();
+    // await loadTicket();
 
   } catch (err) {
 
@@ -657,13 +679,18 @@ setTicket((prev: any)=>({
     data.escalation_level,
 }));
 
-await loadTicket();
+// await loadTicket();
 
   } catch (err) {
 
     console.error(err);
   }
 }
+
+console.log(
+  "RENDER END DATE:",
+  ticket?.end_date
+);
 
 return (
 
@@ -689,20 +716,24 @@ max-w-none
 
   <div className="w-full min-w-0">
 
-    <TicketChat
+<TicketChat
 
-      ticketId={ticket.id}
+  ticketId={ticket.id}
 
-      requestType="loa"
+  requestType="loa"
 
-      senderRole="manager"
+  senderRole="manager"
 
-      senderName={
-        ticket.claimed_by_name
-      }
+  senderName={
+    ticket.claimed_by_name
+  }
 
-      tableName="loa_requests"
-    />
+  tableName="loa_requests"
+
+  onTicketUpdated={
+    refreshTicket
+  }
+/>
 
   </div>
 
@@ -791,6 +822,24 @@ max-w-none
               ).toLocaleString()
             }
           />
+
+          <Info
+  label="Start Date"
+  value={
+    ticket.start_date 
+         ? ticket.start_date     
+      : "--"
+  }
+/>
+
+<Info
+  label="End Date"
+value={
+  ticket.end_date
+    ? ticket.end_date
+    : "--"
+}
+/>
 
 <Info
   label="Escalation"

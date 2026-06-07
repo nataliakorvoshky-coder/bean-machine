@@ -121,23 +121,51 @@ if (error) {
   UPDATE TICKET ACTIVITY
 */
 
-await supabase
+const tableMap: Record<string, string> = {
 
-  .from(
-    "hours_exception_requests"
-  )
+  loa:
+    "loa_requests",
 
-  .update({
+  hours_exception:
+    "hours_exception_requests",
 
-    last_activity_at:
-      new Date()
-        .toISOString(),
-  })
+  complaint:
+    "complaint_requests",
 
-  .eq(
-    "id",
-    body.ticket_id
-  );
+  incident:
+    "incident_requests",
+
+  event:
+    "event_requests",
+
+  general:
+    "general_requests",
+};
+
+const table =
+  tableMap[
+    body.request_type
+  ];
+
+if (table) {
+
+  await supabase
+
+    .from(table)
+
+.update({
+
+  last_activity_at:
+    new Date()
+      .toISOString(),
+
+})
+
+    .eq(
+      "id",
+      body.ticket_id
+    );
+}
 
 /*
   RESPONSE

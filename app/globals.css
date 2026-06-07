@@ -821,6 +821,27 @@ background:
   scrollbar-width: none;
 }
 
+@keyframes soft-pulse {
+
+  0%, 100% {
+
+    box-shadow:
+      0 0 0 rgba(16,185,129,0);
+  }
+
+  50% {
+
+    box-shadow:
+      0 0 24px rgba(16,185,129,.35);
+  }
+}
+
+.animate-soft-pulse {
+
+  animation:
+    soft-pulse 2.5s ease-in-out infinite;
+}
+
 
 @keyframes pandaFloat {
   0% {

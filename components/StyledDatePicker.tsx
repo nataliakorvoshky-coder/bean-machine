@@ -81,11 +81,21 @@ export default function StyledDatePicker({ value, onChange }:Props){
 
       {open &&(
 
-        <div className="
-        absolute z-50 mt-2 w-[280px]
-        bg-white border border-emerald-200 rounded-xl
-        shadow-lg p-4
-        ">
+<div className="
+  absolute
+  bottom-full
+  mb-2
+
+  z-50
+
+  w-[280px]
+
+  bg-white
+  border border-emerald-200
+  rounded-xl
+  shadow-lg
+  p-4
+">
 
           {/* HEADER */}
 

@@ -29,25 +29,43 @@ export async function updateTicketView(
   /*
     UPSERT VIEW
   */
+ 
+  const result =
 
   await supabase
 
     .from("ticket_views")
 
-    .upsert({
+    .upsert(
 
-      user_id:
-        user.id,
+      {
 
-      request_table:
-        requestTable,
+        user_id:
+          user.id,
 
-      request_id:
-        requestId,
+        request_table:
+          requestTable,
 
-      last_viewed_at:
-        new Date()
-          .toISOString(),
+        request_id:
+          requestId,
 
-    });
+        last_viewed_at:
+          new Date()
+            .toISOString(),
+
+      },
+
+      {
+
+        onConflict:
+          "user_id,request_table,request_id"
+
+      }
+    );
+
+console.log(
+  "TICKET VIEW:",
+  result
+);
+
 }

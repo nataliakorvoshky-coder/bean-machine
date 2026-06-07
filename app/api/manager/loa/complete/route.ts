@@ -71,7 +71,7 @@ export async function POST(
         completed_by_id:
           managerId,
 
-        completed_by_name:
+        completed_by:
           managerName,
 
         completed_at:

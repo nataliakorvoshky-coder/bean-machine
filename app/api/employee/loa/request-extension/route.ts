@@ -157,44 +157,51 @@ export async function POST(
       WORKFLOW MESSAGE
     */
 
-    await supabase
+const commentResult =
+  await supabase
 
-      .from(
-        "request_comments"
-      )
+    .from(
+      "request_comments"
+    )
 
-      .insert({
+    .insert({
 
-        request_id:
-          ticketId,
+      request_id:
+        ticketId,
 
-        request_type:
-          "loa",
+      request_type:
+        "loa",
 
-        sender_id:
-          employeeId,
+      sender_id:
+        employeeId,
 
-        sender_name:
-          employeeName,
+      sender_name:
+        employeeName,
 
-        sender_role:
-          "employee",
+      sender_role:
+        "employee",
 
-        message_type:
-          "workflow",
+      message_type:
+        "workflow",
 
-        message: `Requested LOA extension.
+      message: `Requested LOA extension.
 
 Requested New End Date:
 ${requestedEndDate}
 
 Awaiting manager approval.`,
 
-        created_at:
-          new Date()
-            .toISOString(),
-      });
+      created_at:
+        new Date()
+          .toISOString(),
+    })
 
+    .select();
+
+console.log(
+  "REQUEST COMMENT INSERT:",
+  commentResult
+);
     /*
       UPDATE TICKET
     */

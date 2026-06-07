@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase"; // Ensure the correct import path
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
+) {
   try {
     const { id } = await params; // Extract employee UUID from the URL parameters
 
@@ -40,7 +49,16 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 // POST method to handle termination history update (adding new termination history)
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
+) {
   try {
     const { id } = await params; // Await to unwrap params and get the employee ID
     const { reason } = await req.json(); // Get termination reason from the request body
@@ -87,7 +105,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: Request,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
+) {
   try {
     const { id } = await params; // Extract the employee UUID from the URL
     

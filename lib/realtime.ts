@@ -44,17 +44,34 @@ export function initRealtime({
     });
   };
 
-  // ✅ EMPLOYEES
-  if (onEmployeeUpdate) {
-    newChannel.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "employees" },
-      handle(onEmployeeUpdate)
-    );
-  }
+// ✅ EMPLOYEES
+if (onEmployeeUpdate) {
+
+  console.log(
+    "Subscribing:",
+    "employees"
+  );
+
+  newChannel.on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "employees"
+    },
+    handle(onEmployeeUpdate)
+  );
+}
+
 
   // ✅ STRIKES
   if (onStrikeUpdate) {
+
+      console.log(
+  "Subscribing:",
+  "strikes"
+);
+
     newChannel.on(
       "postgres_changes",
       { event: "*", schema: "public", table: "employee_strikes" },
@@ -62,8 +79,15 @@ export function initRealtime({
     );
   }
 
+
   // ✅ TERMINATIONS
   if (onTerminationUpdate) {
+
+        console.log(
+  "Subscribing:",
+  "termination"
+);
+
     newChannel.on(
       "postgres_changes",
       { event: "*", schema: "public", table: "termination_history" },
@@ -71,17 +95,123 @@ export function initRealtime({
     );
   }
 
-  // ✅ REQUESTS
-  if (onRequestUpdate) {
-    newChannel.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "requests" },
-      handle(onRequestUpdate)
-    );
-  }
+
+// ✅ LOA REQUESTS
+ if (onRequestUpdate) {
+
+      console.log(
+  "Subscribing:",
+  "loa_requests"
+);
+
+  newChannel.on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "loa_requests",
+    },
+    handle(onRequestUpdate)
+  );
+
+
+
+  // ✅ HOURS EXCEPTIONS
+
+      console.log(
+  "Subscribing:",
+  "hours_exception_requests"
+);
+
+  newChannel.on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "hours_exception_requests",
+    },
+    handle(onRequestUpdate)
+  );
+
+
+  // ✅ GENERAL REQUESTS
+
+       console.log(
+  "Subscribing:",
+  "general_requests"
+);
+
+  newChannel.on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "general_requests",
+    },
+    handle(onRequestUpdate)
+  );
+
+  // ✅ EVENT REQUESTS
+
+        console.log(
+  "Subscribing:",
+  "event_requests"
+);
+
+
+  newChannel.on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "event_requests",
+    },
+    handle(onRequestUpdate)
+  );
+
+  // ✅ INCIDENT REQUESTS
+
+        console.log(
+  "Subscribing:",
+  "incident_requests"
+);
+
+  newChannel.on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "incident_requests",
+    },
+    handle(onRequestUpdate)
+  );
+
+  // ✅ COMPLAINT REQUESTS
+
+        console.log(
+  "Subscribing:",
+  "complaint_requests"
+);
+
+  newChannel.on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "complaint_requests",
+    },
+    handle(onRequestUpdate)
+  );
+}
 
   // ✅ WORK HOURS (🔥 THIS FIXES YOUR ISSUE)
 if (onWorkHoursUpdate) {
+
+      console.log(
+  "Subscribing:",
+  "work_hours"
+);
+
   newChannel.on(
     "postgres_changes",
     { event: "*", schema: "public", table: "work_hours" },
@@ -91,6 +221,12 @@ if (onWorkHoursUpdate) {
 
   // ✅ PRESENCE
   if (onPresenceUpdate) {
+
+        console.log(
+  "Subscribing:",
+  "request_presence"
+);
+
     newChannel.on(
       "postgres_changes",
       { event: "*", schema: "public", table: "request_presence" },
@@ -105,40 +241,83 @@ if (onWorkHoursUpdate) {
   }
 
   // ✅ SUBSCRIBE LAST
-  newChannel.subscribe((status) => {
-    console.log("Realtime status:", status);
+newChannel.subscribe((status, err) => {
 
-    if (status === "CHANNEL_ERROR") {
-      console.error("❌ Realtime error — resetting...");
+  console.log(
+    "Realtime status:",
+    status,
+    err
+  );
 
-      if (channel) {
-        supabase.removeChannel(channel);
-        channel = null;
+  if (status === "CLOSED") {
+
+    console.log(
+      "🔒 Realtime channel closed"
+    );
+
+    return;
+  }
+
+  if (
+
+    status === "CHANNEL_ERROR"
+
+    ||
+
+    status === "TIMED_OUT"
+
+  ) {
+
+    console.error(
+      "❌ Realtime error — resetting...",
+      {
+        status,
+        topic: newChannel.topic,
+        state: newChannel.state,
       }
+    );
 
-      isActive = false; // ✅ allow retry
+    if (channel) {
 
-      setTimeout(() => {
-initRealtime({
-  onEmployeeUpdate,
-  onStrikeUpdate,
-  onTerminationUpdate,
-  onRequestUpdate,
-  onPresenceUpdate,
-  onWorkHoursUpdate, // 🔥 ADD THIS
-});
-      }, 1000);
+      supabase.removeChannel(
+        channel
+      );
+
+      channel = null;
     }
-  });
+
+    isActive = false;
+
+    setTimeout(() => {
+
+      initRealtime({
+        onEmployeeUpdate,
+        onStrikeUpdate,
+        onTerminationUpdate,
+        onRequestUpdate,
+        onPresenceUpdate,
+        onWorkHoursUpdate,
+      });
+
+    }, 1000);
+  }
+});
 
   channel = newChannel;
 
+
   // ✅ CLEANUP
-  return () => {
-    if (channel) {
-      supabase.removeChannel(channel);
-      channel = null;
-    }
-    isActive = false;
-  };
+return () => {
+
+  if (channel) {
+
+    supabase.removeChannel(
+      channel
+    );
+
+    channel = null;
+  }
+
+  isActive = false;
+};
 }

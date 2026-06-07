@@ -57,13 +57,6 @@ export function AdminDataProvider({children}:{children:React.ReactNode}){
 
       setPermissions(permData || [])
 
-      // 🔥 REQUESTS
-const resReq = await fetch("/api/requests")
-
-if (resReq.ok) {
-  const reqData = await resReq.json()
-  setRequests(reqData || [])
-}
 
       // 🔐 username
       const { data:auth } = await supabase.auth.getUser()

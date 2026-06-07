@@ -62,7 +62,10 @@ export async function POST(
         status:
           "Denied",
 
-        denied_by_name:
+         denied_by_id:
+  managerId,
+
+        denied_by:
           managerId,
 
         denied_at:

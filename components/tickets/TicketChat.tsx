@@ -30,6 +30,8 @@ interface Props {
   senderName: string;
 
   tableName: string;
+
+  onTicketUpdated?: () => void;
 }
 
 export default function TicketChat({
@@ -43,6 +45,8 @@ export default function TicketChat({
   senderName,
 
   tableName,
+
+  onTicketUpdated,
 
 }: Props) {
 
@@ -260,20 +264,6 @@ useEffect(() => {
   );
 
   /*
-    HEARTBEAT
-  */
-
-  const interval =
-    setInterval(() => {
-
-      updateTicketView(
-        tableName,
-        ticketId
-      );
-
-    }, 15000);
-
-  /*
     LOAD MESSAGES
   */
 
@@ -293,42 +283,120 @@ useEffect(() => {
 
   channel
 
-    .on(
+.on(
 
-      "postgres_changes",
+  "postgres_changes",
 
-      {
+  {
 
-        event: "*",
+    event: "*",
 
-        schema: "public",
+    schema: "public",
 
-        table:
-          "request_comments",
+    table:
+      "loa_adjustment_requests",
 
-        filter:
-          `request_id=eq.${ticketId}`,
-      },
+    filter:
+      `loa_request_id=eq.${ticketId}`,
+  },
 
-      ()=>{
+  ()=>{
 
-        loadMessages();
+    loadMessages();
 
-        scrollToBottom();
-      }
-    )
+    scrollToBottom();
+  }
+)
 
-    .subscribe();
+channel
+
+  .on(
+
+    "postgres_changes",
+
+    {
+
+      event: "*",
+
+      schema: "public",
+
+      table:
+        "request_comments",
+
+      filter:
+        `request_id=eq.${ticketId}`,
+    },
+
+    (payload)=>{
+
+      console.log(
+        "REQUEST COMMENT REALTIME",
+        payload
+      );
+
+      loadMessages();
+
+      scrollToBottom();
+    }
+  )
+
+  .on(
+
+    "postgres_changes",
+
+    {
+
+      event: "*",
+
+      schema: "public",
+
+      table:
+        "request_events",
+
+      filter:
+        `request_id=eq.${ticketId}`,
+    },
+
+    ()=>{
+
+      loadMessages();
+
+      scrollToBottom();
+    }
+  )
+
+  channel
+
+.on(
+  "postgres_changes",
+  {
+    event: "*",
+    schema: "public",
+  },
+  (payload) => {
+
+    console.log(
+      "ANY DATABASE EVENT",
+      payload
+    );
+
+  }
+)
+
+ .subscribe((status)=>{
+
+  console.log(
+    "Realtime status:",
+    status
+  );
+
+});
 
   /*
     CLEANUP
   */
 
   return ()=>{
-
-    clearInterval(
-      interval
-    );
 
     supabase.removeChannel(
       channel
@@ -339,6 +407,28 @@ useEffect(() => {
   ticketId,
   tableName
 ]);
+
+useEffect(() => {
+
+  const handleRefresh = () => {
+
+    loadMessages();
+  };
+
+  window.addEventListener(
+    "refresh-ticket-chat",
+    handleRefresh
+  );
+
+  return () => {
+
+    window.removeEventListener(
+      "refresh-ticket-chat",
+      handleRefresh
+    );
+  };
+
+}, []);
 
 useEffect(()=>{
 
@@ -414,76 +504,64 @@ async function loadMessages() {
       }
     );
 
-  /*
-    EVENTS
-  */
+/*
+  ADJUSTMENT REQUESTS
+*/
 
-  const {
+const {
 
-    data: events,
+  data: adjustments,
 
-  } = await supabase
+} = await supabase
 
-    .from(
-      "request_events"
-    )
+  .from(
+    "loa_adjustment_requests"
+  )
 
-    .select("*")
+  .select("*")
 
-    .eq(
-      "request_id",
-      ticketId
-    )
+  .eq(
+    "loa_request_id",
+    ticketId
+  )
 
-    .in(
-      "event_type",
-
-      [
-
-        "loa_extension_requested",
-
-        "loa_early_return_requested",
-
-        "loa_start_date_change_requested",
-
-      ]
-    )
-
-    .order(
-      "created_at",
-      {
-        ascending: true,
-      }
-    );
+  .order(
+    "created_at",
+    {
+      ascending: true,
+    }
+  );
 
   /*
     MERGE
   */
 
-  const combined = [
+const combined = [
 
-    ...(comments || []).map(
-      (c: any)=>({
+  ...(comments || []).map(
+    (c:any)=>({
 
-        ...c,
+      ...c,
 
-        itemType:
-          "comment",
-      })
-    ),
+      itemType:
+        "comment",
+    })
+  ),
 
-    ...(events || []).map(
-      (e: any)=>({
+  ...(adjustments || []).map(
+    (a:any)=>({
 
-        ...e,
+      ...a,
 
-        itemType:
-          "event",
-      })
-    ),
-  ]
+      itemType:
+        "adjustment",
+    })
+  ),
+]
 
-  .sort((a: any, b: any)=>
+.sort((a:any,b:any)=>{
+
+  const timeDiff =
 
     new Date(a.created_at)
       .getTime()
@@ -491,8 +569,46 @@ async function loadMessages() {
     -
 
     new Date(b.created_at)
-      .getTime()
-  );
+      .getTime();
+
+  /*
+    SAME TIMESTAMP
+
+    COMMENTS FIRST
+    ADJUSTMENT CARD SECOND
+  */
+
+  if (
+
+    Math.abs(timeDiff) < 3000
+
+  ) {
+
+    if (
+
+      a.itemType === "comment" &&
+
+      b.itemType === "adjustment"
+
+    ) {
+
+      return -1;
+    }
+
+    if (
+
+      a.itemType === "adjustment" &&
+
+      b.itemType === "comment"
+
+    ) {
+
+      return 1;
+    }
+  }
+
+  return timeDiff;
+});
 
   setMessages(combined);
 }
@@ -501,16 +617,20 @@ function scrollToBottom() {
 
   setTimeout(()=>{
 
-    messagesEndRef.current
-      ?.scrollIntoView({
+    if (!chatRef.current)
+      return;
 
-        behavior:
-          "smooth",
-      });
+    chatRef.current.scrollTo({
+
+      top:
+        chatRef.current.scrollHeight,
+
+      behavior:
+        "smooth",
+    });
 
   }, 50);
 }
-
   async function sendMessage() {
 
 if (
@@ -800,22 +920,29 @@ pb-40
 
         {messages.map((msg)=>{
 
-          if (
+if (
   msg.itemType ===
-  "event"
+  "adjustment"
 ) {
+
+  if (
+    senderRole !== "manager"
+  ) {
+    return null;
+  }
 
   return (
 
     <AdjustmentRequestCard
-
       key={msg.id}
+      adjustment={msg}
+      onUpdated={async () => {
 
-      event={msg}
+        await loadMessages();
 
-      onUpdated={
-        loadMessages
-      }
+        await onTicketUpdated?.();
+
+      }}
     />
   );
 }

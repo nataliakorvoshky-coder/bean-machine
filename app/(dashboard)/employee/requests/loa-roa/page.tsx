@@ -345,8 +345,7 @@ await fetch("/api/activity", {
 });
 
 router.push(
-
-  `/employee/requests/loa/${result.request.id}`
+  `/employee/requests/loa-roa/${result.request.id}`
 );
 
     } catch (err) {

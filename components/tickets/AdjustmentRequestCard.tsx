@@ -38,229 +38,76 @@ AdjustmentRequestCard({
     );
   }
 
-  async function updateStatus(
-    status: string
-  ) {
+async function updateStatus(
+  status: string
+) {
 
-    /*
-      UPDATE ADJUSTMENT
-    */
+  const routeMap: Record<string, string> = {
 
-    await supabase
+    extension:
+      "extension",
 
-      .from(
-        "loa_adjustment_requests"
-      )
+    early_return:
+      "early-return",
 
-      .update({
+    start_date_change:
+      "start-date-change",
+  };
 
-        status,
+  const route =
+    routeMap[
+      adjustment.request_type
+    ];
 
-        reviewed_at:
-          new Date()
-            .toISOString(),
-      })
+  const endpoint =
 
-      .eq(
-        "id",
-        adjustment.id
-      );
+    status === "approved"
 
-    /*
-      APPLY CHANGES
-    */
+      ? `/api/manager/loa/approve-${route}`
 
-    if (
-      status ===
-      "approved"
-    ) {
+      : `/api/manager/loa/deny-${route}`;
 
-      /*
-        EXTENSION
-      */
+  console.log(
+    "CALLING:",
+    endpoint
+  );
 
-      if (
-        adjustment.request_type ===
-        "extension"
-      ) {
+  const res = await fetch(
+    endpoint,
+    {
+      method: "POST",
 
-        await supabase
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
 
-          .from(
-            "loa_requests"
-          )
+      body: JSON.stringify({
 
-          .update({
-
-            end_date:
-              adjustment.requested_end_date,
-          })
-
-          .eq(
-            "id",
-            adjustment.loa_request_id
-          );
-      }
-
-      /*
-        EARLY RETURN
-      */
-
-      if (
-        adjustment.request_type ===
-        "early_return"
-      ) {
-
-        await supabase
-
-          .from(
-            "loa_requests"
-          )
-
-          .update({
-
-            end_date:
-              adjustment.requested_end_date,
-          })
-
-          .eq(
-            "id",
-            adjustment.loa_request_id
-          );
-      }
-
-      /*
-        START DATE CHANGE
-      */
-
-      if (
-        adjustment.request_type ===
-        "start_date_change"
-      ) {
-
-        await supabase
-
-          .from(
-            "loa_requests"
-          )
-
-          .update({
-
-            start_date:
-              adjustment.requested_start_date,
-          })
-
-          .eq(
-            "id",
-            adjustment.loa_request_id
-          );
-      }
-    }
-
-    /*
-      AUDIT EVENT
-    */
-
-    await supabase
-
-      .from(
-        "request_events"
-      )
-
-      .insert({
-
-        request_table:
-          "loa_requests",
-
-        request_id:
-          adjustment.loa_request_id,
-
-        related_id:
+        adjustmentId:
           adjustment.id,
 
-        event_type:
-
-status === "approved"
-
-? "loa_adjustment_approved"
-
-: "loa_adjustment_denied",
-
-        metadata: {
-
-          request_type:
-            adjustment.request_type,
-        },
-
-        created_at:
-          new Date()
-            .toISOString(),
-      });
-
-    /*
-      SYSTEM CHAT MESSAGE
-    */
-
-    await supabase
-
-      .from(
-        "request_comments"
-      )
-
-      .insert({
-
-        request_id:
+        loaRequestId:
           adjustment.loa_request_id,
+      }),
+    }
+  );
 
-        request_type:
-          "loa",
+  if (!res.ok) {
 
-        sender_role:
-          "manager",
+    const text =
+      await res.text();
 
-        sender_name:
-          "System",
+    console.error(
+      "API ERROR:",
+      text
+    );
 
-        message_type:
-          "workflow",
-
-        message:
-
-status === "approved"
-
-? `Approved adjustment request.`
-
-: `Denied adjustment request.`,
-
-        created_at:
-          new Date()
-            .toISOString(),
-      });
-
-    /*
-      UPDATE ACTIVITY
-    */
-
-    await supabase
-
-      .from(
-        "loa_requests"
-      )
-
-      .update({
-
-        last_activity_at:
-          new Date()
-            .toISOString(),
-      })
-
-      .eq(
-        "id",
-        adjustment.loa_request_id
-      );
-
-    onUpdated();
+    return;
   }
+
+  onUpdated();
+}
 
   return (
 

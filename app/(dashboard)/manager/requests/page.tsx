@@ -1291,6 +1291,13 @@ const {
   req.last_viewed_at
 );
 
+console.log({
+  subject: req.subject,
+  activity: req.last_activity_at,
+  viewed: req.last_viewed_at,
+  updatedRecently,
+});
+
   return (
 
 

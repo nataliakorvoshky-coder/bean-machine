@@ -201,14 +201,13 @@ async function submitAdjustmentRequest() {
       RESET
     */
 
-    setRequestAction("");
-    setRequestedDate("");
+setRequestedDate("");
 
-    /*
-      REFRESH
-    */
-
-    loadTicket();
+window.dispatchEvent(
+  new Event(
+    "refresh-ticket-chat"
+  )
+);
 
   } catch (err) {
 
@@ -250,6 +249,8 @@ className="
 
   grid-cols-[minmax(0,1fr)_380px]
 
+  items-start
+
   gap-6
 
   w-full
@@ -289,9 +290,6 @@ tableName="loa_requests"
 
 <div
   className="
-    sticky
-    top-6
-
     self-start
   "
 >
@@ -377,6 +375,24 @@ tableName="loa_requests"
               ).toLocaleString()
             }
           />
+
+         <Info
+  label="Start Date"
+  value={
+    ticket.start_date 
+         ? ticket.start_date     
+      : "--"
+  }
+/>
+
+<Info
+  label="End Date"
+value={
+  ticket.end_date
+    ? ticket.end_date
+    : "--"
+}
+/>
 
           <Info
             label="Priority"
@@ -682,7 +698,9 @@ function Info({
 
       </div>
 
+      
     </div>
+
 
   );
 }

@@ -66,7 +66,7 @@ const {
 approved_by_id:
   managerId,
 
-approved_by_name:
+approved_by:
   managerName,
 
         approved_at:

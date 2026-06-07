@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",   // ✅ ADD THIS
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
