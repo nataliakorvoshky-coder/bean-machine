@@ -141,6 +141,29 @@ useEffect(() => {
 
     .subscribe();
 
+    const complaintChannel = supabase
+
+  .channel(
+    "employee-complaint-requests"
+  )
+
+  .on(
+    "postgres_changes",
+
+    {
+      event: "*",
+      schema: "public",
+      table:
+        "complaint_requests",
+    },
+
+    () => {
+      loadRequests();
+    }
+  )
+
+  .subscribe();
+
   return () => {
 
     supabase.removeChannel(
@@ -150,6 +173,11 @@ useEffect(() => {
     supabase.removeChannel(
       loaChannel
     );
+
+    supabase.removeChannel(
+  complaintChannel
+);
+
   };
 
 }, []);
@@ -202,6 +230,23 @@ useEffect(() => {
         employeeData.id
       );
 
+      // Complaints
+
+      const {
+  data: complaints
+} = await supabase
+
+  .from(
+    "complaint_requests"
+  )
+
+  .select("*")
+
+  .eq(
+    "employee_id",
+    employeeData.id
+  );
+
       /*
   LOAD TICKET VIEWS
 */
@@ -219,21 +264,27 @@ const {
     user.id
   );
 
-    const merged = [
+const merged = [
 
-      ...(hours || []).map((r) => ({
-        ...r,
-        request_type:
-          "Hours Exception",
-      })),
+  ...(hours || []).map((r) => ({
+    ...r,
+    request_type:
+      "Hours Exception",
+  })),
 
-      ...(loa || []).map((r) => ({
-        ...r,
-        request_type:
-          "LOA / ROA",
-      })),
+  ...(loa || []).map((r) => ({
+    ...r,
+    request_type:
+      "LOA / ROA",
+  })),
 
-    ];
+  ...(complaints || []).map((r) => ({
+    ...r,
+    request_type:
+      "Complaint",
+  })),
+
+];
 
     merged.sort((a, b) => {
 
@@ -251,14 +302,26 @@ const mergedWithViews =
 
   merged.map((req) => {
 
-    const requestTable =
+let requestTable =
+  "loa_requests";
 
-      req.request_type ===
-      "Hours Exception"
+if (
+  req.request_type ===
+  "Hours Exception"
+) {
 
-        ? "hours_exception_requests"
+  requestTable =
+    "hours_exception_requests";
+}
 
-        : "loa_requests";
+if (
+  req.request_type ===
+  "Complaint"
+) {
+
+  requestTable =
+    "complaint_requests";
+}
 
     const view =
       views?.find(
@@ -314,7 +377,7 @@ const deniedCount =
     (r) => r.status === "Completed"
   ).length;
 
-  const typeOptions = [
+const typeOptions = [
 
   {
     id: "",
@@ -329,6 +392,11 @@ const deniedCount =
   {
     id: "LOA / ROA",
     name: "LOA / ROA",
+  },
+
+  {
+    id: "Complaint",
+    name: "Complaint",
   },
 
 ];
@@ -851,6 +919,11 @@ href={
     "Hours Exception"
 
     ? `/employee/requests/hours-exception/${req.id}`
+
+  : req.request_type ===
+    "Complaint"
+
+    ? `/employee/requests/complaints/${req.id}`
 
     : `/employee/requests/loa-roa/${req.id}`
 }

@@ -268,14 +268,29 @@ newChannel.subscribe((status, err) => {
 
   ) {
 
-    console.error(
-      "❌ Realtime error — resetting...",
-      {
-        status,
-        topic: newChannel.topic,
-        state: newChannel.state,
-      }
-    );
+console.error(
+  "❌ REALTIME FAILURE"
+);
+
+console.log(
+  "STATUS:",
+  status
+);
+
+console.log(
+  "TOPIC:",
+  newChannel.topic
+);
+
+console.log(
+  "STATE:",
+  newChannel.state
+);
+
+console.log(
+  "CHANNEL:",
+  newChannel
+);
 
     if (channel) {
 

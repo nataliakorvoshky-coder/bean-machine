@@ -308,53 +308,59 @@ export default function HoursExceptionPage() {
         }
       }
 
-      const { error } =
-        await supabase
+const {
+  data: request,
+  error,
+} = await supabase
 
-          .from(
-            "hours_exception_requests"
-          )
+  .from(
+    "hours_exception_requests"
+  )
 
-          .insert({
+  .insert({
 
-            employee_id:
-              employeeData?.id,
+    employee_id:
+      employeeData?.id,
 
-            employee_name:
-              employeeData?.name,
+    employee_name:
+      employeeData?.name,
 
-            exception_type:
-              form.exception_type,
+    exception_type:
+      form.exception_type,
 
-            requested_hours:
-              Number(
-                form.requested_hours
-              ),
+    requested_hours:
+      Number(
+        form.requested_hours
+      ),
 
-            current_hours:
-              form.current_hours,
+    current_hours:
+      form.current_hours,
 
-            required_hours:
-              form.required_hours,
+    required_hours:
+      form.required_hours,
 
-            week_of:
-              form.week_of,
+    week_of:
+      form.week_of,
 
-            subject:
-              form.subject,
+    subject:
+      form.subject,
 
-            reason:
-              form.description,
+    reason:
+      form.description,
 
-            photo_url:
-              photoUrl,
+    photo_url:
+      photoUrl,
 
-            video_url:
-              videoUrl,
+    video_url:
+      videoUrl,
 
-            status:
-              "Pending",
-          });
+    status:
+      "Pending",
+  })
+
+  .select()
+
+  .single();
 
       if (error) {
 
@@ -439,7 +445,7 @@ await fetch("/api/activity", {
 });
 
 router.push(
-  "/employee/requests"
+  `/employee/requests/hours-exception/${request.id}`
 );
 
     } catch (err) {

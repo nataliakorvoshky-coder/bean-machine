@@ -161,6 +161,24 @@ const topMonthly =
 const topYearly =
   yearly.filter(isVisibleEmployee)[0]
 
+  const leaderboard = [
+
+  ...topEmployees.filter(
+    isVisibleEmployee
+  ),
+
+  ...[topWeekly, topMonthly, topYearly]
+    .filter(Boolean)
+    .map(extra => ({
+      ...extra,
+      name:
+        extra.employee_name ||
+        extra.name,
+      calculated_lifetime_hours: 0,
+    })),
+
+];
+
   if(loading){
     return(
       <div className="p-10 text-gray-500">
@@ -259,7 +277,7 @@ const topYearly =
   .filter(isVisibleEmployee)
   .map(emp => (
 <div
-  key={emp.id}
+  key={emp.name}
   className="
     flex justify-between items-center
     bg-white shadow rounded-xl
@@ -356,36 +374,12 @@ const topYearly =
           <div className="p-6 text-gray-500 text-sm">
             No data available
           </div>
-        ) : (
-[
-  ...topEmployees.filter(isVisibleEmployee),
+) : (
 
-  ...[topWeekly, topMonthly, topYearly]
-    .filter(Boolean)
+leaderboard.map((emp:any, index:number) => (
 
-    .filter(extra =>
-
-      !topEmployees.some(
-        t =>
-          t.name ===
-          (extra.employee_name || extra.name)
-      )
-
-    )
-
-    .map(extra => ({
-      ...extra,
-      name:
-        extra.employee_name || extra.name,
-      calculated_lifetime_hours: 0
-    }))
-
-]
-
-.map((emp:any) => (
-
-<div
-  key={emp.id}
+ <div
+ key={`${emp.name}-${index}`}
   className="
     flex justify-between items-center
     bg-white shadow rounded-xl
@@ -505,8 +499,8 @@ const topYearly =
         ) : (
           employees.map(emp => (
 
-            <div
-              key={emp.id}
+<div
+  key={emp.name}
               className="grid grid-cols-5 px-6 py-3 text-sm border-b items-center"
             >
 

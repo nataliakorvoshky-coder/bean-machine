@@ -53,6 +53,9 @@ export default function TicketChat({
   const [messages, setMessages] =
     useState<any[]>([]);
 
+const didInitialScrollRef =
+  useRef(false);
+
   const [newMessage, setNewMessage] =
     useState("");
 
@@ -64,6 +67,7 @@ export default function TicketChat({
 
   const [openReactionId, setOpenReactionId] =
     useState<string | null>(null);
+
 
   const [typingUsers, setTypingUsers] =
     useState<any[]>([]);
@@ -263,11 +267,25 @@ useEffect(() => {
     ticketId
   );
 
-  /*
-    LOAD MESSAGES
-  */
+/*
+  LOAD MESSAGES
+*/
 
-  loadMessages();
+(async ()=>{
+
+  await loadMessages();
+
+  requestAnimationFrame(()=>{
+
+    requestAnimationFrame(()=>{
+
+      scrollToBottom();
+
+    });
+
+  });
+
+})();
 
   /*
     REALTIME
@@ -300,12 +318,18 @@ useEffect(() => {
       `loa_request_id=eq.${ticketId}`,
   },
 
-  ()=>{
+(payload)=>{
 
-    loadMessages();
+  loadMessages();
+
+  if (
+    payload.eventType ===
+    "INSERT"
+  ) {
 
     scrollToBottom();
   }
+}
 )
 
 channel
@@ -327,17 +351,23 @@ channel
         `request_id=eq.${ticketId}`,
     },
 
-    (payload)=>{
+(payload)=>{
 
-      console.log(
-        "REQUEST COMMENT REALTIME",
-        payload
-      );
+  console.log(
+    "REQUEST COMMENT REALTIME",
+    payload
+  );
 
-      loadMessages();
+  loadMessages();
 
-      scrollToBottom();
-    }
+  if (
+    payload.eventType ===
+    "INSERT"
+  ) {
+
+    scrollToBottom();
+  }
+}
   )
 
   .on(
@@ -357,12 +387,18 @@ channel
         `request_id=eq.${ticketId}`,
     },
 
-    ()=>{
+(payload)=>{
 
-      loadMessages();
+  loadMessages();
 
-      scrollToBottom();
-    }
+  if (
+    payload.eventType ===
+    "INSERT"
+  ) {
+
+    scrollToBottom();
+  }
+}
   )
 
   channel
@@ -430,16 +466,6 @@ useEffect(() => {
 
 }, []);
 
-useEffect(()=>{
-
-  if (
-    messages.length > 0
-  ) {
-
-    scrollToBottom();
-  }
-
-}, [messages]);
 
   useEffect(()=>{
 
@@ -1037,31 +1063,49 @@ if (
 
 {editingMessageId === msg.id ? (
 
-  <textarea
+<textarea
 
-    value={editText}
+  value={editText}
 
-    onChange={(e)=>
-      setEditText(
-        e.target.value
-      )
+  onChange={(e)=>
+    setEditText(
+      e.target.value
+    )
+  }
+
+  onKeyDown={(e)=>{
+
+    if (
+
+      e.key === "Enter" &&
+
+      !e.shiftKey
+
+    ) {
+
+      e.preventDefault();
+
+      saveEdit(
+        msg.id
+      );
     }
+  }}
 
-    className="
-      w-full
+  className="
+    w-full
 
-      border
-      border-emerald-200
+    border
+    border-emerald-200
 
-      rounded-xl
+    rounded-xl
 
-      p-2
+    p-2
 
-      text-sm
+    text-sm
 
-      focus:outline-none
-    "
-  />
+    focus:outline-none
+  "
+/>
 
 ) : (
 

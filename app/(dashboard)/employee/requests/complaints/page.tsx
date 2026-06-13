@@ -5,6 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { logActivity } from "@/lib/logActivity"
 import StyledDropdown from "@/components/StyledDropdown";
 import StyledDatePicker from "@/components/StyledDatePicker"
+import {
+  useRouter
+} from "next/navigation";
 
 const complaintTypes = [
 
@@ -68,6 +71,9 @@ const complaintAgainstOptions = [
 ];
 
 export default function ComplaintRequestPage() {
+
+  const router =
+  useRouter();
 
   const [loading, setLoading] =
     useState(false);
@@ -233,174 +239,98 @@ if (form.video) {
   }
 }
 
-      const { error } =
-        await supabase
+const res = await fetch(
+  "/api/employee/complaints/submit",
+  {
+    method: "POST",
 
-          .from(
-            "complaint_requests"
-          )
+    headers: {
+      "Content-Type":
+        "application/json",
+    },
 
-.insert({
+    body: JSON.stringify({
 
-  employee_id:
+      employee_id:
 
-    form.anonymous
+        form.anonymous
 
-      ? null
+          ? null
 
-      : employeeData?.id,
+          : employeeData?.id,
 
-  employee_name:
+      employee_name:
 
-    form.anonymous
+        form.anonymous
 
-      ? "Anonymous"
+          ? "Anonymous"
 
-      : employeeData?.name,
+          : employeeData?.name,
 
-  complaint_against:
-    form.complaint_against,
+      complaint_against:
+        form.complaint_against,
 
-  visibility_level:
+      visibility_level:
 
-    form.complaint_against ===
-    "Supervisor"
+        form.complaint_against ===
+        "Supervisor"
 
-      ? "manager"
+          ? "manager"
 
-      : form.complaint_against ===
-        "Manager"
+          : form.complaint_against ===
+            "Manager"
 
-      ? "owner"
+          ? "owner"
 
-      : "supervisor",
+          : "supervisor",
 
-  complaint_type:
-    form.complaint_type,
+      complaint_type:
+        form.complaint_type,
 
-  subject:
-    form.subject,
+      subject:
+        form.subject,
 
-  description:
-    form.description,
+      description:
+        form.description,
 
-  involved_people:
-    form.involved_people,
+      involved_people:
+        form.involved_people,
 
-  incident_date:
-    form.incident_date,
+      incident_date:
+        form.incident_date,
 
-  requested_resolution:
-    form.requested_resolution,
+      requested_resolution:
+        form.requested_resolution,
 
-    photo_url:
-  photoUrl,
+      photo_url:
+        photoUrl,
 
-video_url:
-  videoUrl,
+      video_url:
+        videoUrl,
 
-  anonymous:
-    form.anonymous,
+      anonymous:
+        form.anonymous,
+    }),
+  }
+);
 
-  status:
-    "Pending",
-})
+const result =
+  await res.json();
 
-      if (error) {
+if (!res.ok) {
 
-        console.error(error)
+  alert(
+    result.error
+  );
 
-        alert(error.message)
+  return;
+}
 
-        return
-      }
+router.push(
+  `/employee/requests/complaints/${result.request.id}`
+);
 
-      /* ACTIVITY LOG */
-
-await fetch("/api/activity", {
-
-  method: "POST",
-
-  headers: {
-    "Content-Type":
-      "application/json",
-  },
-
-  body: JSON.stringify({
-
-    action:
-      `Submitted complaint: ${form.subject}`,
-
-    type:
-      "complaint_request",
-
-    userId:
-      user.id,
-
-    username:
-      profile?.username,
-
-    employeeName:
-
-      form.anonymous
-
-        ? "Anonymous"
-
-        : employeeData?.name,
-
-    details: [
-
-      {
-        name:
-          "Complaint Type",
-
-        amount:
-          form.complaint_type,
-      },
-
-      {
-        name:
-          "Against",
-
-        amount:
-          form.complaint_against,
-      },
-
-      {
-        name:
-          "Subject",
-
-        amount:
-          form.subject,
-      },
-    ],
-  }),
-})
-
-      setSubmitted(true)
-
-      setForm({
-
-        complaint_type: "",
-
-        complaint_against: "",
-
-        subject: "",
-
-        description: "",
-
-        involved_people: "",
-
-        incident_date: "",
-
-        requested_resolution: "",
-
-        photo: null,
-
-video: null,
-
-        anonymous: false,
-      })
+return;
 
     } catch (err) {
 

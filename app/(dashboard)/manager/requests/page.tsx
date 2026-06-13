@@ -109,6 +109,29 @@ useEffect(() => {
 
     .subscribe();
 
+    const complaintChannel = supabase
+
+  .channel(
+    "complaint-requests"
+  )
+
+  .on(
+    "postgres_changes",
+
+    {
+      event: "*",
+      schema: "public",
+      table:
+        "complaint_requests",
+    },
+
+    () => {
+      loadRequests();
+    }
+  )
+
+  .subscribe();
+
   return () => {
 
     supabase.removeChannel(
@@ -118,6 +141,11 @@ useEffect(() => {
     supabase.removeChannel(
       loaChannel
     );
+
+    supabase.removeChannel(
+  complaintChannel
+);
+
   };
 
 }, []);
@@ -214,6 +242,17 @@ if (!user)
         .from("loa_requests")
         .select("*");
 
+        // Complaint
+
+        const { data: complaints } =
+  await supabase
+
+    .from(
+      "complaint_requests"
+    )
+
+    .select("*");
+
         /*
   LOAD VIEWS
 */
@@ -231,21 +270,27 @@ const {
     user.id
   );
 
-    const merged = [
+const merged = [
 
-      ...(hours || []).map((r) => ({
-        ...r,
-        request_category:
-          "Hours Exception",
-      })),
+  ...(hours || []).map((r) => ({
+    ...r,
+    request_category:
+      "Hours Exception",
+  })),
 
-      ...(loa || []).map((r) => ({
-        ...r,
-        request_category:
-          "LOA / ROA",
-      })),
+  ...(loa || []).map((r) => ({
+    ...r,
+    request_category:
+      "LOA / ROA",
+  })),
 
-    ];
+  ...(complaints || []).map((r) => ({
+    ...r,
+    request_category:
+      "Complaint",
+  })),
+
+];
 
     merged.sort((a, b) => {
 
@@ -285,14 +330,24 @@ const mergedWithViews =
 
   merged.map((req) => {
 
-    const requestTable =
+let requestTable =
+  "loa_requests";
 
-      req.request_category ===
-      "Hours Exception"
+if (
+  req.request_category ===
+  "Hours Exception"
+) {
+  requestTable =
+    "hours_exception_requests";
+}
 
-        ? "hours_exception_requests"
-
-        : "loa_requests";
+if (
+  req.request_category ===
+  "Complaint"
+) {
+  requestTable =
+    "complaint_requests";
+}
 
     const view =
       views?.find(
@@ -324,11 +379,24 @@ setRequests(
 
   async function claim(req: any) {
 
-  const table =
-    req.request_category ===
-    "Hours Exception"
-      ? "hours_exception_requests"
-      : "loa_requests";
+let table =
+  "loa_requests";
+
+if (
+  req.request_category ===
+  "Hours Exception"
+) {
+  table =
+    "hours_exception_requests";
+}
+
+if (
+  req.request_category ===
+  "Complaint"
+) {
+  table =
+    "complaint_requests";
+}
 
   await fetch(
     "/api/requests/update",
@@ -391,11 +459,24 @@ updates: {
 
 async function approve(req: any) {
 
-  const table =
-    req.request_category ===
-    "Hours Exception"
-      ? "hours_exception_requests"
-      : "loa_requests";
+let table =
+  "loa_requests";
+
+if (
+  req.request_category ===
+  "Hours Exception"
+) {
+  table =
+    "hours_exception_requests";
+}
+
+if (
+  req.request_category ===
+  "Complaint"
+) {
+  table =
+    "complaint_requests";
+}
 
   await fetch(
     "/api/requests/update",
@@ -459,11 +540,24 @@ async function approve(req: any) {
 
 async function deny(req: any) {
 
-  const table =
-    req.request_category ===
-    "Hours Exception"
-      ? "hours_exception_requests"
-      : "loa_requests";
+let table =
+  "loa_requests";
+
+if (
+  req.request_category ===
+  "Hours Exception"
+) {
+  table =
+    "hours_exception_requests";
+}
+
+if (
+  req.request_category ===
+  "Complaint"
+) {
+  table =
+    "complaint_requests";
+}
 
   await fetch(
     "/api/requests/update",
@@ -528,11 +622,24 @@ async function addComment(req: any) {
 
   if (!comment.trim()) return;
 
-  const table =
-    req.request_category ===
-    "Hours Exception"
-      ? "hours_exception_requests"
-      : "loa_requests";
+let table =
+  "loa_requests";
+
+if (
+  req.request_category ===
+  "Hours Exception"
+) {
+  table =
+    "hours_exception_requests";
+}
+
+if (
+  req.request_category ===
+  "Complaint"
+) {
+  table =
+    "complaint_requests";
+}
 
   await fetch(
     "/api/requests/update",
@@ -585,11 +692,24 @@ async function reassign(req: any) {
 
   if (!reassignTo.trim()) return;
 
-  const table =
-    req.request_category ===
-    "Hours Exception"
-      ? "hours_exception_requests"
-      : "loa_requests";
+ let table =
+  "loa_requests";
+
+if (
+  req.request_category ===
+  "Hours Exception"
+) {
+  table =
+    "hours_exception_requests";
+}
+
+if (
+  req.request_category ===
+  "Complaint"
+) {
+  table =
+    "complaint_requests";
+}
 
   await fetch(
     "/api/requests/update",
@@ -1335,15 +1455,20 @@ console.log({
 
 <Link
 
-  href={
+href={
 
-    req.request_category ===
-    "Hours Exception"
+  req.request_category ===
+  "Hours Exception"
 
-      ? `/manager/requests/hours-exception/${req.id}`
+    ? `/manager/requests/hours-exception/${req.id}`
 
-      : `/manager/requests/loa-roa/${req.id}`
-  }
+  : req.request_category ===
+    "Complaint"
+
+    ? `/manager/requests/complaints/${req.id}`
+
+    : `/manager/requests/loa-roa/${req.id}`
+}
 
   className="
     block
