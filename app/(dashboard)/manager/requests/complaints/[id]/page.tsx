@@ -25,6 +25,12 @@ import TicketChat
   import EvidenceVault
   from "@/components/tickets/EvidenceVault";
 
+import OwnerChat
+  from "@/components/tickets/OwnerChat";
+
+import OwnerChatSidebar 
+  from "@/components/tickets/OwnerChatSidebar";
+
 export default function ComplaintsTicketPage() {
 
   const params =
@@ -55,6 +61,54 @@ console.log(
   setActiveTab
 ] = useState("chat");
 
+const [
+  profile,
+  setProfile
+] = useState<any>(null);
+
+
+useEffect(() => {
+
+  loadProfile();
+
+}, []);
+
+async function loadProfile() {
+
+  const {
+    data: auth
+  } = await supabase
+    .auth
+    .getUser();
+
+  if (!auth?.user)
+    return;
+
+const {
+  data
+} = await supabase
+
+  .from("profiles")
+
+  .select(`
+    *,
+    roles (
+      id,
+      name,
+      level
+    )
+  `)
+
+  .eq(
+    "id",
+    auth.user.id
+  )
+
+  .single();
+
+  setProfile(data);
+
+}
 
 useEffect(() => {
 
@@ -566,6 +620,40 @@ max-w-none
       Evidence Vault
     </button>
 
+{profile?.roles?.name ===
+  "admin" && (
+
+<button
+
+  onClick={() =>
+    setActiveTab(
+      "owner-chat"
+    )
+  }
+
+  className={`
+    px-4
+    py-2
+
+    rounded-xl
+
+    text-sm
+    font-semibold
+
+    ${
+      activeTab === "owner-chat"
+
+        ? "bg-emerald-600 text-white"
+
+        : "bg-white border border-emerald-200 text-emerald-700"
+    }
+  `}
+>
+  Owner Chat
+</button>
+
+)}
+
   </div>
 
 {activeTab ===
@@ -610,27 +698,49 @@ max-w-none
 
 )}
 
+{activeTab ===
+  "owner-chat" && (
+
+<OwnerChat
+
+  complaintId={
+    ticket.id
+  }
+
+/>
+
+)}
+
   </div>
 
-  {/* RIGHT SIDE */}
+{/* RIGHT SIDE */}
 
-  <div>
+<div>
 
-      {/* TOP */}
+{activeTab === "owner-chat" ? (
 
-      <div
-        className="
-          bg-white
+  <OwnerChatSidebar
 
-          border
-          border-emerald-100
+    complaintId={ticket.id}
 
-          rounded-2xl
-          shadow-sm
+  />
 
-          p-6
-        "
-      >
+) : (
+
+  <>
+
+    {/* TOP */}
+
+    <div
+      className="
+        bg-white
+        border
+        border-emerald-100
+        rounded-2xl
+        shadow-sm
+        p-6
+      "
+    >
 
         <div
           className="
@@ -919,9 +1029,11 @@ max-w-none
 
 )}
 
-</div>
+</div> 
 
-</div>
+</div> 
+
+</div> 
 
 {/* MANAGER ACTIONS */}
 
@@ -1061,15 +1173,17 @@ max-w-none
   }}
 />
 
-        </div>
+    </div> 
 
-      </div>
+  </>     
 
-    </div>
+)}         
 
-  </div>
+</div>     
 
-</div>
+</div>     
+
+</div>    
 
   );
 }

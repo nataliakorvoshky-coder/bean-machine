@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { createClient }
-  from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
 const supabase =
   createClient(
@@ -25,12 +24,7 @@ export async function POST(
     const {
       ticketId,
       managerId,
-      managerName,
     } = body;
-
-    /*
-      VALIDATION
-    */
 
     if (
       !ticketId ||
@@ -46,63 +40,6 @@ export async function POST(
 
         {
           status: 400,
-        }
-      );
-    }
-
-    /*
-      UPDATE TICKET
-    */
-
-    const {
-      error:
-        updateError,
-    } = await supabase
-
-      .from(
-        "loa_requests"
-      )
-
-      .update({
-
-        status:
-          "Completed",
-
-        completed_by_id:
-          managerId,
-
-        completed_by:
-          managerName,
-
-        completed_at:
-          new Date()
-            .toISOString(),
-
-        last_activity_at:
-          new Date()
-            .toISOString(),
-      })
-
-      .eq(
-        "id",
-        ticketId
-      );
-
-    /*
-      UPDATE ERROR
-    */
-
-    if (updateError) {
-
-      return NextResponse.json(
-
-        {
-          error:
-            updateError.message,
-        },
-
-        {
-          status: 500,
         }
       );
     }
@@ -130,7 +67,7 @@ export async function POST(
       .maybeSingle();
 
     /*
-      GET EMPLOYEE
+      GET MANAGER EMPLOYEE
     */
 
     const {
@@ -150,6 +87,110 @@ export async function POST(
 
       .maybeSingle();
 
+      /*
+  GET CURRENT TICKET
+*/
+
+const {
+  data: currentTicket,
+} = await supabase
+
+  .from(
+    "complaint_requests"
+  )
+
+  .select(`
+    escalation_level
+  `)
+
+  .eq(
+    "id",
+    ticketId
+  )
+
+  .maybeSingle();
+
+const currentLevel =
+  currentTicket?.escalation_level || 0;
+
+/*
+  MAX ESCALATION CHECK
+*/
+
+if (currentLevel >= 2) {
+
+  return NextResponse.json(
+
+    {
+      error:
+        "Maximum escalation reached",
+    },
+
+    {
+      status: 400,
+    }
+  );
+}
+
+const nextLevel =
+  currentLevel + 1;
+
+    /*
+      UPDATE TICKET
+    */
+
+    const {
+      error:
+        updateError,
+    } = await supabase
+
+      .from(
+        "complaint_requests"
+      )
+
+.update({
+
+  escalated: true,
+
+  escalation_level:
+    nextLevel,
+
+  escalated_by:
+    managerEmployee?.name,
+
+  escalated_by_id:
+    managerId,
+
+  escalated_at:
+    new Date()
+      .toISOString(),
+
+        last_activity_at:
+    new Date()
+      .toISOString(),
+      
+})
+
+      .eq(
+        "id",
+        ticketId
+      );
+
+    if (updateError) {
+
+      return NextResponse.json(
+
+        {
+          error:
+            updateError.message,
+        },
+
+        {
+          status: 500,
+        }
+      );
+    }
+
     /*
       GET TICKET
     */
@@ -159,7 +200,7 @@ export async function POST(
     } = await supabase
 
       .from(
-        "loa_requests"
+        "complaint_requests"
       )
 
       .select(`
@@ -175,7 +216,7 @@ export async function POST(
       .maybeSingle();
 
     /*
-      ACTIVITY LOG
+      ACTIVITY FEED LOG
     */
 
     await supabase
@@ -184,11 +225,11 @@ export async function POST(
 
       .insert({
 
-        action:
-          `Completed "${ticket?.subject}" for ${ticket?.employee_name}`,
+action:
+  `Escalated "${ticket?.subject}" to level ${nextLevel} for ${ticket?.employee_name}`,
 
         type:
-          "LOA/ROA",
+          "Complaints",
 
         username:
           managerProfile?.username,
@@ -201,14 +242,13 @@ export async function POST(
             .toISOString(),
       });
 
-    /*
-      RESPONSE
-    */
+return NextResponse.json({
 
-    return NextResponse.json({
+  success: true,
 
-      success: true,
-    });
+  escalation_level:
+    nextLevel,
+});
 
   } catch (err: any) {
 

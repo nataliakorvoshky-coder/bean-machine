@@ -91,6 +91,26 @@ const [fromDate, setFromDate] =
 const [toDate, setToDate] =
   useState("");
 
+  const [
+  activeTab,
+  setActiveTab
+] = useState<
+
+  "my" |
+  "owner"
+
+>("my");
+
+const [
+  ownerRequests,
+  setOwnerRequests
+] = useState<any[]>([]);
+
+const [
+  ownerUnreadCount,
+  setOwnerUnreadCount
+] = useState(0);
+
 useEffect(() => {
 
   loadRequests();
@@ -246,6 +266,191 @@ useEffect(() => {
     "employee_id",
     employeeData.id
   );
+
+// Owner Request
+
+  const {
+  data: memberships
+} = await supabase
+
+  .from(
+    "owner_chat_members"
+  )
+
+  .select(`
+    complaint_id
+  `)
+
+  .eq(
+    "employee_id",
+    employeeData.id
+  );
+
+  const ownerComplaintIds =
+
+  memberships?.map(
+    x => x.complaint_id
+  ) || [];
+
+let ownerComplaints = [];
+
+if (
+  ownerComplaintIds.length > 0
+) {
+
+  const {
+    data
+  } = await supabase
+
+    .from(
+      "complaint_requests"
+    )
+
+    .select("*")
+
+    .in(
+      "id",
+      ownerComplaintIds
+    );
+
+ownerComplaints =
+
+  (data || []).filter(
+
+    complaint =>
+
+      complaint.status !==
+      "Completed"
+
+  );
+}
+
+const ownerRequestsWithReadData = [];
+
+let unreadCount = 0;
+
+for (const complaint of ownerComplaints) {
+
+  const {
+    data: latestMessage
+  } = await supabase
+
+    .from(
+      "owner_chat_messages"
+    )
+
+    .select(`
+      created_at
+    `)
+
+    .eq(
+      "complaint_id",
+      complaint.id
+    )
+
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    )
+
+    .limit(1)
+
+    .maybeSingle();
+
+  const {
+    data: readRecord
+  } = await supabase
+
+    .from(
+      "owner_chat_reads"
+    )
+
+    .select(`
+      last_read_at
+    `)
+
+    .eq(
+      "complaint_id",
+      complaint.id
+    )
+
+    .eq(
+      "employee_id",
+      employeeData.id
+    )
+
+    .maybeSingle();
+
+  const latestMessageDate =
+
+    latestMessage?.created_at
+
+      ? new Date(
+          latestMessage.created_at
+        )
+
+      : null;
+
+  const lastReadDate =
+
+    readRecord?.last_read_at
+
+      ? new Date(
+          readRecord.last_read_at
+        )
+
+      : null;
+
+  const isUnread =
+
+    latestMessageDate && (
+
+      !lastReadDate ||
+
+      latestMessageDate >
+      lastReadDate
+
+    );
+
+  if (isUnread) {
+
+    unreadCount++;
+
+  }
+
+  ownerRequestsWithReadData.push({
+
+  ...complaint,
+
+  request_type:
+    "Owner Complaint",
+
+  is_owner_chat:
+    true,
+
+  last_viewed_at:
+    readRecord?.last_read_at,
+
+  last_activity_at:
+    latestMessage?.created_at ||
+
+    complaint.updated_at ||
+
+    complaint.created_at,
+
+});
+
+}
+
+setOwnerRequests(
+  ownerRequestsWithReadData
+);
+
+setOwnerUnreadCount(
+  unreadCount
+);
 
       /*
   LOAD TICKET VIEWS
@@ -435,7 +640,15 @@ const statusOptions = [
 
 ];
 
-const filteredRequests = requests.filter((req) => {
+const displayedRequests =
+
+  activeTab === "my"
+
+    ? requests
+
+    : ownerRequests;
+
+const filteredRequests = displayedRequests.filter((req) => {
 
   const matchesType =
 
@@ -807,20 +1020,124 @@ className="
 
 </div>
 
-{/* MY REQUESTS */}
+  {/* Tickets*/}
+<div
+  className="
+    flex
+    gap-3
+    mb-6
+  "
+>
 
-<div>
+  <button
 
-  <h2
-    className="
-      text-2xl
-      font-bold
-      text-emerald-700
-      mb-4
-    "
+    onClick={() =>
+      setActiveTab("my")
+    }
+
+    className={
+
+      activeTab === "my"
+
+        ? `
+          px-5 py-2
+          rounded-xl
+          bg-emerald-600
+          text-white
+          font-semibold
+        `
+
+        : `
+          px-5 py-2
+          rounded-xl
+          bg-white
+          border
+          border-emerald-100
+          text-emerald-700
+        `
+    }
   >
+
     My Requests
-  </h2>
+
+  </button>
+
+  <button
+
+    onClick={() =>
+      setActiveTab("owner")
+    }
+
+    className={
+
+      activeTab === "owner"
+
+        ? `
+          px-5 py-2
+          rounded-xl
+          bg-purple-600
+          text-white
+          font-semibold
+        `
+
+        : `
+          px-5 py-2
+          rounded-xl
+          bg-white
+          border
+          border-purple-100
+          text-purple-700
+        `
+    }
+  >
+
+    <div
+  className="
+    flex
+    items-center
+    gap-2
+  "
+>
+
+  <span>
+    🐼 Owner Requests
+  </span>
+
+  {ownerUnreadCount > 0 && (
+
+    <div
+      className="
+        min-w-[20px]
+        h-5
+
+        px-2
+
+        rounded-full
+
+        bg-red-500
+
+        text-white
+
+        text-[11px]
+        font-bold
+
+        flex
+        items-center
+        justify-center
+      "
+    >
+
+      {ownerUnreadCount}
+
+    </div>
+
+  )}
+
+</div>
+
+  </button>
+
+</div>
 
 {/* TABLE HEADER */}
 
@@ -879,25 +1196,68 @@ className="
     "
   >
 
-    {filteredRequests.length === 0 && (
+{filteredRequests.length === 0 && (
 
-      <div
-        className="
-          bg-white
-          rounded-xl
-          border
-          border-emerald-100
-          shadow
-          p-10
-          text-center
-          text-emerald-500
-        "
-      >
-        No requests yet.
-      </div>
+  activeTab === "my" ? (
 
-    )}
+    <div
+      className="
+        bg-white
+        rounded-xl
+        border
+        border-emerald-100
+        shadow
+        p-10
+        text-center
+        text-emerald-500
+      "
+    >
+      No requests yet.
+    </div>
 
+  ) : (
+
+ <div
+  className="
+    flex
+    flex-col
+    items-center
+    justify-center
+
+    py-20
+  "
+>
+
+  <img
+    src="/mascots/panda-laptop.png"
+    alt="Panda"
+
+    className="
+      w-[320px]
+      h-auto
+
+      object-contain
+
+      mb-4
+    "
+  />
+
+  <div
+    className="
+      text-2xl
+      font-bold
+
+      text-emerald-700
+    "
+  >
+    No Owner Requests
+  </div>
+
+</div>
+
+  )
+
+)}
 {filteredRequests.map((req) => {
 
 const {
@@ -920,8 +1280,13 @@ href={
 
     ? `/employee/requests/hours-exception/${req.id}`
 
+: req.request_type ===
+    "Owner Complaint"
+
+  ? `/employee/requests/owner-chat/${req.id}`
+
   : req.request_type ===
-    "Complaint"
+      "Complaint"
 
     ? `/employee/requests/complaints/${req.id}`
 
@@ -993,7 +1358,13 @@ font-semibold
 text-emerald-700
               "
             >
-              {req.request_type}
+              {req.is_owner_chat
+
+  ? "🐼 Owner Request"
+
+  : req.request_type
+
+}
             </div>
 
           </div>
@@ -1117,7 +1488,13 @@ className="
                   text-emerald-700
                 "
               >
-                {req.request_type}
+                {req.is_owner_chat
+
+  ? "🐼 Owner Complaint"
+
+  : req.request_type
+
+}
               </div>
 
               <div
@@ -1270,6 +1647,6 @@ className="
 
 </div>
 
-    </div>
+   
   );
 }

@@ -60,7 +60,7 @@ export async function POST(
     } = await supabase
 
       .from(
-        "loa_requests"
+        "complaint_requests"
       )
 
       .update({
@@ -71,7 +71,7 @@ export async function POST(
         completed_by_id:
           managerId,
 
-        completed_by:
+        completed_by_name:
           managerName,
 
         completed_at:
@@ -159,7 +159,7 @@ export async function POST(
     } = await supabase
 
       .from(
-        "loa_requests"
+        "complaint_requests"
       )
 
       .select(`
@@ -188,7 +188,7 @@ export async function POST(
           `Completed "${ticket?.subject}" for ${ticket?.employee_name}`,
 
         type:
-          "LOA/ROA",
+          "Complaint",
 
         username:
           managerProfile?.username,

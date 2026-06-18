@@ -19,6 +19,9 @@ import StatusBadge
 import TicketChat
   from "@/components/tickets/TicketChat";
 
+  import EvidenceVault
+  from "@/components/tickets/EvidenceVault";
+
 export default function ComplaintTicketPage() {
 
   const params =
@@ -31,6 +34,11 @@ export default function ComplaintTicketPage() {
     ticket,
     setTicket
   ] = useState<any>(null);
+
+  const [
+  activeTab,
+  setActiveTab
+] = useState("chat");
 
   useEffect(() => {
 
@@ -88,34 +96,117 @@ export default function ComplaintTicketPage() {
       "
     >
 
-      {/* LEFT SIDE */}
+{/* LEFT SIDE */}
 
-      <div
-        className="
-          w-full
-          min-w-0
+<div
+  className="
+    w-full
+    min-w-0
+  "
+>
 
-          flex
-          flex-col
-        "
-      >
+  <div
+    className="
+      flex
+      gap-2
+      mb-4
+    "
+  >
 
-        <TicketChat
+    <button
 
-          ticketId={ticket.id}
+      onClick={() =>
+        setActiveTab(
+          "chat"
+        )
+      }
 
-          requestType="complaint"
+      className={`
+        px-4
+        py-2
 
-          senderRole="employee"
+        rounded-xl
 
-          senderName={
-            ticket.employee_name
-          }
+        text-sm
+        font-semibold
 
-          tableName="complaint_requests"
-        />
+        ${
+          activeTab === "chat"
 
-      </div>
+            ? "bg-emerald-600 text-white"
+
+            : "bg-white border border-emerald-200 text-emerald-700"
+        }
+      `}
+    >
+      Chat
+    </button>
+
+    <button
+
+      onClick={() =>
+        setActiveTab(
+          "evidence"
+        )
+      }
+
+      className={`
+        px-4
+        py-2
+
+        rounded-xl
+
+        text-sm
+        font-semibold
+
+        ${
+          activeTab === "evidence"
+
+            ? "bg-emerald-600 text-white"
+
+            : "bg-white border border-emerald-200 text-emerald-700"
+        }
+      `}
+    >
+      Evidence Vault
+    </button>
+
+  </div>
+
+  {activeTab === "chat" && (
+
+    <TicketChat
+
+      ticketId={ticket.id}
+
+      requestType="complaint"
+
+      senderRole="employee"
+
+      senderName={
+        ticket.employee_name
+      }
+
+      tableName="complaint_requests"
+    />
+
+  )}
+
+  {activeTab === "evidence" && (
+
+    <EvidenceVault
+
+      complaintId={ticket.id}
+
+      uploadedByName={
+        ticket.employee_name
+      }
+
+    />
+
+  )}
+
+</div>
 
       {/* RIGHT SIDE */}
 

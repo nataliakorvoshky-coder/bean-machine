@@ -44,6 +44,63 @@ if (
       );
     }
 
+/*
+  GET PROFILE
+*/
+
+const {
+  data: profile
+} = await supabase
+
+  .from("profiles")
+
+  .select(`
+    role_id
+  `)
+
+  .eq(
+    "id",
+    body.user_id
+  )
+
+  .maybeSingle();
+
+let isAdmin = false;
+
+/*
+  GET ROLE
+*/
+
+if (profile?.role_id) {
+
+  const {
+    data: role
+  } = await supabase
+
+    .from("roles")
+
+    .select(`
+      name,
+      level
+    `)
+
+    .eq(
+      "id",
+      profile.role_id
+    )
+
+    .maybeSingle();
+
+  isAdmin =
+
+    role?.name ===
+      "admin"
+
+    ||
+
+    role?.level >= 4;
+}
+
     /*
       CREATE MESSAGE
     */
@@ -80,11 +137,20 @@ sender_name:
   attachment_url:
     body.attachment_url || null,
 
-  attachments:
-    body.attachments || [],
+attachments:
+  body.attachments || [],
 
-  edited:
-    false,
+  is_admin:
+    body.is_admin || false,
+
+    is_manager:
+  body.is_manager || false,
+
+  is_supervisor:
+  body.is_supervisor || false,
+
+edited:
+  false,
 
   deleted:
     false,

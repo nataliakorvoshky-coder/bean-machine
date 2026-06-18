@@ -10,51 +10,20 @@ import {
   supabase,
 } from "@/lib/supabase";
 
-import {
-  updateTicketView
-} from "@/lib/tickets/updateTicketView";
-
-import AdjustmentRequestCard
-  from "@/components/tickets/AdjustmentRequestCard";
 
 interface Props {
 
-  ticketId: string;
+  complaintId: string;
 
-  requestType: string;
-
-  senderRole:
-    "employee" |
-    "manager";
-
-  senderName: string;
-
-  tableName: string;
-
-  onTicketUpdated?: () => void;
 }
 
-export default function TicketChat({
-
-  ticketId,
-
-  requestType,
-
-  senderRole,
-
-  senderName,
-
-  tableName,
-
-  onTicketUpdated,
-
+export default function OwnerChat({
+  complaintId,
 }: Props) {
+
 
   const [messages, setMessages] =
     useState<any[]>([]);
-
-const didInitialScrollRef =
-  useRef(false);
 
   const [newMessage, setNewMessage] =
     useState("");
@@ -68,9 +37,6 @@ const didInitialScrollRef =
   const [openReactionId, setOpenReactionId] =
     useState<string | null>(null);
 
-
-  const [typingUsers, setTypingUsers] =
-    useState<any[]>([]);
 
   const [currentUser, setCurrentUser] =
     useState<any>(null);
@@ -102,13 +68,6 @@ const chatRef =
 const [attachments, setAttachments] =
   useState<any[]>([]);
 
-  const [
-
-  ticketStatus,
-
-  setTicketStatus
-
-] = useState("");
 
 const [
 
@@ -117,6 +76,7 @@ const [
   setIsAdmin
 
 ] = useState(false);
+
 
 const [
   isManager,
@@ -184,34 +144,6 @@ useEffect(()=>{
         employee.name
       );
     }
-
-    /*
-  GET TICKET STATUS
-*/
-
-const {
-  data: ticket
-} = await supabase
-
-  .from(tableName)
-
-  .select(`
-    status
-  `)
-
-  .eq(
-    "id",
-    ticketId
-  )
-
-  .maybeSingle();
-
-if (ticket?.status) {
-
-  setTicketStatus(
-    ticket.status
-  );
-}
 
 /*
   GET ROLE
@@ -282,21 +214,9 @@ if (
 
 useEffect(() => {
 
-  if (
-    !ticketId ||
-    !tableName
-  ) {
-    return;
-  }
-
-  /*
-    INITIAL VIEW
-  */
-
-  updateTicketView(
-    tableName,
-    ticketId
-  );
+if (!complaintId) {
+  return;
+}
 
 /*
   LOAD MESSAGES
@@ -322,46 +242,13 @@ useEffect(() => {
     REALTIME
   */
 
-  const channel =
-    supabase.channel(
-      `ticket-${ticketId}`
-    );
-
+const channel =
+  supabase.channel(
+    `owner-chat-${complaintId}`
+  );
+  
   channelRef.current =
     channel;
-
-  channel
-
-.on(
-
-  "postgres_changes",
-
-  {
-
-    event: "*",
-
-    schema: "public",
-
-    table:
-      "loa_adjustment_requests",
-
-    filter:
-      `loa_request_id=eq.${ticketId}`,
-  },
-
-(payload)=>{
-
-  loadMessages();
-
-  if (
-    payload.eventType ===
-    "INSERT"
-  ) {
-
-    scrollToBottom();
-  }
-}
-)
 
 channel
 
@@ -375,11 +262,11 @@ channel
 
       schema: "public",
 
-      table:
-        "request_comments",
+table:
+  "owner_chat_messages",
 
-      filter:
-        `request_id=eq.${ticketId}`,
+filter:
+  `complaint_id=eq.${complaintId}`
     },
 
 (payload)=>{
@@ -401,36 +288,6 @@ channel
 }
   )
 
-  .on(
-
-    "postgres_changes",
-
-    {
-
-      event: "*",
-
-      schema: "public",
-
-      table:
-        "request_events",
-
-      filter:
-        `request_id=eq.${ticketId}`,
-    },
-
-(payload)=>{
-
-  loadMessages();
-
-  if (
-    payload.eventType ===
-    "INSERT"
-  ) {
-
-    scrollToBottom();
-  }
-}
-  )
 
   channel
 
@@ -471,8 +328,7 @@ channel
   };
 
 }, [
-  ticketId,
-  tableName
+  complaintId
 ]);
 
 useEffect(() => {
@@ -533,25 +389,17 @@ function handleClickOutside(
 
 async function loadMessages() {
 
-  /*
-    COMMENTS
-  */
-
   const {
-
     data: comments,
-
   } = await supabase
 
-    .from(
-      "request_comments"
-    )
+    .from("owner_chat_messages")
 
     .select("*")
 
     .eq(
-      "request_id",
-      ticketId
+      "complaint_id",
+      complaintId
     )
 
     .order(
@@ -561,113 +409,10 @@ async function loadMessages() {
       }
     );
 
-/*
-  ADJUSTMENT REQUESTS
-*/
-
-const {
-
-  data: adjustments,
-
-} = await supabase
-
-  .from(
-    "loa_adjustment_requests"
-  )
-
-  .select("*")
-
-  .eq(
-    "loa_request_id",
-    ticketId
-  )
-
-  .order(
-    "created_at",
-    {
-      ascending: true,
-    }
+  setMessages(
+    comments || []
   );
 
-  /*
-    MERGE
-  */
-
-const combined = [
-
-  ...(comments || []).map(
-    (c:any)=>({
-
-      ...c,
-
-      itemType:
-        "comment",
-    })
-  ),
-
-  ...(adjustments || []).map(
-    (a:any)=>({
-
-      ...a,
-
-      itemType:
-        "adjustment",
-    })
-  ),
-]
-
-.sort((a:any,b:any)=>{
-
-  const timeDiff =
-
-    new Date(a.created_at)
-      .getTime()
-
-    -
-
-    new Date(b.created_at)
-      .getTime();
-
-  /*
-    SAME TIMESTAMP
-
-    COMMENTS FIRST
-    ADJUSTMENT CARD SECOND
-  */
-
-  if (
-
-    Math.abs(timeDiff) < 3000
-
-  ) {
-
-    if (
-
-      a.itemType === "comment" &&
-
-      b.itemType === "adjustment"
-
-    ) {
-
-      return -1;
-    }
-
-    if (
-
-      a.itemType === "adjustment" &&
-
-      b.itemType === "comment"
-
-    ) {
-
-      return 1;
-    }
-  }
-
-  return timeDiff;
-});
-
-  setMessages(combined);
 }
 
 function scrollToBottom() {
@@ -720,7 +465,7 @@ if (
     const response =
       await fetch(
 
-        "/api/tickets/chat/send",
+        "/api/owner-chat/send",
 
         {
 
@@ -733,11 +478,9 @@ if (
 
           body: JSON.stringify({
 
-            ticket_id:
-              ticketId,
+complaint_id:
+  complaintId,
 
-            request_type:
-              requestType,
 
             user_id:
               user.id,
@@ -746,22 +489,26 @@ sender_name:
 
   currentEmployeeName ||
 
-  senderName ||
+  currentUser?.user_metadata
+    ?.full_name ||
 
   currentUser?.user_metadata
-    ?.full_name
-
-  ||
-
-  currentUser?.user_metadata
-    ?.username
-
-  ||
+    ?.username ||
 
   "Unknown",
 
-            sender_role:
-              senderRole,
+sender_role:
+
+  isAdmin
+    ? "admin"
+
+    : isManager
+    ? "manager"
+
+    : isSupervisor
+    ? "supervisor"
+
+    : "participant",
 
               is_admin: isAdmin,
 
@@ -783,6 +530,22 @@ attachments:
 
     const result =
       await response.json();
+
+await supabase
+
+  .from("complaint_requests")
+
+  .update({
+
+    owner_chat_activity_at:
+      new Date().toISOString()
+
+  })
+
+  .eq(
+    "id",
+    complaintId
+  );
 
     if (!response.ok) {
 
@@ -827,7 +590,7 @@ attachments:
     const response =
       await fetch(
 
-        "/api/tickets/upload",
+        "/api/owner-chat/upload",
 
         {
 
@@ -869,7 +632,7 @@ attachments:
     const response =
       await fetch(
 
-        "/api/tickets/chat/edit",
+        "/api/owner-chat/edit",
 
         {
 
@@ -903,19 +666,6 @@ attachments:
 
     loadMessages();
   }
-
-const isLocked =
-
-  ticketStatus
-    ?.toLowerCase()
-
-    ===
-
-  "completed"
-
-  &&
-
-  !isAdmin;
 
   return (
 
@@ -951,7 +701,7 @@ const isLocked =
             text-emerald-700
           "
         >
-          Ticket Chat
+         Owner Chat
         </div>
 
       </div>
@@ -984,33 +734,6 @@ pb-40
       >
 
         {messages.map((msg)=>{
-
-if (
-  msg.itemType ===
-  "adjustment"
-) {
-
-  if (
-    senderRole !== "manager"
-  ) {
-    return null;
-  }
-
-  return (
-
-    <AdjustmentRequestCard
-      key={msg.id}
-      adjustment={msg}
-      onUpdated={async () => {
-
-        await loadMessages();
-
-        await onTicketUpdated?.();
-
-      }}
-    />
-  );
-}
 
           const isEmployee =
             msg.sender_role ===
@@ -1057,30 +780,43 @@ if (
 >
 
 <div
-  className={`
-    text-sm
-    font-semibold
+className={`
+  text-sm
+  font-semibold
 
-    ${
+  ${
     msg.is_admin
+
       ? "text-purple-700"
+
       : msg.is_manager
+
       ? "text-[#D4AF37]"
+
       : msg.is_supervisor
+
       ? "text-[#B57EDC]"
+
       : "text-emerald-700"
-    }
-  `}
->
-  {
-    msg.is_admin
-      ? `🐼 ${msg.sender_name}`
-      : msg.sender_name
-      ? `⭐ ${msg.sender_name}`
-          : msg.is_supervisor
-    ? `💠 ${msg.sender_name}`
-    : msg.sender_name
   }
+`}
+>
+{
+  msg.is_admin
+
+    ? `🐼 ${msg.sender_name}`
+
+    : msg.is_manager
+
+    ? `⭐ ${msg.sender_name}`
+
+    : msg.is_supervisor
+
+    ? `💠 ${msg.sender_name}`
+
+    : msg.sender_name
+}
+
 </div>
 
                   <div
@@ -1395,7 +1131,7 @@ const isVideo =
           const response =
             await fetch(
 
-              "/api/tickets/reactions/toggle",
+             "/api/owner-chat/reactions/toggle",
 
               {
 
@@ -1458,13 +1194,7 @@ const isVideo =
 
                 {/* ACTIONS */}
 
-                {msg.sender_id === currentUser?.id
-
-  &&
-
-  !isLocked
-
-  && (
+            {msg.sender_id === currentUser?.id && (
 
                   <div
 className="
@@ -1664,7 +1394,7 @@ onClick={async ()=>{
   const response =
     await fetch(
 
-      "/api/tickets/reactions/toggle",
+      "/api/owner-chat/reactions",
 
       {
 
@@ -1729,38 +1459,6 @@ onClick={async ()=>{
         <div ref={messagesEndRef} />
 
       </div>
-
-      {isLocked && (
-
-  <div
-    className="
-      mx-6
-      mb-4
-
-      rounded-2xl
-
-      border
-      border-amber-200
-
-      bg-amber-50
-
-      px-4
-      py-3
-
-      text-sm
-      text-amber-700
-    "
-  >
-
-    This ticket has been
-    completed.
-
-    Chat is locked unless
-    reopened by an admin.
-
-  </div>
-
-)}
 
       {/* INPUT */}
 
@@ -1872,9 +1570,6 @@ onClick={async ()=>{
 
 <button
 
-  type="button"
-  disabled={isLocked}
-
   onClick={()=>
     fileInputRef.current?.click()
   }
@@ -1912,7 +1607,6 @@ hover:rotate-6
 <input
 
   ref={fileInputRef}
-  disabled={isLocked}
 
   type="file"
 
@@ -1968,7 +1662,6 @@ const allowed = [
           <textarea
 
             value={newMessage}
-            disabled={isLocked}
 
             onChange={(e)=>
               setNewMessage(
@@ -2004,10 +1697,6 @@ className="
 
   onClick={sendMessage}
 
-  disabled={
-    isLocked ||
-    uploading
-  }
 
             className="
               px-5

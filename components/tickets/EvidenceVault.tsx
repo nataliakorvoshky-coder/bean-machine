@@ -11,6 +11,8 @@ type Props = {
 
   uploadedByName: string;
 
+  canManage?: boolean;
+
 };
 
 export default function
@@ -19,6 +21,8 @@ EvidenceVault({
   complaintId,
 
   uploadedByName,
+
+  canManage = true,
 
 }: Props) {
 
@@ -46,6 +50,21 @@ const [
 ] = useState<any>(
   null
 );
+
+const [
+  renameModal,
+  setRenameModal
+] = useState(false);
+
+const [
+  renameTitle,
+  setRenameTitle
+] = useState("");
+
+const [
+  renameDescription,
+  setRenameDescription
+] = useState("");
 
 const [
   title,
@@ -194,21 +213,28 @@ const data =
       return;
     }
 
-    /*
-      RESET
-    */
+/*
+  RESET
+*/
 
-    setFile(null);
+setFile(null);
 
-    setTitle("");
+setTitle("");
 
-    setDescription("");
+setDescription("");
 
-    /*
-      RELOAD VAULT
-    */
+/*
+  ADD NEW EVIDENCE INSTANTLY
+*/
 
-    loadEvidence();
+if (data.evidence) {
+
+  setEvidence((current) => [
+    data.evidence,
+    ...current,
+  ]);
+
+}
 
   } catch (err) {
 
@@ -216,10 +242,132 @@ const data =
   }
 }
 
-const pandaPosition = Math.min(
-  90,
-  10 + evidence.length * 18
+
+async function renameEvidence() {
+
+  if (!selectedEvidence) {
+    return;
+  }
+
+  const res = await fetch(
+    "/api/complaints/evidence/update",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        evidenceId:
+          selectedEvidence.id,
+
+        title:
+          renameTitle,
+
+        description:
+          renameDescription,
+      }),
+    }
+  );
+
+  const data =
+    await res.json();
+
+  if (!res.ok) {
+    console.error(data);
+    return;
+  }
+
+setSelectedEvidence((current: any) => ({
+  ...current,
+
+  title: renameTitle,
+
+  description: renameDescription,
+}));
+
+setEvidence((current) =>
+
+  current.map((item) =>
+
+    item.id === data.evidence.id
+
+      ? data.evidence
+
+      : item
+
+  )
+
 );
+
+  setRenameModal(false);
+
+}
+
+async function deleteEvidence() {
+
+  const res = await fetch(
+    "/api/complaints/evidence/delete",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        evidenceId:
+          selectedEvidence.id,
+      }),
+    }
+  );
+
+  const data =
+    await res.json();
+
+  if (!res.ok) {
+    console.error(data);
+    return;
+  }
+
+  // Remove instantly from vault
+
+  setEvidence((current) =>
+
+    current.filter(
+      (item) =>
+        item.id !==
+        selectedEvidence.id
+    )
+
+  );
+
+  // Close preview modal
+
+  setSelectedEvidence(null);
+
+}
+
+const MAX_EVIDENCE = 25;
+
+const progress = Math.min(
+  evidence.length / MAX_EVIDENCE,
+  1
+);
+
+const MIN_POSITION = 30;
+const MAX_POSITION = 62;
+
+const pandaPosition =
+  MAX_POSITION -
+  progress *
+    (MAX_POSITION - MIN_POSITION);
+
+const ropeHeight =
+  Math.max(
+    evidence.length * 130,
+    280
+  );
+  
 
 return (
 
@@ -433,7 +581,7 @@ return (
 
 )}
 
-{/* SHERLOCK PANDA RAIL */}
+{evidence.length > 0 && (
 
 <div
   className="
@@ -442,90 +590,106 @@ return (
     right-0
 
     h-full
-    w-[180px]
+    w-[224px]
 
     pointer-events-none
   "
 >
 
-  {/* EVIDENCE LIFT */}
+  {/* ROPE CLIPPER */}
 
   <div
     className="
       absolute
-      top-4
-      right-[40px]
+      inset-0
 
-      bg-amber-100
-      border
-      border-amber-300
-
-      rounded-xl
-
-      px-3
-      py-2
-
-      shadow-md
-
-      text-xs
-      font-bold
-
-      text-amber-800
+      overflow-hidden
     "
   >
-    📁 Evidence Lift
-  </div>
 
-  {/* PANDA */}
+{/* CRANK */}
+
+<img
+  src="/mascots/crank.png"
+  alt="Crank"
+
+  className="
+    absolute
+
+    top-[-22px]
+    right-[-18px]
+
+    w-[190px]
+
+    z-20
+
+    pointer-events-none
+  "
+/>
+
+{/* FULL HEIGHT ROPE */}
 
 <div
+  className="
+    absolute
+
+    top-0
+
+    right-[63px]
+
+    w-[34px]
+
+    z-0
+  "
   style={{
-    top: `${pandaPosition}%`
+    height: `${ropeHeight}%`,
+
+    backgroundImage:
+      "url('/mascots/rope.png')",
+
+    backgroundRepeat:
+      "repeat-y",
+
+    backgroundPosition:
+      "center top",
+
+    backgroundSize:
+      "129px auto",
+  }}
+/>
+
+</div>
+
+  {/* MOVING PANDA */}
+
+<img
+  src="/mascots/sherlock-panda.png"
+  alt="Sherlock Panda"
+  style={{
+    top: `${pandaPosition}%`,
   }}
   className="
     absolute
 
-    right-[0px]
+    right-[-102px]
+
+    w-[220px]
 
     -translate-y-1/2
 
-    transition-all
-    duration-700
+    z-10
+
+transition-all
+duration-[1500ms]
+ease-in-out
   "
->
-
-  {/* FULL LENGTH ROPE */}
-
-  <div
-    className="
-      absolute
-
-      left-[56px]
-
-      -top-[500px]
-      -bottom-[500px]
-
-      w-[4px]
-
-      bg-amber-700
-
-      rounded-full
-
-      -z-10
-    "
-  />
-
-  <img
-    src="/mascots/sherlock-panda.png"
-    alt="Sherlock Panda"
-    className="w-[170px]"
-  />
+/>
 
 </div>
 
-</div>
+)}
 
-    {loading && (
+{loading && (
 
       <div>
 
@@ -917,36 +1081,219 @@ className="
           Download
         </a>
 
-        <button
+{canManage && (
 
+<button
+  onClick={() => {
+
+    setRenameTitle(
+      selectedEvidence.title || ""
+    );
+
+    setRenameDescription(
+      selectedEvidence.description || ""
+    );
+
+    setRenameModal(true);
+
+  }}
+
+  className="
+    px-4
+    py-2
+
+    rounded-xl
+
+    bg-amber-100
+
+    text-amber-700
+  "
+>
+  Rename
+</button>
+
+)}
+
+{canManage && (
+
+<button
+
+  onClick={deleteEvidence}
+
+  className="
+    px-4
+    py-2
+
+    rounded-xl
+
+    bg-red-100
+
+    text-red-700
+
+    hover:bg-red-200
+  "
+>
+  Delete
+</button>
+
+)}
+
+      </div>
+
+    </div>
+
+  </div>
+
+  )}
+
+{canManage && renameModal && (
+
+  <div
+    className="
+      fixed
+      inset-0
+
+      bg-black/60
+
+      z-[100]
+
+      flex
+      items-center
+      justify-center
+    "
+    onClick={() =>
+      setRenameModal(false)
+    }
+  >
+
+    <div
+      className="
+        bg-white
+
+        rounded-2xl
+
+        p-6
+        space-y-4
+
+        w-full
+        max-w-lg
+      "
+      onClick={(e) =>
+        e.stopPropagation()
+      }
+    >
+
+      <div
+        className="
+          text-xl
+          font-bold
+
+          mb-4
+        "
+      >
+        Rename Evidence
+      </div>
+
+<input
+  value={renameTitle}
+  onChange={(e) =>
+    setRenameTitle(
+      e.target.value
+    )
+  }
+  placeholder="Title"
+className="
+  w-full
+
+  rounded-xl
+
+  border-2
+  border-emerald-300
+
+  bg-white
+
+  px-4
+  py-3
+
+  text-gray-800
+
+  transition-all
+  duration-200
+
+  focus:outline-none
+  focus:border-emerald-500
+"
+/>
+
+      <textarea
+        value={renameDescription}
+        onChange={(e) =>
+          setRenameDescription(
+            e.target.value
+          )
+        }
+        placeholder="Description"
+className="
+  w-full
+
+  rounded-xl
+
+  border-2
+  border-emerald-300
+
+  bg-white
+
+  px-4
+  py-3
+
+  text-gray-800
+
+  transition-all
+  duration-200
+
+  focus:outline-none
+  focus:border-emerald-500
+"
+      />
+
+      <div
+        className="
+          flex
+          justify-end
+          gap-2
+        "
+      >
+
+        <button
+          onClick={() =>
+            setRenameModal(false)
+          }
           className="
             px-4
             py-2
 
             rounded-xl
 
-            bg-amber-100
-
-            text-amber-700
+            bg-gray-100
           "
         >
-          Rename
+          Cancel
         </button>
 
         <button
-
+          onClick={renameEvidence}
           className="
             px-4
             py-2
 
             rounded-xl
 
-            bg-red-100
+            bg-emerald-600
 
-            text-red-700
+            text-white
           "
         >
-          Delete
+          Save
         </button>
 
       </div>
@@ -957,7 +1304,7 @@ className="
 
 )}
 
-  </div>  
+  </div> 
 
 );
 
