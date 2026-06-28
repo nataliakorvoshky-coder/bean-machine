@@ -132,6 +132,29 @@ useEffect(() => {
 
   .subscribe();
 
+  const incidentChannel = supabase
+
+  .channel(
+    "incident-requests"
+  )
+
+  .on(
+    "postgres_changes",
+
+    {
+      event: "*",
+      schema: "public",
+      table:
+        "incident_requests",
+    },
+
+    () => {
+      loadRequests();
+    }
+  )
+
+  .subscribe();
+
   return () => {
 
     supabase.removeChannel(
@@ -144,6 +167,10 @@ useEffect(() => {
 
     supabase.removeChannel(
   complaintChannel
+);
+
+supabase.removeChannel(
+  incidentChannel
 );
 
   };
@@ -253,6 +280,17 @@ if (!user)
 
     .select("*");
 
+// Incidents
+
+    const { data: incidents } =
+  await supabase
+
+    .from(
+      "incident_requests"
+    )
+
+    .select("*");
+
         /*
   LOAD VIEWS
 */
@@ -289,6 +327,12 @@ const merged = [
     request_category:
       "Complaint",
   })),
+
+  ...(incidents || []).map((r) => ({
+  ...r,
+  request_category:
+    "Incident",
+})),
 
 ];
 
@@ -349,6 +393,14 @@ if (
     "complaint_requests";
 }
 
+if (
+  req.request_category ===
+  "Incident"
+) {
+  requestTable =
+    "incident_requests";
+}
+
     const view =
       views?.find(
 
@@ -396,6 +448,14 @@ if (
 ) {
   table =
     "complaint_requests";
+}
+
+if (
+  req.request_category ===
+  "Incident"
+) {
+  table =
+    "incident_requests";
 }
 
   await fetch(
@@ -478,6 +538,14 @@ if (
     "complaint_requests";
 }
 
+if (
+  req.request_category ===
+  "Incident"
+) {
+  table =
+    "incident_requests";
+}
+
   await fetch(
     "/api/requests/update",
     {
@@ -557,6 +625,14 @@ if (
 ) {
   table =
     "complaint_requests";
+}
+
+if (
+  req.request_category ===
+  "Incident"
+) {
+  table =
+    "incident_requests";
 }
 
   await fetch(
@@ -641,6 +717,14 @@ if (
     "complaint_requests";
 }
 
+if (
+  req.request_category ===
+  "Incident"
+) {
+  table =
+    "incident_requests";
+}
+
   await fetch(
     "/api/requests/update",
     {
@@ -709,6 +793,14 @@ if (
 ) {
   table =
     "complaint_requests";
+}
+
+if (
+  req.request_category ===
+  "Incident"
+) {
+  table =
+    "incident_requests";
 }
 
   await fetch(
@@ -886,9 +978,18 @@ return (
 );
 });
 
-const totalPages = Math.ceil(
-  filteredRequests.length /
-  PAGE_SIZE
+const totalPages = Math.max(
+
+  1,
+
+  Math.ceil(
+
+    filteredRequests.length /
+
+    PAGE_SIZE
+
+  )
+
 );
 
 const paginatedRequests =
@@ -1177,12 +1278,20 @@ mb-1
 
 </div>
 
-<div className="
-  flex flex-wrap
-  items-center
-  gap-3
-  mb-8
-">
+<div
+  className="
+    flex
+    flex-wrap
+
+    justify-center
+
+    items-center
+
+    gap-3
+
+    mb-8
+  "
+>
 
 
 {/* STATUS */}
@@ -1467,6 +1576,11 @@ href={
 
     ? `/manager/requests/complaints/${req.id}`
 
+  : req.request_category ===
+    "Incident"
+
+    ? `/manager/requests/incidents/${req.id}`
+
     : `/manager/requests/loa-roa/${req.id}`
 }
 
@@ -1589,71 +1703,140 @@ href={
 
 })}
 
-        <div className="
-  flex justify-center
-  items-center gap-4
-  mt-8
-">
+{filteredRequests.length > 0 &&
+
+ totalPages > 1 && (
+
+<div
+  className="
+    flex
+    justify-center
+    items-center
+
+    gap-2
+
+    mt-8
+  "
+>
 
   <button
 
     onClick={() =>
-      setPage((p) =>
-        Math.max(p - 1, 0)
+      setPage(
+        Math.max(
+          page - 1,
+          0
+        )
       )
     }
 
     disabled={page === 0}
 
     className="
-      px-4 py-2
+      px-4
+      py-2
+
       rounded-xl
-      border border-emerald-300
-      text-emerald-700
+
+      border
+      border-emerald-100
+
+      bg-white
+
       disabled:opacity-40
     "
   >
-    Prev
+
+    Previous
+
   </button>
 
-  <div className="
-    text-sm font-semibold
-    text-emerald-700
-  ">
-    Page
-    {" "}
-    {page + 1}
-    {" / "}
-    {totalPages || 1}
-  </div>
+  {Array.from({
+
+    length:
+      totalPages
+
+  }).map((_, index) => (
+
+    <button
+
+      key={index}
+
+      onClick={() =>
+        setPage(index)
+      }
+
+      className={`
+
+        w-10
+        h-10
+
+        rounded-xl
+
+        ${
+
+          page === index
+
+            ? `
+              bg-emerald-600
+              text-white
+            `
+
+            : `
+              bg-white
+              border
+              border-emerald-100
+            `
+
+        }
+
+      `}
+    >
+
+      {index + 1}
+
+    </button>
+
+  ))}
 
   <button
 
     onClick={() =>
-      setPage((p) =>
+      setPage(
         Math.min(
-          p + 1,
+          page + 1,
           totalPages - 1
         )
       )
     }
 
     disabled={
-      page >= totalPages - 1
+      page >=
+      totalPages - 1
     }
 
     className="
-      px-4 py-2
+      px-4
+      py-2
+
       rounded-xl
-      border border-emerald-300
-      text-emerald-700
+
+      border
+      border-emerald-100
+
+      bg-white
+
       disabled:opacity-40
     "
   >
+
     Next
+
   </button>
 
 </div>
+
+)}
 
       </div>
 

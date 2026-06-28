@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { logActivity } from "@/lib/logActivity"
 import StyledDropdown from "@/components/StyledDropdown"
@@ -64,6 +65,9 @@ const severityOptions = [
 ]
 
 export default function IncidentRequestPage() {
+
+  const router =
+  useRouter();
 
   const [loading, setLoading] =
     useState(false)
@@ -366,33 +370,11 @@ await fetch("/api/activity", {
   }),
 })
 
-      setSubmitted(true)
+setSubmitted(true);
 
-      setForm({
-
-        incident_type: "",
-
-        severity: "",
-
-        subject: "",
-
-        description: "",
-
-        people_involved: "",
-
-        incident_date: "",
-
-        location: "",
-
-        injuries_reported: "",
-
-        immediate_action_taken: "",
-
-        photo: null,
-
-video: null,
-
-      })
+router.push(
+  "/employee/requests"
+);
 
     } catch (err) {
 

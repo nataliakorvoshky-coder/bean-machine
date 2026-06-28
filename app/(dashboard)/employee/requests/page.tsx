@@ -111,6 +111,31 @@ const [
   setOwnerUnreadCount
 ] = useState(0);
 
+const [
+  currentPage,
+  setCurrentPage
+] = useState(1);
+
+const ITEMS_PER_PAGE = 10;
+
+useEffect(() => {
+
+  setCurrentPage(1);
+
+}, [
+
+  activeTab,
+
+  typeFilter,
+
+  statusFilter,
+
+  fromDate,
+
+  toDate
+
+]);
+
 useEffect(() => {
 
   loadRequests();
@@ -184,6 +209,29 @@ useEffect(() => {
 
   .subscribe();
 
+  const incidentChannel = supabase
+
+  .channel(
+    "employee-incident-requests"
+  )
+
+  .on(
+    "postgres_changes",
+
+    {
+      event: "*",
+      schema: "public",
+      table:
+        "incident_requests",
+    },
+
+    () => {
+      loadRequests();
+    }
+  )
+
+  .subscribe();
+
   return () => {
 
     supabase.removeChannel(
@@ -196,6 +244,10 @@ useEffect(() => {
 
     supabase.removeChannel(
   complaintChannel
+);
+
+supabase.removeChannel(
+  incidentChannel
 );
 
   };
@@ -258,6 +310,23 @@ useEffect(() => {
 
   .from(
     "complaint_requests"
+  )
+
+  .select("*")
+
+  .eq(
+    "employee_id",
+    employeeData.id
+  );
+
+  // Incidents
+
+  const {
+  data: incidents
+} = await supabase
+
+  .from(
+    "incident_requests"
   )
 
   .select("*")
@@ -489,6 +558,12 @@ const merged = [
       "Complaint",
   })),
 
+  ...(incidents || []).map((r) => ({
+  ...r,
+  request_type:
+    "Incident",
+})),
+
 ];
 
     merged.sort((a, b) => {
@@ -604,6 +679,11 @@ const typeOptions = [
     name: "Complaint",
   },
 
+  {
+  id: "Incident",
+  name: "Incident",
+},
+
 ];
 
 const statusOptions = [
@@ -688,6 +768,32 @@ const filteredRequests = displayedRequests.filter((req) => {
     matchesToDate
   );
 });
+
+const totalPages = Math.max(
+
+  1,
+
+  Math.ceil(
+
+    filteredRequests.length /
+
+    ITEMS_PER_PAGE
+
+  )
+
+);
+
+const paginatedRequests =
+
+  filteredRequests.slice(
+
+    (currentPage - 1) *
+      ITEMS_PER_PAGE,
+
+    currentPage *
+      ITEMS_PER_PAGE
+
+  );
 
   return (
     <div className="
@@ -930,11 +1036,20 @@ className="
 
       {/* FILTERS */}
 
-<div className="
-  flex flex-wrap gap-4
-  items-end
-  mb-8
-">
+<div
+  className="
+    flex
+    flex-wrap
+
+    justify-center
+
+    items-center
+
+    gap-3
+
+    mb-8
+  "
+>
 
   {/* TYPE */}
 
@@ -1258,7 +1373,8 @@ className="
   )
 
 )}
-{filteredRequests.map((req) => {
+
+{paginatedRequests.map((req) => {
 
 const {
   updatedRecently
@@ -1285,12 +1401,17 @@ href={
 
   ? `/employee/requests/owner-chat/${req.id}`
 
-  : req.request_type ===
-      "Complaint"
+: req.request_type ===
+    "Complaint"
 
-    ? `/employee/requests/complaints/${req.id}`
+  ? `/employee/requests/complaints/${req.id}`
 
-    : `/employee/requests/loa-roa/${req.id}`
+: req.request_type ===
+    "Incident"
+
+  ? `/employee/requests/incidents/${req.id}`
+
+  : `/employee/requests/loa-roa/${req.id}`
 }
 
     key={req.id}
@@ -1642,6 +1763,139 @@ className="
 
 })}
 
+{filteredRequests.length > 0 &&
+
+ totalPages > 1 && (
+
+  <div
+    className="
+      flex
+      justify-center
+      items-center
+
+      gap-2
+
+      mt-6
+    "
+  >
+
+    <button
+
+      onClick={() =>
+        setCurrentPage(
+          currentPage - 1
+        )
+      }
+
+      disabled={
+        currentPage === 1
+      }
+
+      className="
+        px-4
+        py-2
+
+        rounded-xl
+
+        border
+        border-emerald-100
+
+        bg-white
+
+        disabled:opacity-40
+      "
+    >
+
+      Previous
+
+    </button>
+
+    {Array.from({
+
+      length:
+        totalPages
+
+    }).map((_, index) => (
+
+      <button
+
+        key={index}
+
+        onClick={() =>
+          setCurrentPage(
+            index + 1
+          )
+        }
+
+        className={`
+
+          w-10
+          h-10
+
+          rounded-xl
+
+          ${
+
+            currentPage ===
+            index + 1
+
+              ? `
+                bg-emerald-600
+                text-white
+              `
+
+              : `
+                bg-white
+                border
+                border-emerald-100
+              `
+
+          }
+
+        `}
+      >
+
+        {index + 1}
+
+      </button>
+
+    ))}
+
+    <button
+
+      onClick={() =>
+        setCurrentPage(
+          currentPage + 1
+        )
+      }
+
+      disabled={
+        currentPage ===
+        totalPages
+      }
+
+      className="
+        px-4
+        py-2
+
+        rounded-xl
+
+        border
+        border-emerald-100
+
+        bg-white
+
+        disabled:opacity-40
+      "
+    >
+
+      Next
+
+    </button>
+
+  </div>
+
+)}
 
   </div>
 

@@ -165,31 +165,6 @@ body: JSON.stringify({
       const data = await res.json();
       console.log("Stock item updated:", data);
 
-      const item =
-  items.find(
-    i => i.id === id
-  )
-
-await fetch("/api/activity", {
-  method: "POST",
-  headers: {
-    "Content-Type":
-      "application/json"
-  },
-  body: JSON.stringify({
-
-    action:
-      `Updated current stock of "${item?.name}" to ${value}`,
-
-    type:
-      "stock",
-
-    username:
-      localStorage.getItem(
-        "username"
-      ),
-  })
-})
 
       load(); // Refresh stock list after updating current amount
 
@@ -226,31 +201,6 @@ body: JSON.stringify({
       const data = await res.json();
       console.log("Stock goal updated:", data);
 
-      const item =
-  items.find(
-    i => i.id === id
-  )
-
-await fetch("/api/activity", {
-  method: "POST",
-  headers: {
-    "Content-Type":
-      "application/json"
-  },
-  body: JSON.stringify({
-
-    action:
-      `Updated goal stock of "${item?.name}" to ${value}`,
-
-    type:
-      "stock",
-
-    username:
-      localStorage.getItem(
-        "username"
-      ),
-  })
-})
 
       load(); // Refresh stock list after updating goal amount
 
@@ -261,6 +211,68 @@ await fetch("/api/activity", {
       console.error("Error updating stock goal:", err);
     }
   }
+
+  async function logCurrentChange(
+  item: StockItem
+) {
+
+  await fetch(
+    "/api/activity",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
+
+        action:
+          `Updated current stock of "${item.name}" to ${item.current_amount}`,
+
+        type:
+          "stock",
+
+        username:
+          localStorage.getItem(
+            "username"
+          ),
+
+      }),
+    }
+  );
+
+}
+
+async function logGoalChange(
+  item: StockItem
+) {
+
+  await fetch(
+    "/api/activity",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
+
+        action:
+          `Updated goal stock of "${item.name}" to ${item.goal_amount}`,
+
+        type:
+          "stock",
+
+        username:
+          localStorage.getItem(
+            "username"
+          ),
+
+      }),
+    }
+  );
+
+}
 
 async function deleteItem(
   id: string
@@ -440,19 +452,39 @@ transition={{ duration: 0.25, delay: index * 0.03 }}
               </div>
 
               <div className="text-center">
-                <input
-                  type="number"
-                  value={item.current_amount}
-                  onChange={(e) => updateCurrent(item.id, Number(e.target.value))}
+<input
+  type="number"
+  value={item.current_amount}
+
+  onChange={(e) =>
+    updateCurrent(
+      item.id,
+      Number(e.target.value)
+    )
+  }
+
+  onBlur={() =>
+    logCurrentChange(item)
+  }
                   className="w-[70px] border border-emerald-300 rounded text-center text-sm py-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div className="text-center">
-                <input
-                  type="number"
-                  value={item.goal_amount}
-                  onChange={(e) => updateGoal(item.id, Number(e.target.value))}
+<input
+  type="number"
+  value={item.goal_amount}
+
+  onChange={(e) =>
+    updateGoal(
+      item.id,
+      Number(e.target.value)
+    )
+  }
+
+  onBlur={() =>
+    logGoalChange(item)
+  }
                   className="w-[70px] border border-emerald-300 rounded text-center text-sm py-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>

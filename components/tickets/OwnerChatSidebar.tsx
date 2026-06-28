@@ -11,7 +11,9 @@ import {
 
 type Props = {
 
-  complaintId: string;
+  complaintId?: string;
+
+  incidentId?: string;
 
   canManageMembers?: boolean;
 
@@ -21,9 +23,17 @@ export default function OwnerChatSidebar({
 
   complaintId,
 
+  incidentId,
+
   canManageMembers = true,
 
 }: Props) {
+
+  const ticketId =
+
+    complaintId ||
+
+    incidentId;
 
 const [
   admins,
@@ -51,16 +61,16 @@ useEffect(() => {
     "OWNER CHAT SIDEBAR LOADED"
   );
 
-  console.log(
-    "COMPLAINT ID:",
-    complaintId
-  );
+console.log(
+  "TICKET ID:",
+  ticketId
+);
 
   loadMembers();
 
   loadEmployees();
 
-}, [complaintId]);
+}, [ticketId]);
 
 async function loadMembers() {
 
@@ -137,8 +147,8 @@ const {
 
     {
 
-      complaint_id:
-        complaintId,
+complaint_id:
+  ticketId,
 
       employee_id:
         profile.employee_id,
@@ -185,10 +195,10 @@ console.log(
 
     .select("*")
 
-    .eq(
-      "complaint_id",
-      complaintId
-    );
+.eq(
+  "complaint_id",
+  ticketId
+);
 
     console.log(
   "OWNER CHAT MEMBERS:",
@@ -260,15 +270,15 @@ async function addParticipant(
             "application/json",
         },
 
-        body: JSON.stringify({
+body: JSON.stringify({
 
-          complaint_id:
-            complaintId,
+  complaint_id:
+    ticketId,
 
-          employee_id:
-            employee.id,
+  employee_id:
+    employee.id,
 
-        }),
+}),
 
       }
 

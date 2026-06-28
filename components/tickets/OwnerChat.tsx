@@ -13,13 +13,25 @@ import {
 
 interface Props {
 
-  complaintId: string;
+  complaintId?: string;
+
+  incidentId?: string;
 
 }
 
 export default function OwnerChat({
+
   complaintId,
+
+  incidentId,
+
 }: Props) {
+
+  const ticketId =
+
+    complaintId ||
+
+    incidentId;
 
 
   const [messages, setMessages] =
@@ -214,7 +226,7 @@ if (
 
 useEffect(() => {
 
-if (!complaintId) {
+if (!ticketId) {
   return;
 }
 
@@ -244,7 +256,7 @@ if (!complaintId) {
 
 const channel =
   supabase.channel(
-    `owner-chat-${complaintId}`
+    `owner-chat-${ticketId}`
   );
   
   channelRef.current =
@@ -266,7 +278,7 @@ table:
   "owner_chat_messages",
 
 filter:
-  `complaint_id=eq.${complaintId}`
+  `complaint_id=eq.${ticketId}`
     },
 
 (payload)=>{
@@ -328,7 +340,7 @@ filter:
   };
 
 }, [
-  complaintId
+  ticketId
 ]);
 
 useEffect(() => {
@@ -397,10 +409,10 @@ async function loadMessages() {
 
     .select("*")
 
-    .eq(
-      "complaint_id",
-      complaintId
-    )
+.eq(
+  "complaint_id",
+  ticketId
+)
 
     .order(
       "created_at",
@@ -479,7 +491,7 @@ if (
           body: JSON.stringify({
 
 complaint_id:
-  complaintId,
+  ticketId,
 
 
             user_id:
@@ -533,7 +545,11 @@ attachments:
 
 await supabase
 
-  .from("complaint_requests")
+  .from(
+    complaintId
+      ? "complaint_requests"
+      : "incident_requests"
+  )
 
   .update({
 
@@ -544,7 +560,7 @@ await supabase
 
   .eq(
     "id",
-    complaintId
+    ticketId
   );
 
     if (!response.ok) {

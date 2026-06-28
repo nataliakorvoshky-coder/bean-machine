@@ -7,7 +7,9 @@ import {
 
 type Props = {
 
-  complaintId: string;
+  complaintId?: string;
+
+  incidentId?: string;
 
   uploadedByName: string;
 
@@ -19,6 +21,8 @@ export default function
 EvidenceVault({
 
   complaintId,
+
+   incidentId,
 
   uploadedByName,
 
@@ -84,11 +88,17 @@ const [
 
   ] = useState(true);
 
-  useEffect(() => {
+  const ticketId =
 
-    loadEvidence();
+  complaintId ||
 
-  }, [complaintId]);
+  incidentId;
+
+useEffect(() => {
+
+  loadEvidence();
+
+}, [ticketId]);
 
   async function loadEvidence() {
 
@@ -110,12 +120,13 @@ const [
 
             },
 
-            body:
-              JSON.stringify({
+body:
+  JSON.stringify({
 
-                complaintId,
+    complaintId:
+      ticketId,
 
-              }),
+  }),
           }
         );
 
@@ -164,7 +175,7 @@ formData.append(
 
 formData.append(
   "complaintId",
-  complaintId
+  ticketId || ""
 );
 
 formData.append(
